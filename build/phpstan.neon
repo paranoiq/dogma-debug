@@ -1,0 +1,10 @@
+
+includes:
+	- phpstan.conf.php
+
+parameters:
+	scanDirectories:
+		- ../tracy
+
+	ignoreErrors:
+		- '#Method DogmaDebugColors::.* has parameter \$string with no typehint specified#'

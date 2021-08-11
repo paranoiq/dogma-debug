@@ -1,0 +1,17 @@
+
+directories:
+	- src
+	- //
+
+dictionariesByFileName: []
+
+dictionariesByFileExtension:
+    neon: en
+    php: en php
+
+dictionaryDirectories:
+    - vendor/spell-checker/spell-checker
+    - vendor/spell-checker/dictionary-en
+
+localIgnores:
+    *: bd rdx prepend prepended Equalable

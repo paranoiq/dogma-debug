@@ -1,0 +1,9 @@
+composer.lock
+tracy
+vendor
+bin
+output
+log
+coverage.html
+coverage.xml
+debug.log
