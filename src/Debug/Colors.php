@@ -40,6 +40,8 @@ final class Colors
 	public const LPURPLE = 'M';
 	public const DPURPLE = 'm';
 
+	public const RESET = "\x1B[0m";
+
 	/** @var string[] */
 	private static $fg = [
 		self::WHITE => '1;37',
@@ -118,7 +120,7 @@ final class Colors
 	{
 		$original = self::remove($string);
 
-		return str_pad($string, $length + strlen($string) - strlen($original), $with, $type);
+		return str_pad($string, $length + strlen($string) - strlen($original) + 1, $with, $type);
 	}
 
 	public static function remove(string $string): string

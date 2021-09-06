@@ -1,4 +1,11 @@
 <?php declare(strict_types = 1);
+/**
+ * This file is part of the Dogma library (https://github.com/paranoiq/dogma)
+ *
+ * Copyright (c) 2012 Vlasta Neubauer (@paranoiq)
+ *
+ * For the full copyright and license information read the file 'license.md', distributed with this source code
+ */
 
 namespace Dogma\Debug;
 
@@ -12,6 +19,7 @@ use function dirname;
 use function explode;
 use function implode;
 use function is_int;
+use function is_scalar;
 use function preg_replace;
 use function preg_replace_callback;
 use function str_repeat;
@@ -56,6 +64,9 @@ trait DumperFormatters
         'info' => C::DGRAY, // // 5 items
 
         'exceptions' => C::LMAGENTA, // RECURSION, ... (max depth, not traversed)
+
+        'function' => C::LGREEN, // stream wrapper function call
+        'time' => C::LBLUE, // stream wrapper operation time
     ];
 
     public static function null(string $value): string
@@ -125,7 +136,9 @@ trait DumperFormatters
      */
     public static function key($key): string
     {
-        if (self::$colors['key'] !== null) {
+        if ($key === '') {
+            return self::string($key);
+        } elseif (self::$colors['key'] !== null) {
             // todo: string key escaping
             return C::color($key, self::$colors['key']);
         } elseif (is_int($key)) {
@@ -237,6 +250,49 @@ trait DumperFormatters
             . C::color($fileName, self::$colors['file'])
             . C::color(':', self::$colors['info'])
             . C::color((string) $line, self::$colors['line']);
+    }
+
+    /**
+     * @param string $name
+     * @param string[] $params
+     * @param string|string[]|null $return
+     * @param mixed[] $hints
+     * @return string
+     */
+    public static function wrapperCall(string $name, array $params = [], $return = null, array $hints = []): string
+    {
+        $info = self::$showInfo;
+        self::$showInfo = null;
+
+        $formatted = [];
+        foreach ($params as $key => $value) {
+            $key = is_int($key) ? null : $key;
+            $formatted[] = self::dumpValue($value, 0, $key);
+        }
+        $params = implode(C::color(', ', self::$colors['function']), $formatted);
+
+        if ($return === null) {
+            $output = '';
+            $end = ')';
+        } elseif (is_scalar($return)) {
+            $output = ' ' . self::dumpValue($return);
+            $end = '):';
+        } else {
+            $output = [];
+            foreach ($return as $k => $v) {
+                if (is_int($k)) {
+                    $output[] = self::dumpValue($v);
+                } else {
+                    $output[] = C::color($k . ':', self::$colors['function']) . ' ' . self::dumpValue($v);
+                }
+            }
+            $output = ' ' . implode(' ', $output);
+            $end = '):';
+        }
+
+        self::$showInfo = $info;
+
+        return C::color($name . '(', self::$colors['function']) . $params . C::color($end, self::$colors['function']) . $output;
     }
 
 }

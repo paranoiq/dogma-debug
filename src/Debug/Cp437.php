@@ -33,11 +33,6 @@ class Cp437
         '⌂'
     ];
 
-    public static function toUtf8(string $string): string
-    {
-        return str_replace(range("\x80", "\xff"), self::UPPER_HALF, $string);
-    }
-
     /**
      * Binary string formatted as UTF-8 representation of original IPM PC (CP437) font
      *
@@ -50,4 +45,10 @@ class Cp437
 
         return str_replace(range("\x00", "\x1f") + ["\x7F"], self::SPECIAL_PRINTABLE, $string);
     }
+
+    public static function toUtf8(string $string): string
+    {
+        return str_replace(range("\x80", "\xff"), self::UPPER_HALF, $string);
+    }
+
 }

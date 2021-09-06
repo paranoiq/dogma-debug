@@ -17,40 +17,38 @@
 use Dogma\Debug\DebugClient;
 use Dogma\Debug\Dumper;
 use Dogma\Debug\Colors as C;
+use Dogma\Debug\Packet;
 
 if (!class_exists(Dumper::class)) {
     error_reporting(E_ALL);
 
     require_once __DIR__ . '/Debug/Str.php';
     require_once __DIR__ . '/Debug/Colors.php';
+    require_once __DIR__ . '/Debug/Packet.php';
     require_once __DIR__ . '/Debug/DebugClient.php';
     DebugClient::$timers['total'] = microtime(true);
 
     require_once __DIR__ . '/Debug/Cp437.php';
     require_once __DIR__ . '/Debug/DumperFormatters.php';
     require_once __DIR__ . '/Debug/DumperHandlers.php';
+    require_once __DIR__ . '/Debug/DumperHandlersDom.php';
     require_once __DIR__ . '/Debug/DumperTraces.php';
     require_once __DIR__ . '/Debug/Dumper.php';
 
     require_once __DIR__ . '/Debug/FileStreamWrapper.php';
-}
-
-if (!function_exists('d')) {
 
     /**
+     * Local dump
+     *
      * @param mixed $value
      * @return mixed
      */
-    function d($value, $depth = 5, int $trace = 1)
+    function ld($value, $depth = 5, int $trace = 1)
     {
-        echo Dumper::dump($value, $depth, $trace);
+        echo Dumper::dump($value, $depth, $trace) . "\n";
 
         return $value;
     }
-
-}
-
-if (!function_exists('rd')) {
 
     /**
      * Remote dump
@@ -62,19 +60,15 @@ if (!function_exists('rd')) {
      */
     function rd($value, $depth = 5, int $trace = 1)
     {
-        $dump = Dumper::dump($value, $depth, $trace, DebugClient::$counter);
+        $dump = Dumper::dump($value, $depth, $trace);
 
-        DebugClient::remoteWrite($dump);
+        DebugClient::remoteWrite(Packet::DUMP, $dump);
 
         return $value;
     }
 
-}
-
-if (!function_exists('rc')) {
-
     /**
-     * Remote dump capture
+     * Remote capture dump
      *
      * @param callable $callback
      * @param int|bool $depth
@@ -87,19 +81,15 @@ if (!function_exists('rc')) {
         $callback();
         $value = ob_end_clean();
 
-        $dump = Dumper::dump($value, $depth, $trace, DebugClient::$counter);
+        $dump = Dumper::dump($value, $depth, $trace);
 
-        DebugClient::remoteWrite($dump);
+        DebugClient::remoteWrite(Packet::DUMP, $dump);
 
         return $value;
     }
 
-}
-
-if (!function_exists('rf')) {
-
     /**
-     * Remotely dump current function/method name
+     * Remote function/method name dump
      */
     function rf(): void
     {
@@ -116,19 +106,16 @@ if (!function_exists('rf')) {
             $message = C::color(" $function() ", C::WHITE, C::DRED);
         }
 
-        DebugClient::remoteWrite($message . "\n");
+        DebugClient::remoteWrite(Packet::LOCATION,$message);
     }
 
-}
-
-if (!function_exists('rl')) {
-
     /**
-     * Remote dumper label
+     * Remote label print
      *
      * @param mixed $label
+     * @return mixed
      */
-    function rl($label): void
+    function rl($label)
     {
         if ($label === null) {
             $label = 'null';
@@ -137,21 +124,19 @@ if (!function_exists('rl')) {
         } elseif ($label === true) {
             $label = 'true';
         }
-        $message = C::color(" $label ", C::WHITE, C::DRED) . "\n";
+        $message = C::color(" $label ", C::WHITE, C::DRED);
 
-        DebugClient::remoteWrite($message);
+        DebugClient::remoteWrite(Packet::LABEL, $message);
+
+        return $label;
     }
 
-}
-
-if (!function_exists('t')) {
-
     /**
-     * Remote dumper timer
+     * Remote timer
      *
      * @param string|int|null $label
      */
-    function t($label = ''): void
+    function rt($label = ''): void
     {
         $label = (string) $label;
 
@@ -168,9 +153,9 @@ if (!function_exists('t')) {
 
         $time = number_format((microtime(true) - $start) * 1000, 3, '.', ' ');
         $label = $label ? ucfirst($label) : 'Timer';
-        $message = C::color(" $label: $time ms ", C::WHITE, C::DGREEN) . "\n";
+        $message = C::color(" $label: $time ms ", C::WHITE, C::DGREEN);
 
-        DebugClient::remoteWrite($message);
+        DebugClient::remoteWrite(Packet::TIMER, $message);
     }
 
 }

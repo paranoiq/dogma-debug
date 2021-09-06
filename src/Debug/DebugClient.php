@@ -11,41 +11,93 @@ namespace Dogma\Debug;
 
 use DateTime;
 use Dogma\Debug\Colors as C;
+use function explode;
+use function memory_get_peak_usage;
+use function number_format;
+use function round;
+use function serialize;
+use function socket_read;
+use function socket_write;
+use function sprintf;
 use function strlen;
+use function unserialize;
 
 class DebugClient
 {
 
-    /** @var Socket|resource */
-    private static $socket;
-
     /** @var int */
-    public static $counter;
+    public static $counter = 0;
 
     /** @var float[] */
     public static $timers = [];
 
-    public static function remoteWrite(string $message): void
+    /** @var string */
+    public static $remoteAddress = '127.0.0.1';
+
+    /** @var int */
+    public static $remotePort = 1729;
+
+    /** @var int|null */
+    public static $outputWidth;
+
+    /** @var Socket|resource */
+    private static $socket;
+
+    public static function getOutputWidth(): int
     {
-        global $argv;
+        if (self::$outputWidth !== null) {
+            return self::$outputWidth;
+        }
 
         if (self::$socket === null) {
             self::remoteConnect();
         }
 
-        if (self::$counter === null) {
-            $header = self::requestHeader();
-            $message = $header . "\n" . $message;
-            var_dump($_SERVER['PHP_SELF']);
-            var_dump($argv);
-        }
-
-        $result = socket_write(self::$socket, $message, strlen($message));
+        $packet = serialize(new Packet(Packet::OUTPUT_WIDTH, '')) . Packet::MARKER;
+        $result = socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
             die("Could not send data to debug server.\n");
         }
 
-        self::$counter++;
+        $content = socket_read(self::$socket, 10000);
+        if ($content === false) {
+            self::$outputWidth = 120;
+        } else {
+            foreach (explode(Packet::MARKER, $content) as $message) {
+                if (!$message) {
+                    continue;
+                }
+                /** @var Packet $response */
+                $response = unserialize($message, ['allowed_classes' => [Packet::class]]);
+                if ($response->type === Packet::OUTPUT_WIDTH) {
+                    self::$outputWidth = (int) $response->payload;
+                }
+            }
+        }
+
+        return self::$outputWidth;
+    }
+
+    public static function remoteWrite(int $type, string $message, string $backtrace = '', ?float $duration = null): void
+    {
+        if (self::$socket === null) {
+            self::remoteConnect();
+        }
+
+        if (self::$counter === 0) {
+            $header = self::requestHeader();
+            $packet = serialize(new Packet(Packet::INTRO, $header)) . Packet::MARKER;
+            $result = socket_write(self::$socket, $packet, strlen($packet));
+            if (!$result) {
+                die("Could not send data to debug server.\n");
+            }
+        }
+
+        $packet = serialize(new Packet($type, $message, $backtrace, $duration)) . Packet::MARKER;
+        $result = socket_write(self::$socket, $packet, strlen($packet));
+        if (!$result) {
+            die("Could not send data to debug server.\n");
+        }
     }
 
     private static function requestHeader(): string
@@ -76,7 +128,7 @@ class DebugClient
             }
         }
 
-        return C::pad($header, 120, '-');
+        return C::pad($header, self::getOutputWidth() - 2, '-');
     }
 
     private static function highlightUrl(string $url): string
@@ -96,9 +148,9 @@ class DebugClient
         }
         self::$socket = $socket;
 
-        $result = @socket_connect(self::$socket, '127.0.0.1', 6666);
+        $result = @socket_connect(self::$socket, self::$remoteAddress, self::$remotePort);
         if (!$result) {
-            echo C::lred("Could not connect to debug server. Should be running on port 6666.") . "\n";
+            echo C::lred(sprintf("Could not connect to debug server. Should be running on %s:%s.", self::$remoteAddress, self::$remotePort)) . "\n";
             die();
         }
 
@@ -108,8 +160,13 @@ class DebugClient
                 $start = self::$timers['total'];
                 $time = number_format((microtime(true) - $start) * 1000, 3, '.', ' ');
                 $memory = number_format(memory_get_peak_usage(true) / 1000000, 3, '.', ' ');
-                $message = "$time ms, $memory MB";
-                self::remoteWrite(C::color(" $message ", C::WHITE, C::DBLUE) . "\n");
+
+                $stats = FileStreamWrapper::getStats();
+                $userTime = round($stats['userTime']['total'] * 1000, 3);
+                $includeTime = round($stats['includeTime']['total'] * 1000, 3);
+
+                $message = "$time ms | $memory MB | inc: {$stats['includeEvents']['open']}× $includeTime ms | i/o: {$stats['userEvents']['open']}× $userTime ms";
+                self::remoteWrite(Packet::OUTRO, C::color(" $message ", C::WHITE, C::DBLUE));
 
                 $done = true;
             }

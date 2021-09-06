@@ -1,16 +1,28 @@
 <?php declare(strict_types = 1);
+/**
+ * This file is part of the Dogma library (https://github.com/paranoiq/dogma)
+ *
+ * Copyright (c) 2012 Vlasta Neubauer (@paranoiq)
+ *
+ * For the full copyright and license information read the file 'license.md', distributed with this source code
+ */
 
 namespace Dogma\Debug;
 
 use function array_slice;
+use function debug_backtrace;
+use function end;
 use function explode;
 use function file_get_contents;
 use function implode;
+use function in_array;
 use function is_file;
 use function is_readable;
 use function preg_match;
+use function rl;
 use function str_replace;
 use function str_split;
+use function strlen;
 use function strpos;
 use function substr;
 use function trim;
@@ -22,7 +34,7 @@ trait DumperTraces
     public static $traceLength = 1;
 
     /** @var bool - displaying class and method where we are, not what we are calling, so it is shifted in comparison with debug_backtrace() */
-    public static $traceDetails = false;
+    public static $traceDetails = true;
 
     /** @var array<string|null> ($class, $method) */
     public static $traceSkip = [
@@ -49,9 +61,29 @@ trait DumperTraces
 
     public static function trimPathPrefixBefore(string $string): void
     {
-        $dir = str_replace('\\', '/', __DIR__);
+        $traces = debug_backtrace();
+        $trace = end($traces);
+        $dir = $trace ? ($trace['file'] ?? __DIR__) : __DIR__;
+        $dir = str_replace('\\', '/', $dir);
 
-        self::$trimPathPrefix = substr($dir, 0, strpos($dir, $string));
+        $end = strpos($dir, $string);
+        if ($end) {
+            self::$trimPathPrefix = substr($dir, 0, $end);
+        }
+    }
+
+    public static function trimPathPrefixAfter(string $string): void
+    {
+        $traces = debug_backtrace();
+        $trace = end($traces);
+        $dir = $trace ? ($trace['file'] ?? __DIR__) : __DIR__;
+        $dir = str_replace('\\', '/', $dir);
+
+        $end = strpos($dir, $string);
+
+        if ($end) {
+            self::$trimPathPrefix = substr($dir, 0, $end + strlen($string) + 1);
+        }
     }
 
     /**
@@ -121,52 +153,60 @@ trait DumperTraces
             }
         }
 
-        return implode('', array_slice($chars, 0, $i));
+        $expression = implode('', array_slice($chars, 0, $i));
+        if (in_array(strtolower($expression), ['true', 'false', 'null', 'nan', 'inf'], true)) {
+            return null;
+        }
+
+        return $expression;
     }
 
-    public static function formatTrace(array $traces, ?int $order): string
+    public static function formatTrace(array $traces, ?int $length = null): string
     {
-        if (self::$traceLength === 0) {
+        $length = $length ?? self::$traceLength;
+        if ($length === 0) {
             return '';
         }
 
-        $result = '';
+        $results = [];
         $n = 0;
         foreach ($traces as $i => $trace) {
             if (self::skipTrace($traces, $i)) {
                 continue;
             }
 
-            $result .= self::formatTraceLine($traces, $i, $order);
-            $order = null;
+            $result = self::formatTraceLine($traces, $i);
+            if ($result === null) {
+                continue;
+            }
 
+            $results[] = $result;
             $n++;
-            if ($n >= self::$traceLength) {
+            if ($n >= $length) {
                 break;
             }
         }
 
-        return $result;
+        return implode("\n", $results);
     }
 
     /**
      * @param mixed[][] $traces
      */
-    public static function formatTraceLine(array $traces, int $i, ?int $order): ?string
+    public static function formatTraceLine(array $traces, int $i): ?string
     {
-        $filePath = $traces[$i]['file'] ?? null;
-        if ($filePath === null) {
+        $filePath = str_replace('\\', '/', $traces[$i]['file'] ?? '');
+        if ($filePath === '') {
             return null;
         }
 
         $line = $traces[$i]['line'] ?? '?';
         $classMethod = '';
         if (self::$traceDetails && isset($traces[$i + 1]['function'])) {
-            $classMethod = ' ' . self::symbol('/') . ' ' . (isset($traces[$i + 1]['class']) ? self::nameDim($traces[$i + 1]['class']) . self::symbol('::') : '') . self::nameDim($traces[$i + 1]['function']) . self::bracket('()');
+            $classMethod = ' ' . self::symbol('--') . ' ' . (isset($traces[$i + 1]['class']) ? self::nameDim($traces[$i + 1]['class']) . self::symbol('::') : '') . self::nameDim($traces[$i + 1]['function']) . self::bracket('()');
         }
-        $order = $order ? self::info(" ($order)") : '';
 
-        return self::info("^--- in ") . self::fileLine($filePath, $line) . $classMethod . $order . "\n";
+        return self::info("^--- in ") . self::fileLine($filePath, $line) . $classMethod;
     }
 
     public static function skipTrace(array $traces, int $i): bool

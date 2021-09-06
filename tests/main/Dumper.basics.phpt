@@ -8,6 +8,7 @@ use Dogma\Debug\Assert;
 use Dogma\Debug\Colors;
 use Dogma\Debug\DebugClient;
 use Dogma\Debug\Dumper;
+use Dogma\Debug\Packet;
 use function tmpfile;
 use const INF;
 use const NAN;
@@ -39,7 +40,7 @@ class Bar {
 
 
 // todo remove
-DebugClient::remoteWrite(Colors::test());
+DebugClient::remoteWrite(Packet::DUMP, Colors::test());
 Assert::$dump = true;
 
 

@@ -1,4 +1,11 @@
 <?php declare(strict_types = 1);
+/**
+ * This file is part of the Dogma library (https://github.com/paranoiq/dogma)
+ *
+ * Copyright (c) 2012 Vlasta Neubauer (@paranoiq)
+ *
+ * For the full copyright and license information read the file 'license.md', distributed with this source code
+ */
 
 namespace Dogma\Debug;
 
@@ -6,6 +13,8 @@ use Consistence\Enum\Enum;
 use Consistence\Enum\MultiEnum;
 use DateTimeInterface;
 use Dogma\Debug\Colors as C;
+use Dogma\Dom\Element;
+use Dogma\Dom\NodeList;
 use Dogma\Enum\IntEnum;
 use Dogma\Enum\IntSet;
 use Dogma\Enum\StringEnum;
@@ -22,6 +31,16 @@ use Dogma\Time\IntervalData\DateIntervalDataSet;
 use Dogma\Time\IntervalData\NightIntervalData;
 use Dogma\Time\IntervalData\NightIntervalDataSet;
 use Dogma\Time\Time;
+use DOMAttr;
+use DOMCdataSection;
+use DOMComment;
+use DOMDocument;
+use DOMDocumentFragment;
+use DOMDocumentType;
+use DOMElement;
+use DOMEntity;
+use DOMNodeList;
+use DOMText;
 use ReflectionObject;
 use function array_filter;
 use function array_keys;
@@ -66,8 +85,21 @@ trait DumperHandlers
         StringEnum::class => [self::class, 'dumpStringEnum'],
         IntSet::class => [self::class, 'dumpIntSet'],
         StringSet::class => [self::class, 'dumpStringSet'],
-        MultiEnum::class => [self::class, 'dumpConsistenceMultiEnum'],
+        MultiEnum::class => [self::class, 'dumpConsistenceMultiEnum'], // must precede Enum
         Enum::class => [self::class, 'dumpConsistenceEnum'],
+
+        DOMDocument::class => [self::class, 'dumpDomDocument'],
+        DOMDocumentFragment::class => [self::class, 'dumpDomDocumentFragment'],
+        DOMDocumentType::class => [self::class, 'dumpDomDocumentType'],
+        DOMEntity::class => [self::class, 'dumpDomEntity'],
+        DOMElement::class => [self::class, 'dumpDomElement'],
+        DOMNodeList::class => [self::class, 'dumpDomNodeList'],
+        DOMCdataSection::class => [self::class, 'dumpDomCdataSection'],
+        DOMComment::class => [self::class, 'dumpDomComment'],
+        DOMText::class => [self::class, 'dumpDomText'],
+        DOMAttr::class => [self::class, 'dumpDomAttr'],
+        Element::class => [self::class, 'dumpDomElement'],
+        NodeList::class => [self::class, 'dumpDomNodeList'],
 
         'stream resource' => [self::class, 'dumpStream'],
     ];

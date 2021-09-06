@@ -8,6 +8,7 @@ use DateTimeZone;
 use Dogma\Debug\Assert;
 use Dogma\Debug\Colors;
 use Dogma\Debug\DebugClient;
+use Dogma\Debug\Packet;
 use Dogma\Time\Date;
 use Dogma\Time\DateTime as DogmaDateTime;
 use Dogma\Time\Interval\DateInterval;
@@ -22,7 +23,7 @@ use function rd;
 require_once __DIR__ . '/../bootstrap.php';
 
 // todo remove
-DebugClient::remoteWrite(Colors::test());
+DebugClient::remoteWrite(Packet::DUMP, Colors::test());
 rd($GLOBALS);
 Assert::$dump = true;
 

@@ -20,6 +20,7 @@ use ReflectionFunction;
 use ReflectionObject;
 use function array_keys;
 use function array_map;
+use function array_reverse;
 use function array_shift;
 use function array_slice;
 use function array_unshift;
@@ -52,12 +53,14 @@ use function strtolower;
 use function substr;
 use function uniqid;
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 class Dumper
 {
     use DumperFormatters;
-    use DumperHandlers;
     use DumperTraces;
+    use DumperHandlers;
+    use DumperHandlersDom;
 
     // todo: unicode escaping
     public const UNICODE_ESCAPE_ONLY = 1;
@@ -102,7 +105,7 @@ class Dumper
     /** @var int binary strings escaping/formatting */
     public static $binaryOutput = self::BINARY_ESCAPE_ONLY;
 
-    /** @var bool show comments with additional info (readable values, object hashes, hints...) */
+    /** @var bool|null show comments with additional info (readable values, object hashes, hints...). null in 'sometimes' mode where info is shown only for  */
     public static $showInfo = true;
 
     /** @var DateTimeZone|string|null php.ini timezone by default */
@@ -120,7 +123,7 @@ class Dumper
     /**
      * @param mixed $value
      */
-    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?int $order = null): string
+    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null): string
     {
         $maxDepthBefore = self::$maxDepth;
         if ($maxDepth !== null) {
@@ -136,12 +139,12 @@ class Dumper
 
             $name = self::extractName($traceLines);
             $value = self::dumpValue($value, 0, $name);
-            $trace = self::formatTrace($traceLines, $order);
+            $trace = self::formatTrace($traceLines);
             if ($name !== null && $name[0] === '[') {
                 $name = null;
             }
 
-            return ($name ?? 'literal') . self::symbol(':') . ' ' . $value . "\n" . $trace;
+            return ($name ?? 'literal') . self::symbol(':') . ' ' . $value . ($trace ? "\n" : '') . $trace;
         } finally {
             self::$traceLength = $traceLengthBefore;
             self::$maxDepth = $maxDepthBefore;
@@ -191,16 +194,16 @@ class Dumper
     {
         $sign = $int < 0 ? '-' : '';
         $int = abs($int);
-        $key = strtolower((string) $key);
+        $key = str_replace('_', '', strtolower((string) $key));
 
         $info = '';
         if (self::$showInfo) {
             if ($int === PHP_INT_MAX) {
                 $info = ' ' . self::info('// PHP_INT_MAX');
-            } elseif ($int === PHP_INT_MAX) {
+            } elseif ($int === PHP_INT_MIN) {
                 $info = ' ' . self::info('// PHP_INT_MIN');
             } elseif (!$sign && $int > 1000000 && strpos($key, 'time') !== false) {
-                $time = DateTime::createFromFormat('UP', $int . 'Z')->setTimezone(self::getTimeZone())->format('Y-m-d H:i:sP');
+                $time = self::intToFormattedDate($int);
                 $info = ' ' . self::info('// ' . $time);
             } elseif (!$sign && preg_match('/flags|options|settings/', $key)) {
                 $info = ' ' . self::info('// ' . implode('|', array_reverse(self::binaryComponents($int))));
@@ -219,7 +222,11 @@ class Dumper
             }
         }
 
-        return self::int($sign . $int) . $info;
+        if (!$sign && $int <= 0777 && preg_match('/filemode|permissions/', $key)) {
+            return self::int('0' . decoct($int)) . $info;
+        } else {
+            return self::int($sign . $int) . $info;
+        }
     }
 
     public static function dumpFloat(float $float, $key = null): string
@@ -273,7 +280,7 @@ class Dumper
     {
         static $marker;
         if ($marker === null) {
-            $marker = uniqid("\x00", true);
+            $marker = uniqid("\0", true);
         }
 
         if ($array === []) {
@@ -345,7 +352,7 @@ class Dumper
                 $parts = explode($infoPrefix, $item);
                 $parts[] = '';
                 [$v, $i] = $parts;
-                $i = str_replace("\x1B[0m", '', $i);
+                $i = str_replace(Colors::RESET, '', $i);
                 $values[] = $v;
                 $infos[] = $i;
             }
@@ -435,7 +442,7 @@ class Dumper
         //$properties = (new ReflectionObject($object))->getProperties();
         $properties = (array) $object;
         foreach ($properties as $name => $value) {
-            $parts = explode("\x00", $name);
+            $parts = explode("\0", $name);
             if (count($parts) === 3) {
                 $name = $parts[2];
                 $cls = $parts[1];
@@ -489,7 +496,7 @@ class Dumper
             $access = self::access($property->isPrivate() ? 'private static' : ($property->isProtected() ? 'protected static' : 'public static'));
             $name = self::property('$' . $property->getName());
             $property->setAccessible(true);
-            $value = self::dumpValue($property->getValue($class), $depth + 1, $property->getName());
+            $value = self::dumpValue($property->getValue($ref), $depth + 1, $property->getName());
 
             $item = $indent . $access . ' ' . $name . $equal . $value;
 
@@ -658,7 +665,7 @@ class Dumper
                 $args = substr($args, strlen(self::bracket('[')), strrpos($args, self::bracket(']')));
             }
 
-            $fileLine = $trace['file'] ? self::fileLine($trace['file'], $trace['line']) : '?';
+            $fileLine = isset($trace['file']) ? self::fileLine($trace['file'], $trace['line']) : '?';
 
             $items[] = self::info('^---') . ' ' . self::info('in') . ' ' . $fileLine
                 . ' ' . self::info('-') . ' '
@@ -675,6 +682,11 @@ class Dumper
     public static function objectHash($object): string
     {
         return substr(md5(spl_object_hash($object)), 0, 4);
+    }
+
+    public static function intToFormattedDate(int $int): string
+    {
+        return DateTime::createFromFormat('UP', $int . 'Z')->setTimezone(self::getTimeZone())->format('Y-m-d H:i:sP');
     }
 
     public static function getTimeZone(): DateTimeZone
