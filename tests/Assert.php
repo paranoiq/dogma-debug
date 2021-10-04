@@ -42,7 +42,7 @@ class Assert extends DogmaAssert
         $string = preg_replace('/\\x1B\\[[^m]+m/U', '<', $string);
 
         // replace object and resource ids
-        $string = preg_replace('/#[0-9a-f]+/', '#?id', $string);
+        $string = preg_replace('/#[0-9a-f]{4}/', '#?id', $string);
 
         // replace file paths
         $string = preg_replace('~<[^>]+><([A-Za-z]+(\\.[a-z]+)?\\.phpt?)><:>~U', '<?path><\\1><:>', $string);

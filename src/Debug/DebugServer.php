@@ -11,8 +11,6 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Colors as C;
-use function exec;
 use function explode;
 use function round;
 use function serialize;
@@ -25,13 +23,9 @@ use function socket_listen;
 use function socket_read;
 use function socket_set_nonblock;
 use function socket_write;
-use function strpos;
-use function strtolower;
-use function trim;
 use function unserialize;
 use function usleep;
 use const AF_INET;
-use const PHP_OS;
 use const SOCK_STREAM;
 use const SOL_TCP;
 
@@ -46,9 +40,6 @@ class DebugServer
 
     /** @var resource */
     private $sock;
-
-    /** @var int */
-    private $columns;
 
     /** @var Packet|null */
     private $lastRequest;
@@ -104,12 +95,12 @@ class DebugServer
             /** @var Packet $request */
             $request = unserialize($message, ['allowed_classes' => [Packet::class]]);
             if ($request === false) {
-                echo $message;
+                echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
                 continue;
             }
 
             if ($request->type === Packet::OUTPUT_WIDTH) {
-                $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) $this->getTerminalWidth()));
+                $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
                 socket_write($connection, $response . Packet::MARKER);
                 continue;
             }
@@ -120,8 +111,8 @@ class DebugServer
                 && $this->lastRequest->backtrace === $request->backtrace
                 && $this->lastRequest->type === $request->type
             ) {
-                echo "\x1B[A"; // up
-                echo "\x1B[K"; // delete
+                echo Ansi::UP;
+                echo Ansi::DELETE_ROW;
                 $this->durationSum += $request->duration;
             } else {
                 $this->durationSum = $request->duration;
@@ -131,7 +122,9 @@ class DebugServer
 
             echo $request->backtrace;
             if ($request->backtrace && $this->durationSum !== $request->duration) {
-                echo ' ' . C::color('(total ' . round($this->durationSum * 1000000) . ' μs)', Dumper::$colors['time']) . "\n";
+                if ($this->durationSum > 0.000000000001) {
+                    echo ' ' . Ansi::color('(total ' . round($this->durationSum * 1000000) . ' μs)', Dumper::$colors['time']) . "\n";
+                }
             } elseif ($request->backtrace) {
                 echo "\n";
             }
@@ -144,60 +137,25 @@ class DebugServer
     {
         $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if (!$this->sock) {
-            echo C::lred("Could not create socket.\n");
+            echo Ansi::lred("Could not create socket.\n");
             exit(1);
         }
-        if (!socket_bind($this->sock, $this->address, $this->port)) {
-            echo C::lred("Could not bind to address.\n");
+        if (@!socket_bind($this->sock, $this->address, $this->port)) {
+            echo Ansi::lred("Could not bind to address.\n");
             exit(1);
         }
         if (!socket_listen($this->sock, 20)) {
-            echo C::lred("Could not listen on socket.\n");
+            echo Ansi::lred("Could not listen on socket.\n");
             exit(1);
         }
         if (!socket_set_nonblock($this->sock)) {
-            echo C::lred("Could not set socket to non-blocking.\n");
+            echo Ansi::lred("Could not set socket to non-blocking.\n");
             exit(1);
         }
 
-        $this->switchTerminalToUtf8();
+        System::switchTerminalToUtf8();
 
-        echo "Listening on port " . C::white($this->port) . "\n";
-    }
-
-    private function getTerminalWidth(): int
-    {
-        if ($this->columns) {
-            return $this->columns;
-        }
-
-        if ($this->isWindows()) {
-            exec('mode CON', $output);
-            [, $this->columns] = explode(':', $output[4]);
-            $this->columns = (int) trim($this->columns);
-        } else {
-            $this->columns = (int) exec('/usr/bin/env tput cols');
-        }
-
-        if (!$this->columns) {
-            $this->columns = 120;
-        }
-
-        return $this->columns;
-    }
-
-    private function switchTerminalToUtf8(): void
-    {
-        if ($this->isWindows()) {
-            exec('chcp 65001');
-        }
-    }
-
-    private function isWindows(): bool
-    {
-        $os = strtolower(PHP_OS);
-
-        return strpos($os, 'win') !== false && strpos($os, 'darwin') === false;
+        echo "Listening on port " . Ansi::white($this->port) . "\n";
     }
 
 }

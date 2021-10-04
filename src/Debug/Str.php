@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use function array_values;
 use function function_exists;
 use function grapheme_strlen;
 use function grapheme_substr;
@@ -17,7 +18,9 @@ use function iconv_substr;
 use function mb_strlen;
 use function mb_substr;
 use function preg_match;
+use function str_replace;
 use function strlen;
+use function strncmp;
 use function substr;
 
 class Str
@@ -53,6 +56,24 @@ class Str
         } else {
             return substr($string, 0, $length);
         }
+    }
+
+    public static function startsWith(string $string, string $find): bool
+    {
+        return strncmp($string, $find, strlen($find)) === 0;
+    }
+
+    public static function endsWith(string $string, string $find): bool
+    {
+        return $find === '' || substr($string, -strlen($find)) === $find;
+    }
+
+    /**
+     * @param string[] $replacements
+     */
+    public static function replaceKeys(string $string, array $replacements): string
+    {
+        return str_replace(array_keys($replacements), array_values($replacements), $string);
     }
 
 }

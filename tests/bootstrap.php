@@ -9,7 +9,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../vendor/nette/tester/src/bootstrap.php';
 require_once __DIR__ . '/Assert.php';
 
-require_once __DIR__ . '/../src/debug-client.php';
+require_once __DIR__ . '/../src/client.php';
 
 Dumper::trimPathPrefixAfter('dogma-debug');
 

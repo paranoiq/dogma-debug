@@ -3,24 +3,54 @@
 namespace Dogma\Tests\Debug;
 
 use Dogma\Debug\Assert;
+use Dogma\Debug\Callstack;
 use Dogma\Debug\Dumper;
 
 require_once __DIR__ . '/../bootstrap.php';
 
-function a(int $traceLength): string
+function a(int $length): string
 {
-    return b($traceLength);
+    return b($length);
 }
 
-function b(int $traceLength): string
+function b(int $length): string
 {
-    return c($traceLength);
+    return c($length);
 }
 
-function c(int $traceLength): string
+function c(int $length): string
 {
-    return Dumper::dump(true, 1, $traceLength);
+    return Dumper::dump(true, 1, $length);
 }
+
+function d(int $length, int $depth, array $lines): string
+{
+    return e($length, $depth, $lines);
+}
+
+function e(int $length, int $depth, array $lines): string
+{
+    return f($length, $depth, $lines);
+}
+
+function f(int $length, int $depth, array $lines): string
+{
+    return Dumper::formatCallstack(Callstack::get(), $length, $depth, $lines);
+}
+
+
+formatCallstack:
+Assert::same(Assert::normalize(d(0, 0, [])), '');
+Assert::same(Assert::normalize(d(1, 0, [])), '<^--- in ><?path><Dumper.traces.phpt><:><38> <--> <Dogma><\><Tests><\><Debug><\><f><(> <...> <<)>');
+Assert::same(Assert::normalize(d(2, 0, [])), '<^--- in ><?path><Dumper.traces.phpt><:><38> <--> <Dogma><\><Tests><\><Debug><\><f><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><33> <--> <Dogma><\><Tests><\><Debug><\><e><(> <...> <<)>');
+Assert::same(Assert::normalize(d(3, 0, [])), '<^--- in ><?path><Dumper.traces.phpt><:><38> <--> <Dogma><\><Tests><\><Debug><\><f><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><33> <--> <Dogma><\><Tests><\><Debug><\><e><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><28> <--> <Dogma><\><Tests><\><Debug><\><d><(> <...> <<)>');
+Assert::same(Assert::normalize(d(4, 0, [])), '<^--- in ><?path><Dumper.traces.phpt><:><38> <--> <Dogma><\><Tests><\><Debug><\><f><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><33> <--> <Dogma><\><Tests><\><Debug><\><e><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><28> <--> <Dogma><\><Tests><\><Debug><\><d><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><50>');
 
 
 findExpression:
@@ -63,20 +93,19 @@ Assert::same(Dumper::findExpression('rd(Foo::bar());'), 'Foo::bar()');
 Assert::same(Dumper::findExpression("rd([Foo::class, 'bar']);"), "[Foo::class, 'bar']");
 Assert::same(Dumper::findExpression("rd([\$foo, 'bar']);"), "[\$foo, 'bar']");
 
-
-formatTrace:
-Assert::same(Assert::normalize(a(0)), 'literal<:> <true>');
-Assert::same(Assert::normalize(a(1)), 'literal<:> <true>
-<^--- in ><?path><Dumper.traces.phpt><:><22> <--> <Dogma><\><Tests><\><Debug><\><c><()>');
-Assert::same(Assert::normalize(a(2)), 'literal<:> <true>
-<^--- in ><?path><Dumper.traces.phpt><:><22> <--> <Dogma><\><Tests><\><Debug><\><c><()>
-<^--- in ><?path><Dumper.traces.phpt><:><17> <--> <Dogma><\><Tests><\><Debug><\><b><()>');
-Assert::same(Assert::normalize(a(3)), 'literal<:> <true>
-<^--- in ><?path><Dumper.traces.phpt><:><22> <--> <Dogma><\><Tests><\><Debug><\><c><()>
-<^--- in ><?path><Dumper.traces.phpt><:><17> <--> <Dogma><\><Tests><\><Debug><\><b><()>
-<^--- in ><?path><Dumper.traces.phpt><:><12> <--> <Dogma><\><Tests><\><Debug><\><a><()>');
-Assert::same(Assert::normalize(a(4)), 'literal<:> <true>
-<^--- in ><?path><Dumper.traces.phpt><:><22> <--> <Dogma><\><Tests><\><Debug><\><c><()>
-<^--- in ><?path><Dumper.traces.phpt><:><17> <--> <Dogma><\><Tests><\><Debug><\><b><()>
-<^--- in ><?path><Dumper.traces.phpt><:><12> <--> <Dogma><\><Tests><\><Debug><\><a><()>
-<^--- in ><?path><Dumper.traces.phpt><:><37>');
+// dump with trace
+Assert::same(Assert::normalize(a(0)), '<literal><:> <true>');
+Assert::same(Assert::normalize(a(1)), '<literal><:> <true>
+<^--- in ><?path><Dumper.traces.phpt><:><23> <--> <Dogma><\><Tests><\><Debug><\><c><(> <...> <<)>');
+Assert::same(Assert::normalize(a(2)), '<literal><:> <true>
+<^--- in ><?path><Dumper.traces.phpt><:><23> <--> <Dogma><\><Tests><\><Debug><\><c><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><18> <--> <Dogma><\><Tests><\><Debug><\><b><(> <...> <<)>');
+Assert::same(Assert::normalize(a(3)), '<literal><:> <true>
+<^--- in ><?path><Dumper.traces.phpt><:><23> <--> <Dogma><\><Tests><\><Debug><\><c><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><18> <--> <Dogma><\><Tests><\><Debug><\><b><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><13> <--> <Dogma><\><Tests><\><Debug><\><a><(> <...> <<)>');
+Assert::same(Assert::normalize(a(4)), '<literal><:> <true>
+<^--- in ><?path><Dumper.traces.phpt><:><23> <--> <Dogma><\><Tests><\><Debug><\><c><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><18> <--> <Dogma><\><Tests><\><Debug><\><b><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><13> <--> <Dogma><\><Tests><\><Debug><\><a><(> <...> <<)>
+<^--- in ><?path><Dumper.traces.phpt><:><107>');

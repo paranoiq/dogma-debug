@@ -9,7 +9,7 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Colors as C;
+use Dogma\Debug\Ansi as A;
 use function array_keys;
 use function array_map;
 use function array_pop;
@@ -22,6 +22,7 @@ use function is_int;
 use function is_scalar;
 use function preg_replace;
 use function preg_replace_callback;
+use function round;
 use function str_repeat;
 use function str_replace;
 use function strlen;
@@ -32,71 +33,71 @@ trait DumperFormatters
 
     /** @var array<string, string> */
     public static $colors = [
-        'null' => C::LYELLOW, // null
-        'bool' => C::LYELLOW, // true, false
-        'int' => C::LYELLOW, // 123
-        'float' => C::LYELLOW, // 123.4
+        'null' => A::LYELLOW, // null
+        'bool' => A::LYELLOW, // true, false
+        'int' => A::LYELLOW, // 123
+        'float' => A::LYELLOW, // 123.4
 
-        'value' => C::LYELLOW, // primary color for formatted internal value of an object
-        'value2' => C::DYELLOW, // secondary color for formatted internal value of an object
+        'value' => A::LYELLOW, // primary color for formatted internal value of an object
+        'value2' => A::DYELLOW, // secondary color for formatted internal value of an object
 
-        'string' => C::LCYAN, // "foo"
-        'escape' => C::DCYAN, // "\n"
+        'string' => A::LCYAN, // "foo"
+        'escape' => A::DCYAN, // "\n"
 
-        'resource' => C::LRED, // stream
-        'namespace' => C::LRED, // Foo...
-        'backslash' => C::DGRAY, // // ...\...
-        'name' => C::LRED, // ...Bar
-        'access' => C::DGRAY, // public private protected
-        'property' => C::WHITE, // $foo
-        'key' => C::WHITE, // array keys. set null to use string/int formats
+        'resource' => A::LRED, // stream
+        'namespace' => A::LRED, // Foo...
+        'backslash' => A::DGRAY, // // ...\...
+        'name' => A::LRED, // ...Bar
+        'access' => A::DGRAY, // public private protected
+        'property' => A::WHITE, // $foo
+        'key' => A::WHITE, // array keys. set null to use string/int formats
 
-        'closure' => C::LGRAY, // static function ($a) use ($b)
-        'parameter' => C::WHITE, // $a, $b
+        'closure' => A::LGRAY, // static function ($a) use ($b)
+        'parameter' => A::WHITE, // $a, $b
 
-        'path' => C::DGRAY, // C:/foo/bar/...
-        'file' => C::LGRAY, // .../baz.php
-        'line' => C::DGRAY, // :42
+        'path' => A::DGRAY, // C:/foo/bar/...
+        'file' => A::LGRAY, // .../baz.php
+        'line' => A::DGRAY, // :42
 
-        'bracket' => C::WHITE, // [ ] { } ( )
-        'symbol' => C::LGRAY, // , ; :: => =
-        'indent' => C::DGRAY, // |
-        'info' => C::DGRAY, // // 5 items
+        'bracket' => A::WHITE, // [ ] { } ( )
+        'symbol' => A::LGRAY, // , ; :: => =
+        'indent' => A::DGRAY, // |
+        'info' => A::DGRAY, // // 5 items
 
-        'exceptions' => C::LMAGENTA, // RECURSION, ... (max depth, not traversed)
+        'exceptions' => A::LMAGENTA, // RECURSION, ... (max depth, not traversed)
 
-        'function' => C::LGREEN, // stream wrapper function call
-        'time' => C::LBLUE, // stream wrapper operation time
+        'function' => A::LGREEN, // stream wrapper function call
+        'time' => A::LBLUE, // stream wrapper operation time
     ];
 
     public static function null(string $value): string
     {
-        return C::color($value, self::$colors['null']);
+        return A::color($value, self::$colors['null']);
     }
 
     public static function bool(string $value): string
     {
-        return C::color($value, self::$colors['bool']);
+        return A::color($value, self::$colors['bool']);
     }
 
     public static function int(string $value): string
     {
-        return C::color($value, self::$colors['int']);
+        return A::color($value, self::$colors['int']);
     }
 
     public static function float(string $value): string
     {
-        return C::color($value, self::$colors['float']);
+        return A::color($value, self::$colors['float']);
     }
 
     public static function value(string $value): string
     {
-        return C::color($value, self::$colors['value']);
+        return A::color($value, self::$colors['value']);
     }
 
     public static function value2(string $value): string
     {
-        return C::color($value, self::$colors['value2']);
+        return A::color($value, self::$colors['value2']);
     }
 
     public static function string(string $string, string $quote = '"'): string
@@ -112,22 +113,22 @@ trait DumperFormatters
         ];
 
         $escaped = preg_replace_callback('/([\0\\\\\\r\\n\\e"])/', static function (array $m) use ($table): string {
-            return C::between($table[$m[1]], self::$colors['escape'], self::$colors['string']);
+            return A::between($table[$m[1]], self::$colors['escape'], self::$colors['string']);
         }, $string);
 
-        return C::color($quote . $escaped . $quote, self::$colors['string']);
+        return A::color($quote . $escaped . $quote, self::$colors['string']);
     }
 
     // escape
 
     public static function symbol(string $symbol): string
     {
-        return C::color($symbol, self::$colors['symbol']);
+        return A::color($symbol, self::$colors['symbol']);
     }
 
     public static function bracket(string $bracket): string
     {
-        return C::color($bracket, self::$colors['bracket']);
+        return A::color($bracket, self::$colors['bracket']);
     }
 
     /**
@@ -140,7 +141,7 @@ trait DumperFormatters
             return self::string($key);
         } elseif (self::$colors['key'] !== null) {
             // todo: string key escaping
-            return C::color($key, self::$colors['key']);
+            return A::color($key, self::$colors['key']);
         } elseif (is_int($key)) {
             return self::int((string) $key);
         } else {
@@ -150,23 +151,23 @@ trait DumperFormatters
 
     public static function info(string $info): string
     {
-        return C::color($info, self::$colors['info']);
+        return A::color($info, self::$colors['info']);
     }
 
     public static function infoPrefix(): string
     {
-        return " \x1B[" . C::ansiValue(self::$colors['info']) . "m// ";
+        return ' ' . A::colorStart(self::$colors['info']) . '// ';
     }
 
     public static function exceptions($string): string
     {
-        return C::color($string, self::$colors['exceptions']);
+        return A::color($string, self::$colors['exceptions']);
     }
 
     public static function indent(int $depth): string
     {
         return $depth > 1
-            ? '   ' . str_repeat(C::color('|', self::$colors['indent']) . '  ', $depth - 1)
+            ? '   ' . str_repeat(A::color('|', self::$colors['indent']) . '  ', $depth - 1)
             : ($depth === 1 ? '   ' : '');
     }
 
@@ -180,12 +181,12 @@ trait DumperFormatters
         $class = array_pop($names);
 
         $names = array_map(static function ($name): string {
-            return C::color($name, self::$colors['namespace']);
+            return A::color($name, self::$colors['namespace']);
         }, $names);
 
-        $names[] = C::color($class, self::$colors['name']);
+        $names[] = A::color($class, self::$colors['name']);
 
-        return implode(C::color('\\', self::$colors['backslash']), $names);
+        return implode(A::color('\\', self::$colors['backslash']), $names);
     }
 
     public static function nameDim(string $class): string
@@ -194,33 +195,33 @@ trait DumperFormatters
         $class = array_pop($names);
 
         $names = array_map(static function ($name): string {
-            return C::color($name, self::$colors['info']);
+            return A::color($name, self::$colors['info']);
         }, $names);
 
-        $names[] = C::color($class, self::$colors['symbol']);
+        $names[] = A::color($class, self::$colors['symbol']);
 
-        return implode(C::color('\\', self::$colors['backslash']), $names);
+        return implode(A::color('\\', self::$colors['backslash']), $names);
     }
 
     public static function access($string): string
     {
-        return C::color($string, self::$colors['access']);
+        return A::color($string, self::$colors['access']);
     }
 
     public static function property($string): string
     {
-        return C::color($string, self::$colors['property']);
+        return A::color($string, self::$colors['property']);
     }
 
     public static function resource($string): string
     {
-        return C::color($string, self::$colors['resource']);
+        return A::color($string, self::$colors['resource']);
     }
 
     public static function closure($string): string
     {
-        return C::color(preg_replace_callback('/(\\$[A-Za-z0-9_]+)/', static function ($m): string {
-            return C::between($m[1], self::$colors['parameter'], self::$colors['closure']);
+        return A::color(preg_replace_callback('/(\\$[A-Za-z0-9_]+)/', static function ($m): string {
+            return A::between($m[1], self::$colors['parameter'], self::$colors['closure']);
         }, $string), self::$colors['closure']);
     }
 
@@ -233,8 +234,8 @@ trait DumperFormatters
             $dirName = substr($dirName, strlen(self::$trimPathPrefix));
         }
 
-        return C::color($dirName, self::$colors['path'])
-            . C::color($fileName, self::$colors['file']);
+        return A::color($dirName, self::$colors['path'])
+            . A::color($fileName, self::$colors['file']);
     }
 
     public static function fileLine(string $file, int $line): string
@@ -246,10 +247,10 @@ trait DumperFormatters
             $dirName = substr($dirName, strlen(self::$trimPathPrefix));
         }
 
-        return C::color($dirName, self::$colors['path'])
-            . C::color($fileName, self::$colors['file'])
-            . C::color(':', self::$colors['info'])
-            . C::color((string) $line, self::$colors['line']);
+        return A::color($dirName, self::$colors['path'])
+            . A::color($fileName, self::$colors['file'])
+            . A::color(':', self::$colors['info'])
+            . A::color((string) $line, self::$colors['line']);
     }
 
     /**
@@ -269,7 +270,7 @@ trait DumperFormatters
             $key = is_int($key) ? null : $key;
             $formatted[] = self::dumpValue($value, 0, $key);
         }
-        $params = implode(C::color(', ', self::$colors['function']), $formatted);
+        $params = implode(A::color(', ', self::$colors['function']), $formatted);
 
         if ($return === null) {
             $output = '';
@@ -283,7 +284,7 @@ trait DumperFormatters
                 if (is_int($k)) {
                     $output[] = self::dumpValue($v);
                 } else {
-                    $output[] = C::color($k . ':', self::$colors['function']) . ' ' . self::dumpValue($v);
+                    $output[] = A::color($k . ':', self::$colors['function']) . ' ' . self::dumpValue($v);
                 }
             }
             $output = ' ' . implode(' ', $output);
@@ -292,7 +293,28 @@ trait DumperFormatters
 
         self::$showInfo = $info;
 
-        return C::color($name . '(', self::$colors['function']) . $params . C::color($end, self::$colors['function']) . $output;
+        return A::color($name . '(', self::$colors['function']) . $params . A::color($end, self::$colors['function']) . $output;
+    }
+
+    // helpers ---------------------------------------------------------------------------------------------------------
+
+    public static function size(int $size): string
+    {
+        if ($size >= 2**60) {
+            return round($size / 2**60,1) . ' ZB';
+        } elseif ($size >= 2**50) {
+            return round($size / 2**50,1) . ' EB';
+        } elseif ($size >= 2**40) {
+            return round($size / 2**40,1) . ' TB';
+        } elseif ($size >= 2**30) {
+            return round($size / 2**30,1) . ' GB';
+        } elseif ($size >= 2**20) {
+            return round($size / 2**20,1) . ' MB';
+        } elseif($size >= 2**10) {
+            return round($size / 2**10,1) . ' KB';
+        } else {
+            return $size . ' B';
+        }
     }
 
 }

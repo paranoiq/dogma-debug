@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Colors as C;
 use Dogma\Dom\Element;
 use Dogma\Dom\NodeList;
 use DOMAttr;
@@ -65,7 +64,7 @@ trait DumperHandlersDom
         $nodes = [];
         foreach ($fragment->childNodes as $node) {
             $node = self::indent($depth + 1) . self::dumpValue($node, $depth + 1);
-            $pos = strrpos($node, " \x1B[" . C::ansiValue(self::$colors['info']) . "m// ");
+            $pos = strrpos($node, self::infoPrefix());
             if ($pos !== false && !strpos(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
             } else {
@@ -93,7 +92,7 @@ trait DumperHandlersDom
         $nodes = [];
         foreach ($nodeList as $node) {
             $node = self::indent($depth + 1) . self::dumpValue($node, $depth + 1);
-            $pos = strrpos($node, " \x1B[" . C::ansiValue(self::$colors['info']) . "m// ");
+            $pos = strrpos($node, self::infoPrefix());
             if ($pos !== false && !strpos(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
             } else {
@@ -131,7 +130,7 @@ trait DumperHandlersDom
         $childNodes = [];
         foreach ($node->childNodes as $childNode) {
             $childNode = self::indent($depth + 1) . self::dumpValue($childNode, $depth + 1);
-            $pos = strrpos($childNode, " \x1B[" . C::ansiValue(self::$colors['info']) . "m// ");
+            $pos = strrpos($childNode, self::infoPrefix());
             if ($pos !== false && !strpos(substr($childNode, $pos), "\n")) {
                 $childNode = substr($childNode, 0, $pos) . $coma . substr($childNode, $pos);
             } else {

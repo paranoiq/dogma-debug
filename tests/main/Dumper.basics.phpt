@@ -5,7 +5,7 @@ namespace Dogma\Tests\Debug;
 use DateTime;
 use DateTimeZone;
 use Dogma\Debug\Assert;
-use Dogma\Debug\Colors;
+use Dogma\Debug\Ansi;
 use Dogma\Debug\DebugClient;
 use Dogma\Debug\Dumper;
 use Dogma\Debug\Packet;
@@ -38,12 +38,7 @@ class Bar {
     }
 }
 
-
-// todo remove
-DebugClient::remoteWrite(Packet::DUMP, Colors::test());
 Assert::$dump = true;
-
-
 Dumper::$useHandlers = false;
 
 
@@ -66,10 +61,27 @@ Assert::dump(-1, '<-1>');
 Assert::dump(64, '<64>');
 
 // powers of two
-Assert::dump(128, '<128> <// 2^7>');
-Assert::dump(-128, '<-128> <// 2^7>');
+Assert::dump(512, '<512> <// 2^9>');
+Assert::dump(-512, '<-512> <// 2^9>');
 Assert::dump(65536, '<65536> <// 2^16>');
 Assert::dump(65535, '<65535> <// 2^16-1>');
+
+// bytes
+Assert::dump(["size" => 23], '<[>
+   <size> <=>> <23><,>
+<]> <// 1 item>');
+Assert::dump(["size" => 23000], '<[>
+   <size> <=>> <23000><,> <// 22.5 KB>
+<]> <// 1 item>');
+Assert::dump(["size" => 23000000], '<[>
+   <size> <=>> <23000000><,> <// 21.9 MB>
+<]> <// 1 item>');
+Assert::dump(["size" => 23000000000], '<[>
+   <size> <=>> <23000000000><,> <// 21.4 GB>
+<]> <// 1 item>');
+Assert::dump(["size" => 23000000000000], '<[>
+   <size> <=>> <23000000000000><,> <// 20.9 TB>
+<]> <// 1 item>');
 
 // flags
 Assert::dump(["flags" => 23], '<[>
@@ -104,6 +116,13 @@ Assert::dump('áčř', '<"áčř"> <// 6 B, 3 ch>');
 // escaping
 Assert::dump('"', '<"<\"<"> <// 1 B>');
 Assert::dump("\n", '<"<\n<"> <// 1 B>');
+
+// color codes
+Assert::dump('orange', '<"orange"> <// <<     >>');
+Assert::dump('#5F9EA0', '<"#5F9EA0"> <// <<     >>');
+Assert::dump(["color" => '00FF7F'], '<[>
+   <color> <=>> <"00FF7F"><,> <// <<     >>
+<]> <// 1 item>');
 
 // callables
 Assert::dump('strlen', '<"strlen"> <// 6 B, callable>');

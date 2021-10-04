@@ -42,7 +42,10 @@ use function is_string;
 use function ksort;
 use function md5;
 use function min;
+use function ob_start;
 use function preg_match;
+use function preg_replace;
+use function preg_replace_callback;
 use function spl_object_hash;
 use function str_replace;
 use function stripos;
@@ -52,6 +55,8 @@ use function strrpos;
 use function strtolower;
 use function substr;
 use function uniqid;
+use function var_dump;
+use const PATH_SEPARATOR;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
@@ -91,7 +96,10 @@ class Dumper
     public static $shortArrayMaxLength = 100;
 
     /** @var int */
-    public static $shortArrayMaxItems = 6;
+    public static $shortArrayMaxItems = 20;
+
+    /** @var bool */
+    public static $alwaysShowArrayKeys = false;
 
     /** @var string */
     public static $stringsEncoding = 'utf-8';
@@ -121,6 +129,59 @@ class Dumper
     private static $objects = [];
 
     /**
+     * var_dump() with output capture and better formatting
+     *
+     * @param mixed $value
+     */
+    public static function varDump($value, bool $colors = true): string
+    {
+        ob_start();
+        var_dump($value);
+        $dump = ob_get_clean();
+
+        $dump = str_replace(']=>', '] =>', $dump);
+        $dump = preg_replace('~=>\n\s+~', '=> ', $dump);
+        $dump = preg_replace('~{\n\s+}~', '{ }', $dump);
+
+        if ($colors) {
+            $dump = Str::replaceKeys($dump, [
+                '*RECURSION*' => self::exceptions('RECURSION'),
+                '=> NULL' => '=> ' . self::null('null'),
+                '=> bool(true)' => '=> ' . self::bool('true'),
+                '=> bool(false)' => '=> ' . self::bool('false'),
+            ]);
+
+            // keys
+            $dump = preg_replace_callback('~\["(.*)"]~', static function (array $match) {
+                return self::string($match[1]);
+            }, $dump);
+            $dump = preg_replace_callback('~\[(\d+)]~', static function (array $match) {
+                return self::int($match[1]);
+            }, $dump);
+
+            // values
+            $dump = preg_replace_callback('~(string\(\d+\) )"(.*)"~', static function (array $match) {
+                return self::dumpString($match[2]);
+            }, $dump);
+            $dump = preg_replace_callback('~int\((\d+)\)~', static function (array $match) {
+                return self::dumpInt((int) $match[1]);
+            }, $dump);
+            $dump = preg_replace_callback('~float\((.*)\)~', static function (array $match) {
+                return self::dumpFloat((float) $match[1]);
+            }, $dump);
+        } else {
+            $dump = preg_replace_callback('~\["(.*)"]~', static function (array $match) {
+                return $match[1];
+            }, $dump);
+            $dump = preg_replace_callback('~\[(\d+)]~', static function (array $match) {
+                return $match[1];
+            }, $dump);
+        }
+
+        return $dump;
+    }
+
+    /**
      * @param mixed $value
      */
     public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null): string
@@ -135,16 +196,18 @@ class Dumper
         }
 
         try {
-            $traceLines = debug_backtrace();
-
-            $name = self::extractName($traceLines);
+            $callstack = Callstack::get();//->filter(self::$traceSkip);
+            rl(Dumper::varDump(debug_backtrace()));
+            rl(self::formatCallstack($callstack));
+            $name = self::extractName($callstack);
+            rl($name);
             $value = self::dumpValue($value, 0, $name);
-            $trace = self::formatTrace($traceLines);
+            $trace = self::formatCallstack($callstack, $traceLength, 0, []);
             if ($name !== null && $name[0] === '[') {
                 $name = null;
             }
 
-            return ($name ?? 'literal') . self::symbol(':') . ' ' . $value . ($trace ? "\n" : '') . $trace;
+            return self::key($name ?? 'literal') . self::symbol(':') . ' ' . $value . ($trace ? "\n" : '') . $trace;
         } finally {
             self::$traceLength = $traceLengthBefore;
             self::$maxDepth = $maxDepthBefore;
@@ -177,7 +240,7 @@ class Dumper
             if (is_string($key) && substr($key, -7) === '::class') {
                 return self::dumpClass($value, $depth);
             } else {
-                return self::dumpString($value, (string) $key);
+                return self::dumpString($value, $depth, (string) $key);
             }
         } elseif (is_array($value)) {
             return self::dumpArray($value, $depth, $key);
@@ -186,7 +249,7 @@ class Dumper
         } elseif (is_resource($value)) {
             return self::dumpResource($value, $depth);
         } else {
-            throw new LogicException('Unknown value.');
+            throw new LogicException('Unknown type.');
         }
     }
 
@@ -202,14 +265,16 @@ class Dumper
                 $info = ' ' . self::info('// PHP_INT_MAX');
             } elseif ($int === PHP_INT_MIN) {
                 $info = ' ' . self::info('// PHP_INT_MIN');
-            } elseif (!$sign && $int > 1000000 && strpos($key, 'time') !== false) {
+            } elseif (!$sign && $int > 10000000 && strpos($key, 'time') !== false) {
                 $time = self::intToFormattedDate($int);
                 $info = ' ' . self::info('// ' . $time);
-            } elseif (!$sign && preg_match('/flags|options|settings/', $key)) {
+            } elseif (!$sign && $int > 1024 && preg_match('/size|bytes/', $key)) {
+                $info = ' ' . self::info('// ' . self::size($int));
+            } elseif (!$sign && preg_match('/flags|options|headeropt|settings/', $key)) {
                 $info = ' ' . self::info('// ' . implode('|', array_reverse(self::binaryComponents($int))));
             } else {
                 $exp = null;
-                for ($n = 7; $n < 63; $n++) {
+                for ($n = 9; $n < 63; $n++) {
                     if ($int === 2 ** $n) {
                         $exp = $n;
                     } elseif ($int + 1 === 2 ** $n) {
@@ -242,7 +307,7 @@ class Dumper
         return self::float($float . $decimal) . $info;
     }
 
-    public static function dumpString(string $string, ?string $key = null): string
+    public static function dumpString(string $string, int $depth = 0, ?string $key = null): string
     {
         $callable = is_callable($string)
             ? ', callable'
@@ -263,11 +328,32 @@ class Dumper
             $trimmed = ', trimmed';
         }
 
-        $info = '';
-        if (self::$showInfo) {
-            $info = $bytes === $length
-                ? ' ' . self::info("// $bytes B{$trimmed}{$hidden}{$callable}")
-                : ' ' . self::info("// $bytes B, $length ch{$trimmed}{$hidden}{$callable}");
+        if (!self::$showInfo) {
+            $info = '';
+        } elseif ($key !== null && Ansi::isColor($string, !preg_match('/color|background/i', $key))) {
+            $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
+        } elseif ($bytes === $length) {
+            $info = ' ' . self::info("// $bytes B{$trimmed}{$hidden}{$callable}");
+        } else {
+            $info = ' ' . self::info("// $bytes B, $length ch{$trimmed}{$hidden}{$callable}");
+        }
+
+        // explode path on more lines
+        if ($key !== null && preg_match('/path(?!ext)/i', $key) && strpos($string, PATH_SEPARATOR) !== false) {
+            $infoBefore = self::$showInfo;
+            self::$showInfo = false;
+            $parts = explode(PATH_SEPARATOR, $string);
+            foreach ($parts as $i => $s) {
+                if ($s !== "") {
+                    $parts[$i] = self::dumpString($s . ($i + 1 === count($parts) ? '' : PATH_SEPARATOR));
+                } else {
+                    unset($parts[$i]);
+                }
+            }
+            $sep = "\n" . self::indent($depth) . ' ' . self::symbol('.') . ' ';
+            self::$showInfo = $infoBefore;
+
+            return implode($sep, $parts) . $info;
         }
 
         return self::string($string) . $info;
@@ -317,7 +403,7 @@ class Dumper
                 if ($k === $marker) {
                     continue;
                 }
-                $item = $isList
+                $item = $isList && !self::$alwaysShowArrayKeys
                     ? self::dumpValue($value, $depth + 1)
                     : self::key($k) . ' ' . self::symbol('=>') . ' ' . self::dumpValue($value, $depth + 1, $k);
 
@@ -339,7 +425,7 @@ class Dumper
         $start = self::bracket('[');
         $end = self::bracket(']') . $info;
 
-        $length = Colors::length(implode(', ', $items), self::$stringsEncoding);
+        $length = Ansi::length(implode(', ', $items), self::$stringsEncoding);
 
         if ($isList && $length  < self::$shortArrayMaxLength && !$hasInfo) {
             // simple values: "[1, 2, 3] // 3 items"
@@ -352,7 +438,7 @@ class Dumper
                 $parts = explode($infoPrefix, $item);
                 $parts[] = '';
                 [$v, $i] = $parts;
-                $i = str_replace(Colors::RESET, '', $i);
+                $i = str_replace(Ansi::RESET_FORMAT, '', $i);
                 $values[] = $v;
                 $infos[] = $i;
             }
@@ -413,14 +499,14 @@ class Dumper
             $short = '';
             foreach (self::$shortHandlers as $cl => $handler) {
                 if (is_a($object, $cl)) {
-                    $short = ' ' . $handler($object);
+                    $short = $handler($object);
                 }
             }
             if ($short === '' && isset(self::$shortHandlers[null])) {
-                $short = ' ' . (self::$shortHandlers[null])($object);
+                $short = (self::$shortHandlers[null])($object);
             }
 
-            return self::name($class) . ' ' . self::bracket('{') . $short . ' '
+            return self::name($class) . ' ' . self::bracket('{') . ' ' . $short . ($short ? ' ' : '')
                 . self::exceptions('...') . ' ' . self::bracket('}') . $info;
         }
 
@@ -655,12 +741,15 @@ class Dumper
         return self::resource($name) . $info;
     }
 
-    public static function dumpBacktrace(array $traces, bool $withArgs = true): string
+    public static function dumpBacktrace(array $traces, int $argsDepth = 3): string
     {
+        $oldDepth = self::$maxDepth;
+        self::$maxDepth = $argsDepth;
+
         $items = [];
         foreach ($traces as $trace) {
             $args = '';
-            if ($withArgs && !empty($trace['args'])) {
+            if ($argsDepth && !empty($trace['args'])) {
                 $args = self::dumpArray($trace['args']);
                 $args = substr($args, strlen(self::bracket('[')), strrpos($args, self::bracket(']')));
             }
@@ -669,12 +758,23 @@ class Dumper
 
             $items[] = self::info('^---') . ' ' . self::info('in') . ' ' . $fileLine
                 . ' ' . self::info('-') . ' '
-                . self::nameDim($trace['class'] ?? '') . self::symbol($trace['type'] ?? '')
+                . self::nameDim($trace['class'] ?? '') . self::info($trace['type'] ?? '')
                 . self::nameDim($trace['function'])
                 . self::bracket('(') . $args . self::bracket(')');
         }
 
+        self::$maxDepth = $oldDepth;
+
         return implode("\n", $items);
+    }
+
+    public static function highlightUrl(string $url): string
+    {
+        $url = (string) preg_replace('/([a-zA-Z0-9_-]+)=/', Ansi::dyellow('$1') . '=', $url);
+        $url = (string) preg_replace('/=([a-zA-Z0-9_-]+)/', '=' . Ansi::lcyan('$1'), $url);
+        $url = (string) preg_replace('/[\\/?&=]/', Ansi::dgray('$0'), $url);
+
+        return $url;
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

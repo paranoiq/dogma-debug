@@ -22,6 +22,7 @@ class Packet
     public const TIMER = 5;
     public const LOCATION = 6;
     public const FILE_IO = 7;
+    public const ERROR = 8;
 
     public const OUTPUT_WIDTH = 100;
 

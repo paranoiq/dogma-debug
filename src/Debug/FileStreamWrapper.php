@@ -9,11 +9,10 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Colors as C;
+use Dogma\Debug\Ansi as A;
 use function array_slice;
 use function array_sum;
 use function closedir;
-use function debug_backtrace;
 use function fclose;
 use function feof;
 use function fflush;
@@ -153,12 +152,12 @@ class FileStreamWrapper
         $cwd = str_replace('\\', '/', getcwd());
         if ((self::$log & self::CHANGE_DIR) && $cwd !== self::$workingDirectory) {
             $message = Dumper::wrapperCall('chdir', [], (int) $this->handle);
-            $message = C::color(' ' . self::PROTOCOL . ': ', C::WHITE, C::DGREEN)
+            $message = A::color(' ' . self::PROTOCOL . ': ', A::WHITE, A::DGREEN)
                 . ' ' . Dumper::file($cwd) . ' ' . $message;
 
-            $backtrace = Dumper::formatTrace(debug_backtrace());
+            $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 1, 0, []);
 
-            DebugClient::remoteWrite(Packet::FILE_IO, $message, $backtrace);
+            DebugClient::send(Packet::FILE_IO, $message, $backtrace);
 
             self::$workingDirectory = $cwd;
         }
@@ -186,13 +185,13 @@ class FileStreamWrapper
 
         $path = Dumper::file($path);
 
-        $timeFormatted = C::color('(' . round($time * 1000000) . ' μs)', Dumper::$colors['time']);
-        $message = C::color(' ' . self::PROTOCOL . ': ', C::WHITE, C::DGREEN)
+        $timeFormatted = A::color('(' . round($time * 1000000) . ' μs)', Dumper::$colors['time']);
+        $message = A::color(' ' . self::PROTOCOL . ': ', A::WHITE, A::DGREEN)
             . ' ' . $path . ' ' . $message . ' ' . $timeFormatted;
 
-        $backtrace = Dumper::formatTrace(debug_backtrace());
+        $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 1, 0, []);
 
-        DebugClient::remoteWrite(Packet::FILE_IO, $message, $backtrace, $time);
+        DebugClient::send(Packet::FILE_IO, $message, $backtrace, $time);
     }
 
     // file handle -----------------------------------------------------------------------------------------------------
@@ -545,6 +544,7 @@ class FileStreamWrapper
                 : $this->native('mkdir', $path, $permissions, $recursive);
         } finally {
             $time = microtime(true) - $time;
+            // todo: argument hints
             $hints = ['options' => [STREAM_MKDIR_RECURSIVE => 'STREAM_MKDIR_RECURSIVE', STREAM_REPORT_ERRORS => 'STREAM_REPORT_ERRORS']];
             $message = Dumper::wrapperCall('mkdir', ['permissions' => $permissions, 'mkdir.options' => $options], $result);
             $this->log(self::MAKE_DIR, $time, $message, $path);
@@ -623,11 +623,11 @@ class FileStreamWrapper
 
     // helpers ---------------------------------------------------------------------------------------------------------
 
-    private function native(string $func)
+    private function native(string $function)
     {
         stream_wrapper_restore(self::PROTOCOL);
         try {
-            return $func(...array_slice(func_get_args(), 1));
+            return $function(...array_slice(func_get_args(), 1));
         } finally {
             stream_wrapper_unregister(self::PROTOCOL);
             stream_wrapper_register(self::PROTOCOL, self::class);

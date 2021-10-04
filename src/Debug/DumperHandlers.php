@@ -12,7 +12,6 @@ namespace Dogma\Debug;
 use Consistence\Enum\Enum;
 use Consistence\Enum\MultiEnum;
 use DateTimeInterface;
-use Dogma\Debug\Colors as C;
 use Dogma\Dom\Element;
 use Dogma\Dom\NodeList;
 use Dogma\Enum\IntEnum;
@@ -65,6 +64,8 @@ trait DumperHandlers
 
     /** @var array<class-string, callable> handlers for user-formatted dumps */
     public static $handlers = [
+        Callstack::class => [self::class, 'dumpCallstack'],
+
         DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
         Date::class => [self::class, 'dumpDate'],
         Time::class => [self::class, 'dumpTime'],
@@ -124,10 +125,15 @@ trait DumperHandlers
             $prop = $ref->getProperty('id');
             $prop->setAccessible(true);
             $value = $prop->getValue($object);
-            $id = self::dumpObject($value);
+            $id = self::dumpValue($value);
         }
 
         return $id;
+    }
+
+    public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
+    {
+        return self::name(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
     }
 
     public static function dumpDateTimeInterface(DateTimeInterface $dt): string
@@ -197,7 +203,7 @@ trait DumperHandlers
             $length = ', length: ' . $dti->getSpan()->format();
         }
 
-        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($dti)) . $length : '';
+        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($dti) . $length) : '';
 
         return self::name(get_class($dti)) . self::bracket('(') . $value . self::bracket(')') . $info;
     }
@@ -269,7 +275,7 @@ trait DumperHandlers
         $items = [];
         foreach ($set->getIntervals() as $interval) {
             $item = self::indent($depth + 1) . self::dumpValue($interval, $depth + 1);
-            $pos = strrpos($item, " \x1B[" . C::ansiValue(self::$colors['info']) . "m// ");
+            $pos = strrpos($item, self::infoPrefix());
             if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
             } else {

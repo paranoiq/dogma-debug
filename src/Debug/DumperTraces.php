@@ -12,18 +12,14 @@ namespace Dogma\Debug;
 use function array_slice;
 use function debug_backtrace;
 use function end;
-use function explode;
-use function file_get_contents;
 use function implode;
 use function in_array;
-use function is_file;
-use function is_readable;
 use function preg_match;
-use function rl;
 use function str_replace;
 use function str_split;
 use function strlen;
 use function strpos;
+use function strrpos;
 use function substr;
 use function trim;
 
@@ -33,25 +29,33 @@ trait DumperTraces
     /** @var int */
     public static $traceLength = 1;
 
-    /** @var bool - displaying class and method where we are, not what we are calling, so it is shifted in comparison with debug_backtrace() */
+    /** @var bool - show class, method, arguments */
     public static $traceDetails = true;
+
+    /** @var int */
+    public static $traceArgsDepth = 0;
+
+    /** @var int[] - count of lines of code shown for each filtered frame. [5] means 5 lines for first, 0 for others... */
+    public static $traceCodeLines = [5];
 
     /** @var array<string|null> ($class, $method) */
     public static $traceSkip = [
-        [null, 'd'],
+        [null, 'ld'],
         [null, 'rd'],
+        [null, 'rc'],
         [null, 'rf'],
         [null, 'rl'],
-        [null, 't'],
+        [null, 'rt'],
         [self::class, null],
+        [Callstack::class, null],
         [Assert::class, null],
         [FileStreamWrapper::class, null],
 
+        // proxies
+        [null, 'call_user_func'],
+        [null, 'call_user_func_array'],
+
         // io origins
-        [null, 'include'],
-        [null, 'include_once'],
-        [null, 'require'],
-        [null, 'require_once'],
         [null, 'Composer\Autoload\includeFile'],
         ['Composer\Autoload\ClassLoader', 'loadClass'],
     ];
@@ -86,38 +90,16 @@ trait DumperTraces
         }
     }
 
-    /**
-     * @param mixed[] $traces
-     * @return string|null
-     */
-    public static function extractName(array $traces): ?string
+    public static function extractName(Callstack $callstack): ?string
     {
-        foreach ($traces as $i => $trace) {
-            if (self::skipTrace($traces, $i)) {
+        $callstack = $callstack->filter(self::$traceSkip);
+        foreach ($callstack->frames as $frame) {
+            $line = $frame->getLineCode();
+            if ($line === null) {
                 continue;
             }
 
-            $filePath = $trace['file'] ?? null;
-            if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
-                return null;
-            }
-            $source = file_get_contents($filePath);
-            $lines = explode("\n", (string)$source);
-            $lineIndex = $trace['line'] - 1;
-            if (!isset($lines[$lineIndex])) {
-                return null;
-            }
-            $line = $lines[$lineIndex];
-
-            $expression = self::findExpression($line);
-
-            if ($expression !== null) {
-                if (preg_match('/null|false|true|nan|-?inf/i', $expression)) {
-                    return null;
-                }
-
-                return $expression;
-            }
+            return self::findExpression($line);
         }
 
         return null;
@@ -161,23 +143,33 @@ trait DumperTraces
         return $expression;
     }
 
-    public static function formatTrace(array $traces, ?int $length = null): string
+    /**
+     * @param int[] $codeLines
+     */
+    public static function formatCallstack(Callstack $callstack, ?int $length = null, ?int $argsDepth = null, ?array $codeLines = null): string
     {
         $length = $length ?? self::$traceLength;
         if ($length === 0) {
             return '';
         }
 
+        $oldDepth = self::$maxDepth;
+        self::$maxDepth = ($argsDepth ?? self::$traceArgsDepth);
+
+        $codeLines = $codeLines ?? self::$traceCodeLines;
+
         $results = [];
         $n = 0;
-        foreach ($traces as $i => $trace) {
-            if (self::skipTrace($traces, $i)) {
-                continue;
-            }
+        foreach ($callstack->frames as $frame) {
+            $result = self::formatFrame($frame);
 
-            $result = self::formatTraceLine($traces, $i);
-            if ($result === null) {
-                continue;
+            if (isset($codeLines[$n]) && $frame->file !== null) {
+                $lines = (int) floor($codeLines[$n] / 2);
+                $lines = $frame->getLinesAround($lines, $lines);
+                foreach ($lines as $i => $line) {
+                    $lines[$i] = Ansi::lgray($i . ':') . ' ' . ($i === $frame->line ? Ansi::white($line) : Ansi::dyellow($line));
+                }
+                $result .= "\n" . implode("\n", $lines);
             }
 
             $results[] = $result;
@@ -187,39 +179,32 @@ trait DumperTraces
             }
         }
 
+        self::$maxDepth = $oldDepth;
+
         return implode("\n", $results);
     }
 
-    /**
-     * @param mixed[][] $traces
-     */
-    public static function formatTraceLine(array $traces, int $i): ?string
+    private static function formatFrame(CallstackFrame $frame): string
     {
-        $filePath = str_replace('\\', '/', $traces[$i]['file'] ?? '');
-        if ($filePath === '') {
-            return null;
+        $args = '';
+        if ($frame->args !== []) {
+            $args = self::dumpArray($frame->getNamedArgs());
+            $args = substr($args, strlen(self::bracket('[')), strrpos($args, self::bracket(']')) - 5);
         }
 
-        $line = $traces[$i]['line'] ?? '?';
         $classMethod = '';
-        if (self::$traceDetails && isset($traces[$i + 1]['function'])) {
-            $classMethod = ' ' . self::symbol('--') . ' ' . (isset($traces[$i + 1]['class']) ? self::nameDim($traces[$i + 1]['class']) . self::symbol('::') : '') . self::nameDim($traces[$i + 1]['function']) . self::bracket('()');
+        if (self::$traceDetails && $frame->function !== null) {
+            $classMethod = ' ' . self::symbol('--') . ' '
+                . ($frame->class !== null ? self::nameDim($frame->class) . self::symbol('::') : '')
+                . self::nameDim($frame->function) . self::bracket('(') . $args . self::bracket(')');
         }
 
-        return self::info("^--- in ") . self::fileLine($filePath, $line) . $classMethod;
-    }
-
-    public static function skipTrace(array $traces, int $i): bool
-    {
-        $class = $traces[$i + 1]['class'] ?? null;
-        $method = $traces[$i + 1]['function'] ?? null;
-        foreach (self::$traceSkip as [$skipClass, $skipMethod]) {
-            if ($class === $skipClass && ($method === $skipMethod || $skipMethod === null)) {
-                return true;
-            }
+        $fileLine = '';
+        if ($frame->file !== null && $frame->line !== null) {
+            $fileLine = self::fileLine($frame->file, $frame->line);
         }
 
-        return false;
+        return self::info("^--- in ") . $fileLine . $classMethod;
     }
 
 }
