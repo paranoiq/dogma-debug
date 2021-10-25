@@ -14,7 +14,7 @@ use function error_reporting;
 use function microtime;
 use function restore_error_handler;
 use function set_error_handler;
-use function strpos;
+use const E_ALL;
 use const E_COMPILE_ERROR;
 use const E_COMPILE_WARNING;
 use const E_CORE_ERROR;
@@ -34,14 +34,20 @@ use const E_WARNING;
 class ErrorHandler
 {
 
-    /** @var bool */
+    /** @var bool Prevent other error handlers (including the PHP built-in handler) */
     public static $catch = false;
 
-    /** @var int|null */
+    /** @var int Max count of errors printed to output */
     public static $printLimit = 0;
 
-    /** @var bool */
+    /** @var bool Print only unique error types and origins */
     public static $uniqueOnly = true;
+
+    /** @var bool List errors on end of request */
+    public static $listErrors = true;
+
+    /** @var bool Show last error which could have been hidden by another error handler */
+    public static $showLastError = true;
 
     /** @var string[][] (string $typeAndMessage => string[] $fileAndLine) */
     public static $ignore = [];
@@ -64,26 +70,16 @@ class ErrorHandler
     /** @var callable|null */
     private static $previous;
 
-    public static function enable(int $types = E_ALL): void
+    public static function enable(int $types = E_ALL, bool $catch = false, int $printLimit = 0): void
     {
+        self::$catch = $catch;
+        self::$printLimit = $printLimit;
         self::$previous = set_error_handler([self::class, 'handle'], $types);
     }
 
     public static function disable(): void
     {
         restore_error_handler();
-    }
-
-    /** alias for enable() */
-    public static function register(): void
-    {
-        self::enable();
-    }
-
-    /** alias for disable() */
-    public static function unregister(): void
-    {
-        self::disable();
     }
 
     public static function handle(
@@ -127,14 +123,14 @@ class ErrorHandler
         // start match
         if ($places === []) {
             foreach (self::$ignore as $tm => $pl) {
-                if (strpos($typeMessage, $tm) === 0) {
+                if (Str::startsWith($typeMessage, $tm)) {
                     $places = $pl;
                 }
             }
         }
         foreach ($places as $place) {
             // place match
-            if (strpos($fileLine, $place) !== false) {
+            if (Str::contains($fileLine, $place)) {
                 self::$ignoreCount++;
                 return;
             }

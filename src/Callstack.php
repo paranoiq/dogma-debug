@@ -25,15 +25,15 @@ use const PHP_SAPI;
  *
  * This makes Callstack more easy to comprehend and more easy to filter (skip) some frames.
  *
- * For example - this backtrace:
+ * For example: this backtrace:
  * [
  *   { file: foo.php, function: bar() }, // foo() calls bar()
  *   { file: index.php, function: foo() }, // index.php calls foo()
  * ]
  * is transformed to this Callstack:
  * [
- *   { file: bar.php, function: bar() }, // called from foo(); file for bar() is inferred by reflection
- *   { file: foo.php, function: foo() }, // called from index.php
+ *   { file: bar.php, function: bar() }, // inside bar(), called from foo(); file and line for bar() is inferred from reflection
+ *   { file: foo.php, function: foo() }, // inside foo(), called from index.php
  *   { file: index.php, function: null }, // inside no function here, thus function is null
  * ]
  */
@@ -109,15 +109,19 @@ class Callstack
         return new self($frames);
     }
 
+    /**
+     * @param mixed[][] $skip (?string $class, ?string $method)[]
+     */
     public function filter(array $skip): self
     {
         $frames = [];
         foreach ($this->frames as $frame) {
             foreach ($skip as [$skipClass, $skipMethod]) {
                 if ($frame->class === $skipClass && ($frame->function === $skipMethod || $skipMethod === null)) {
-                    $frames[] = $frame;
+                    continue 2;
                 }
             }
+            $frames[] = $frame;
         }
 
         return new self($frames);

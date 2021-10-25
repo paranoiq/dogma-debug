@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Ansi as A;
 use function array_slice;
 use function array_sum;
 use function closedir;
@@ -53,7 +52,7 @@ use const STREAM_URL_STAT_LINK;
 use const STREAM_URL_STAT_QUIET;
 use const STREAM_USE_PATH;
 
-class FileStreamWrapper
+class FileHandler
 {
 
     public const OPEN = 0x1;
@@ -81,17 +80,18 @@ class FileStreamWrapper
 
     public const DIRS = self::OPEN_DIR | self::READ_DIR | self::REWIND_DIR | self::CLOSE_DIR | self::MAKE_DIR | self::REMOVE_DIR | self::CHANGE_DIR;
     public const ALL = 0x200000 - 1;
+    public const NONE = 0;
 
     private const PROTOCOL = 'file';
     private const INCLUDE_FLAGS = 16512;
 
-    /** @var int */
+    /** @var int Types of events to log */
     public static $log = self::ALL & ~self::INFO;
 
-    /** @var bool */
+    /** @var bool Log io operations from include/require statements */
     public static $logIncludes = true;
 
-    /** @var callable(int $event, float $time, string $message, string $path, bool $isInclude): bool */
+    /** @var callable(int $event, float $time, string $message, string $path, bool $isInclude): bool User log filter */
     public static $logFilter;
 
     /** @var int[] */
@@ -110,7 +110,7 @@ class FileStreamWrapper
     private static $workingDirectory;
 
     /** @var resource|null */
-    public $context;
+    private $context;
 
     /** @var resource|null */
     private $handle;
@@ -121,8 +121,13 @@ class FileStreamWrapper
     /** @var int */
     private $options;
 
-    public static function enable(): void
+    public static function enable(?int $log = null, bool $logIncludes = true): void
     {
+        if ($log !== null) {
+            self::$log = $log;
+        }
+        self::$logIncludes = $logIncludes;
+
         stream_wrapper_unregister(self::PROTOCOL);
         stream_wrapper_register(self::PROTOCOL, self::class);
     }
@@ -133,18 +138,6 @@ class FileStreamWrapper
         stream_wrapper_restore(self::PROTOCOL);
     }
 
-    /** alias for enable() */
-    public static function register(): void
-    {
-        self::enable();
-    }
-
-    /** alias for disable() */
-    public static function unregister(): void
-    {
-        self::disable();
-    }
-
     private function log(int $event, float $time, string $message, string $path): void
     {
         // detect and log working directory change
@@ -152,7 +145,7 @@ class FileStreamWrapper
         $cwd = str_replace('\\', '/', getcwd());
         if ((self::$log & self::CHANGE_DIR) && $cwd !== self::$workingDirectory) {
             $message = Dumper::wrapperCall('chdir', [], (int) $this->handle);
-            $message = A::color(' ' . self::PROTOCOL . ': ', A::WHITE, A::DGREEN)
+            $message = Ansi::color(' ' . self::PROTOCOL . ': ', Ansi::WHITE, Ansi::DGREEN)
                 . ' ' . Dumper::file($cwd) . ' ' . $message;
 
             $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 1, 0, []);
@@ -185,8 +178,8 @@ class FileStreamWrapper
 
         $path = Dumper::file($path);
 
-        $timeFormatted = A::color('(' . round($time * 1000000) . ' μs)', Dumper::$colors['time']);
-        $message = A::color(' ' . self::PROTOCOL . ': ', A::WHITE, A::DGREEN)
+        $timeFormatted = Ansi::color('(' . round($time * 1000000) . ' μs)', Dumper::$colors['time']);
+        $message = Ansi::color(' ' . self::PROTOCOL . ': ', Ansi::WHITE, Ansi::DGREEN)
             . ' ' . $path . ' ' . $message . ' ' . $timeFormatted;
 
         $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 1, 0, []);

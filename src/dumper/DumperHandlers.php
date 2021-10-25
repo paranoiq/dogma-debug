@@ -52,7 +52,6 @@ use function is_string;
 use function property_exists;
 use function str_replace;
 use function stream_get_meta_data;
-use function strpos;
 use function strrpos;
 use function substr;
 
@@ -276,7 +275,7 @@ trait DumperHandlers
         foreach ($set->getIntervals() as $interval) {
             $item = self::indent($depth + 1) . self::dumpValue($interval, $depth + 1);
             $pos = strrpos($item, self::infoPrefix());
-            if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+            if ($pos !== false && Str::contains(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
             } else {
                 $item .= $coma;

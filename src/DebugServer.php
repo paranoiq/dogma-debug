@@ -21,8 +21,10 @@ use function socket_create;
 use function socket_last_error;
 use function socket_listen;
 use function socket_read;
+use function socket_set_blocking;
 use function socket_set_nonblock;
 use function socket_write;
+use function stream_set_blocking;
 use function unserialize;
 use function usleep;
 use const AF_INET;
@@ -61,6 +63,7 @@ class DebugServer
         while (true) {
             $newConnection = socket_accept($this->sock);
             if ($newConnection) {
+                //socket_set_nonblock($newConnection);
                 $connections[] = $newConnection;
             }
 
@@ -76,6 +79,10 @@ class DebugServer
                     $this->processRequest($content, $connection);
                 }
             }
+            /*$content = stream_socket_recvfrom($this->sock, 1, 0, $peer);
+            if ($content) {
+                $this->processRequest($content, $peer);
+            }*/
 
             usleep(20);
         }
@@ -83,7 +90,7 @@ class DebugServer
 
     /**
      * @param string $content
-     * @param resource $connection
+     * @param resource|string $connection
      */
     private function processRequest(string $content, $connection): void
     {
@@ -102,6 +109,7 @@ class DebugServer
             if ($request->type === Packet::OUTPUT_WIDTH) {
                 $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
                 socket_write($connection, $response . Packet::MARKER);
+                //stream_socket_sendto($this->sock, $response, 0, $connection);
                 continue;
             }
 
@@ -136,6 +144,7 @@ class DebugServer
     private function connect(): void
     {
         $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        //$this->sock = stream_socket_server("tcp://$this->address:$this->port");
         if (!$this->sock) {
             echo Ansi::lred("Could not create socket.\n");
             exit(1);
@@ -152,6 +161,7 @@ class DebugServer
             echo Ansi::lred("Could not set socket to non-blocking.\n");
             exit(1);
         }
+        //stream_set_blocking($this->sock, false);
 
         System::switchTerminalToUtf8();
 

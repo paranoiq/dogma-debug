@@ -21,6 +21,7 @@ use function preg_match;
 use function str_replace;
 use function strlen;
 use function strncmp;
+use function strpos;
 use function substr;
 
 class Str
@@ -56,6 +57,11 @@ class Str
         } else {
             return substr($string, 0, $length);
         }
+    }
+
+    public static function contains(string $string, string $find): bool
+    {
+        return strpos($string, $find) !== false;
     }
 
     public static function startsWith(string $string, string $find): bool

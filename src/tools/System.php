@@ -9,9 +9,9 @@
 
 namespace Dogma\Debug;
 
+use function cli_set_process_title;
 use function exec;
 use function explode;
-use function strpos;
 use function strtolower;
 use function trim;
 use const PHP_OS;
@@ -53,7 +53,16 @@ class System
     {
         $os = strtolower(PHP_OS);
 
-        return strpos($os, 'win') !== false && strpos($os, 'darwin') === false;
+        return Str::contains($os, 'win') && !Str::contains($os, 'darwin');
+    }
+
+    public static function setProcessName(string $name): void
+    {
+        @cli_set_process_title($name);
+
+        if (!self::isWindows()) {
+            @file_put_contents("/proc/" . getmypid() . "/comm", $name);
+        }
     }
 
 }

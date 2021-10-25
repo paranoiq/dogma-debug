@@ -20,9 +20,14 @@ class Packet
     public const DUMP = 3;
     public const LABEL = 4;
     public const TIMER = 5;
-    public const LOCATION = 6;
-    public const FILE_IO = 7;
-    public const ERROR = 8;
+    public const TRACE = 6;
+    public const STD_IO = 7;
+    public const FILE_IO = 8;
+    public const DB_IO = 9;
+    public const HTTP_IO = 10;
+    public const FTP_IO = 11;
+    public const ERROR = 12;
+    public const EXCEPTION = 13;
 
     public const OUTPUT_WIDTH = 100;
 

@@ -10,10 +10,13 @@
 namespace Dogma\Debug;
 
 use DateTime;
+use function array_shift;
 use function array_sum;
 use function end;
+use function error_get_last;
 use function explode;
 use function getmypid;
+use function headers_list;
 use function http_response_code;
 use function implode;
 use function memory_get_peak_usage;
@@ -22,7 +25,6 @@ use function number_format;
 use function ob_get_clean;
 use function ob_start;
 use function register_shutdown_function;
-use function round;
 use function serialize;
 use function socket_connect;
 use function socket_create;
@@ -31,7 +33,6 @@ use function socket_write;
 use function sprintf;
 use function str_replace;
 use function strlen;
-use function strpos;
 use function strtolower;
 use function ucfirst;
 use function unserialize;
@@ -55,6 +56,9 @@ class DebugClient
 
     /** @var string */
     public static $timeFormat = 'D H:i:s.v';
+
+    /** @var string */
+    public static $headerColor = Ansi::LYELLOW;
 
     /** @var int */
     public static $counter = 0;
@@ -131,6 +135,21 @@ class DebugClient
         return $label;
     }
 
+    /**
+     * @param int[] $lines
+     */
+    public static function backtrace(?int $length = null, ?int $argsDepth = null, array $lines = []): void
+    {
+        ob_start();
+
+        $callstack = Callstack::get()->filter(Dumper::$traceSkip);
+        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $lines);
+
+        self::send(Packet::TRACE, $trace);
+
+        self::handleAccidentalOutput(ob_get_clean());
+    }
+
     public static function function(): void
     {
         ob_start();
@@ -148,7 +167,7 @@ class DebugClient
             $message = Ansi::white(" $function() ", Ansi::DRED);
         }
 
-        self::send(Packet::LOCATION,$message);
+        self::send(Packet::TRACE, $message);
 
         self::handleAccidentalOutput(ob_get_clean());
     }
@@ -193,23 +212,17 @@ class DebugClient
         $message = str_replace(Packet::MARKER, "||||", $message);
 
         $packet = serialize(new Packet($type, $message, $backtrace, $duration)) . Packet::MARKER;
-        $result = socket_write(self::$socket, $packet, strlen($packet));
+        $result = @socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
-            die("Could not send data to debug server.\n");
+            $m = error_get_last()['message'] ?? '???';
+            self::error(trim("Could not send data to debug server: $m", '.') . '.');
         }
     }
 
-    public static function handleAccidentalOutput(string $output): void
-    {
-        if ($output === "") {
-            return;
-        }
-
-        $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
-
-        self::send(Packet::ERROR, $message);
-    }
-
+    /**
+     * When called by user, init() logs request start/end even if no other debug events are being logged.
+     * Otherwise, debugger is initiated automatically with first error or user event.
+     */
     public static function init(): void
     {
         if (self::$socket === null) {
@@ -238,13 +251,14 @@ class DebugClient
 
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if ($socket === false) {
-            die("Could not create socket to debug server.\n");
+            self::error("Could not create socket to debug server.");
+            return;
         }
         self::$socket = $socket;
 
         $result = @socket_connect(self::$socket, self::$remoteAddress, self::$remotePort);
         if (!$result && $_SERVER['PHP_SELF'] !== 'server.php') {
-            echo Ansi::lred(sprintf("Could not connect to debug server. Should be running on %s:%s.", self::$remoteAddress, self::$remotePort)) . "\n";
+            self::error("Could not connect to debug server.");
             return;
         }
 
@@ -256,25 +270,44 @@ class DebugClient
         });
     }
 
+    private static function handleAccidentalOutput(string $output): void
+    {
+        if ($output === "") {
+            return;
+        }
+
+        $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
+
+        self::send(Packet::ERROR, $message);
+    }
+
+    private static function error(string $message): void
+    {
+        $message = sprintf("Dogma Debugger: $message. Debug server should be running on %s:%s.", self::$remoteAddress, self::$remotePort);
+
+        echo Ansi::white($message) . "\n";
+    }
+
     private static function createHeader(): string
     {
         global $argv;
 
-        $dt = new DateTime();
+        $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
         $time = $dt->format(self::$timeFormat);
         $version = PHP_VERSION;
         $sapi = str_replace('handler', '', PHP_SAPI);
-        $header = "\n" . Ansi::white(" >> $time ", Ansi::DBLUE) . ' '
-            . Ansi::white(" PHP $version ", Ansi::DBLUE) . ' '
-            . Ansi::white(" $sapi ", Ansi::DBLUE) . ' ';
+        $header = "\n" . Ansi::white(" >> $time | PHP $version", self::$headerColor);
 
         if ($sapi === 'cli') {
+            $pid = getmypid(); // . ' (' . cli_get_process_title() . ')';
+            $header .= Ansi::white(", $sapi, #$pid ", self::$headerColor) . ' ';
+
             $args = $argv;
             $args[0] = Dumper::file($args[0]);
-            $header .= implode(' ', $args);
-            $process = getmypid();
-            $header .= ' ' . Ansi::dgray("(pid: $process)") . ' ';
+            $header .= implode(' ', $args) . ' ';
         } else {
+            $header .= Ansi::white(", $sapi ", self::$headerColor) . ' ';
+
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                 $header .= Ansi::white(' AJAX ', Http::$methodColors['ajax']) . ' ';
             }
@@ -286,53 +319,109 @@ class DebugClient
             }
         }
 
+        // request headers
+        if (IoHandler::$requestHeaders) {
+            // todo
+        }
+
+        // request body
+        if (IoHandler::$requestBody) {
+            // todo
+        }
+
         return Ansi::pad($header, self::getOutputWidth() - 2, '-');
     }
 
     private static function createFooter(): string
     {
         $footer = '';
+
+        // last error
+        if (ErrorHandler::$showLastError) {
+            $e = error_get_last();
+            if ($e !== null) {
+                rd($e);
+            }
+        }
+
+        // response headers
+        if (IoHandler::$responseHeaders) {
+            $headers = headers_list();
+            if ($headers !== []) {
+                $footer .= Ansi::white(' headers: ', Ansi::DGREEN) . "\n";
+                foreach ($headers as $header) {
+                    $parts = explode(': ', $header);
+                    $name = array_shift($parts);
+                    $value = implode(': ', $parts);
+                    $footer .= "   " . Dumper::key($name) . ': ' . Dumper::value($value) . "\n";
+                }
+            }
+        }
+
+        // common things
+        $sapi = str_replace('handler', '', PHP_SAPI);
+        $pid = $sapi === 'cli' ? ', #' . getmypid() : '';
+        IoHandler::terminateAllOutputBuffers();
+        $outputLength = IoHandler::getTotalLength();
+        $output = $outputLength > 0 ? number_format($outputLength / 1024) . ' kB, ' : '';
         $start = self::$timers['total'];
-        $time = number_format((microtime(true) - $start) * 1000, 1, '.', ' ');
-        $memory = number_format(memory_get_peak_usage(true) / 1000000, 1, '.', ' ');
+        $time = number_format((microtime(true) - $start) * 1000, 0, '.', ' ');
+        $memory = number_format(memory_get_peak_usage(true) / 1024**2, 0, '.', ' ');
 
-        $footer .= Ansi::white(" << $time ms, $memory MB ", Ansi::DBLUE) . " ";
+        $footer .= Ansi::white(" << {$output}$time ms, $memory MB{$pid} ", self::$headerColor);
 
-        $stats = FileStreamWrapper::getStats();
-        $includeTime = round($stats['includeTime']['total'] * 1000, 3);
+        // file io
+        $stats = FileHandler::getStats();
+        $includeTime = number_format($stats['includeTime']['total'] * 1000);
         if ($includeTime > 0.000001) {
-            $footer .= Ansi::white(" inc: {$stats['includeEvents']['open']}× $includeTime ms ", Ansi::DBLUE) . ' ';
+            $footer .= Ansi::white("| inc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
         }
-        $userTime = round($stats['userTime']['total'] * 1000, 3);
+        $userTime = number_format($stats['userTime']['total'] * 1000);
         if ($userTime > 0.000001) {
-            $footer .= Ansi::white(" i/o: {$stats['userEvents']['open']}× $userTime ms ", Ansi::DBLUE) . ' ';
+            $footer .= Ansi::white("| file: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
+        // database
+        $stats = SqlHandler::getStats();
+        $conn = $stats['events']['connect'];
+        if ($conn > 0) {
+            $queries = $stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update']
+                + $stats['events']['delete'] + $stats['events']['query'];
+            $sqlTime = number_format($stats['time']['total'] * 1000);
+            $rows = $stats['rows']['total'];
+            $footer .= Ansi::white("| db: $conn conn, $queries quer, $sqlTime ms, $rows rows ", self::$headerColor);
+        }
+
+        // response code
         $status = http_response_code();
         if ($status !== false) {
             $message = Http::RESPONSE_MESSAGES[$status] ?? 'Unknown';
             $color = Http::$responseColors[$status] ?? Ansi::DYELLOW;
             foreach (Http::$responseColors as $code => $color) {
-                if (strpos((string) $status, (string) $code) === 0) {
+                if (Str::startsWith((string) $status, (string) $code)) {
                     break;
                 }
             }
-            $footer .= Ansi::white(' ' . $status . ' ' . $message . ' ', $color) . ' ';
+            $footer .= ' ' . Ansi::white(' ' . $status . ' ' . $message . ' ', $color);
         }
 
+        // errors
         ErrorHandler::disable();
         $errors = ErrorHandler::getMessages();
         if ($errors !== []) {
             $count = ErrorHandler::getCount();
-            $footer .= Ansi::white($count > 1 ? " $count errors: " : " 1 error: ", Ansi::LRED);
-            foreach ($errors as $error => $files) {
-                $file = $line = $count = null;
-                foreach ($files as $fileLine => $count) {
-                    [$file, $line] = explode(':', $fileLine);
-                }
-                $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
-                if ($file !== '') {
-                    $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string) $file, (int) $line) . Dumper::info(' ' . $count . '×');
+            $list = ErrorHandler::$listErrors ? ':' : '';
+            $footer .= ' ' . Ansi::white($count > 1 ? " $count errors$list " : " 1 error$list ", Ansi::LRED);
+            if ($list) {
+                foreach ($errors as $error => $files) {
+                    $file = $line = $count = null;
+                    foreach ($files as $fileLine => $count) {
+                        [$file, $line] = explode(':', $fileLine);
+                    }
+                    $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
+                    if ($file !== '') {
+                        $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string)$file, (int)$line) . Dumper::info(' ' . $count . '×');
+                    }
                 }
             }
         }
@@ -353,7 +442,7 @@ class DebugClient
         $packet = serialize(new Packet(Packet::OUTPUT_WIDTH, '')) . Packet::MARKER;
         $result = socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
-            die("Could not send data to debug server.\n");
+            self::error("Could not send data to debug server.");
         }
 
         $content = socket_read(self::$socket, 10000);

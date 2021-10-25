@@ -9,30 +9,28 @@
 
 namespace Dogma\Debug;
 
-use Dogma\Debug\Ansi as A;
-
 class Http
 {
 
     public static $methodColors = [
-        'get' => A::DCYAN,
-        'head' => A::DCYAN,
-        'post' => A::DMAGENTA,
-        'put' => A::DMAGENTA,
-        'patch' => A::DMAGENTA,
-        'delete' => A::DMAGENTA,
-        'connect' => A::DYELLOW,
-        'options' => A::DYELLOW,
-        'trace' => A::DYELLOW,
-        'ajax' => A::DYELLOW,
+        'get' => Ansi::DCYAN,
+        'head' => Ansi::DCYAN,
+        'post' => Ansi::DMAGENTA,
+        'put' => Ansi::DMAGENTA,
+        'patch' => Ansi::DMAGENTA,
+        'delete' => Ansi::DMAGENTA,
+        'connect' => Ansi::DGREEN,
+        'options' => Ansi::DGREEN,
+        'trace' => Ansi::DGREEN,
+        'ajax' => Ansi::DRED,
     ];
 
     public static $responseColors = [
-        1 => A::DYELLOW,
-        2 => A::DGREEN,
-        3 => A::DYELLOW,
-        4 => A::DMAGENTA,
-        5 => A::DRED,
+        1 => Ansi::DYELLOW,
+        2 => Ansi::DGREEN,
+        3 => Ansi::DYELLOW,
+        4 => Ansi::DMAGENTA,
+        5 => Ansi::DRED,
     ];
 
     public const RESPONSE_MESSAGES = [
@@ -40,6 +38,7 @@ class Http
         101 => 'Switching protocols',
         102 => 'Processing',
         103 => 'Checkpoint',
+
         200 => 'OK',
         201 => 'Created',
         202 => 'Accepted',
@@ -50,6 +49,7 @@ class Http
         207 => 'Multi status',
         208 => 'Already reported',
         226 => 'Im user',
+
         300 => 'Multiple choices',
         301 => 'Moved permanently',
         302 => 'Found',
@@ -59,6 +59,7 @@ class Http
         306 => 'Switch proxy',
         307 => 'Temporary redirect',
         308 => 'Resume incomplete',
+
         400 => 'Bad request',
         401 => 'Unauthorized',
         402 => 'Payment required',
@@ -90,8 +91,9 @@ class Http
         429 => 'Too many requests',
         431 => 'Request header fields too large',
         449 => 'Retry with',
-        450 => 'Blocked by windows parental controls',
+        450 => 'Blocked by Windows parental controls',
         451 => 'Unavailable for legal reasons',
+
         500 => 'Internal server error',
         501 => 'Not implemented',
         502 => 'Bad gateway',

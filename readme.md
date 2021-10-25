@@ -1,16 +1,18 @@
-Dogma - debug
+Dogma - Debug
 =============
 
 Remote console debugger
 
-- outputs beautifully formatted debugging data to another console on localhost
+- outputs beautifully formatted debugging data to debug server running in console
 - Tracy/Symfony debug bar alternative for debugging CLI scripts, background tasks, many concurrent requests etc.
 
 includes:
-- remote dumper
-- exception handler
-- error handler and statistics
-- file io tracker and statistics
+- remote dumper (`Dogma\Debug\Dumper`)
+- exception handler (`Dogma\Debug\ExceptionHandler`)
+- error handler and statistics (`Dogma\Debug\ErrorHandler`)
+- std io tracker and statistics (`Dogma\Debug\IoHandler`)
+- file io tracker and statistics (`Dogma\Debug\FileHandler`)
+- SQL io tracker and statistics (`Dogma\Debug\SqlHandler`)
 
 
 ### requirements:
@@ -79,16 +81,24 @@ traces:
 - `int[] Dumper::$traceCodeLines` - show n lines of code for each item in call stack (default `[5]` - meaning 5 lines for firs item, 0 for all others)
 - `array{0: string|null $class, 1: string|null $method} Dumper::$traceSkip` - methods/functions to skip in call stack
 - `string[] Dumper::$trimPathPrefix` - list of prefixes of file paths to trim
-  - also configurable by `Dumper::trimPathPrefixBefore()` and `Dumper::trimPathPrefixAfter()`
+  - configurable by `Dumper::trimPathPrefixBefore()` and `Dumper::trimPathPrefixAfter()`
 
-handler:
+handlers:
 - `bool Dumper::$useHandlers` - switch to use custom and built-in type handlers (default `true`)
-- `array<class-string, callable>` - list of custom and built-in type handlers
+- `array<class-string, callable> Dumper::$handlers` - list of custom and built-in type handlers
 - `array<class-string, callable> Dumper::$shortHandlers` - list of custom and built-in type handlers for single line dumps when $maxDepth is reached
-- `class-string[] Dumper::$doNotTraverse` - list of class names forbidden from traversing
+- `class-string[] Dumper::$doNotTraverse` - list of class names forbidden from traversing (won't pollute output)
 
 output:
 - `array<string, string> Dumper::$colors` - definition of output coloring. see trait `DumperFormatters`
+
+
+ExceptionHandler
+----------------
+
+prints formatted unhandled exceptions with call stack
+
+activate by calling `ExceptionHandler::enable()`
 
 
 ErrorHandler
@@ -104,36 +114,59 @@ activate by calling `ErrorHandler::enable($types)`
 - `bool ErrorHandler::$catch` - switch to catch errors - prevents running default PHP error handler (default `false`)
 - `int ErrorHandler::$printLimit` - count of errors to display in remote console (default `0`)
 - `bool ErorrHandler::$uniqueOnly` - display only errors of different type (default `true`)
+- `bool ErrorHandler::$listErrors` - list errors on end of request
+- `bool ErrorHandler::$showLastError` - show last error which could have been hidden by another error handler
 - `string[][] ErrorHandler::$ignore` - list of errors to ignore (keys are concatenated types and messages, items are concatenated file path suffixes and line)
   - eg `ErrorHandler::$ignore = ['Notice: Undefined index "x".' => ['some-file.php:17', 'other-file.php:29']]`
 
 
-ExceptionHandler
-----------------
+IoHandler
+---------
 
-prints formatted unhandled exceptions with call stack
+reports std io operations, request headers and body, response headers, output start
 
-activate by calling `ExceptionHandler::enable()`
-
-
-FileStreamWrapper
------------------
-
-reports file io operations (like `open`, `read`, `write` etc.)
-
-activate by calling `FileStreamWrapper::enable()`
+activate by calling `IoHandler::enable()`
 
 ### configuration
 
-- `int $log` - types of io operations to log (default `FileStreamWrapper::ALL & ~FileStreamWrapper::INFO`)
-- `bool $logIncludes` - switch to log io operations from PHP include and require (default `true`)
-- `callable $logFilter` - custom filter for logging io operations
+- `bool IoHandler::$printOutput` - Print output samples (default `false`)
+- `int IoHandler::$maxLength` - max length of printed output samples (default `100`)
+- `bool IoHandler::$responseHeaders` - print response headers (default `false`)
+- `bool IoHandler::$requestHeaders` - print request headers (default `false`)
+- `bool IoHandler::$requestBody` - print request body (default `false`)
+
+
+FileHandler
+-----------
+
+reports file io operations (like `fopen()`, `fread()`, `fwrite()` etc.)
+
+activate by calling `FileHandler::enable()`
+
+### configuration
+
+- `int FileHandler::$log` - types of io operations to log (default `FileStreamWrapper::ALL & ~FileStreamWrapper::INFO`)
+- `bool FileHandler::$logIncludes` - switch to log io operations from PHP include and require (default `true`)
+- `callable FileHandler::$logFilter` - custom filter for logging io operations
+
+
+SqlHandler
+----------
+
+reports SQL database queries and events
+
+activate by registering a callback to `SqlHandler::log()` in your DB layer
+
+### configurations
+- `int SqlHandler::$log` - Types of events to log (default `SqlHandler::ALL`)
 
 
 Todo:
 -----
 - indication of process/thread when debugging concurrent tasks
 - moar cool tiny QoL features
+- HTTP/FTP handler for Dogma\Io and Guzzle
+- SQL handler for SqlFtw, Nette\Database and Doctrine
 - ...
 - profit!
 

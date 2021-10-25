@@ -43,13 +43,19 @@ trait DumperTraces
         [null, 'ld'],
         [null, 'rd'],
         [null, 'rc'],
+        [null, 'rb'],
         [null, 'rf'],
         [null, 'rl'],
         [null, 'rt'],
         [self::class, null],
+        [DebugClient::class, null],
         [Callstack::class, null],
+        [ErrorHandler::class, null],
+        [ExceptionHandler::class, null],
+        [FileHandler::class, null],
+        [IoHandler::class, null],
+        [SqlHandler::class, null],
         [Assert::class, null],
-        [FileStreamWrapper::class, null],
 
         // proxies
         [null, 'call_user_func'],
@@ -140,6 +146,11 @@ trait DumperTraces
             return null;
         }
 
+        // we need to go deeper!
+        if (preg_match('~(?:ld|rd|rc|rf|rl|rt|Debug(?:Client)?::[a-zA-Z]+)\(.*\)~', $expression)) {
+            return self::findExpression($expression);
+        }
+
         return $expression;
     }
 
@@ -188,8 +199,10 @@ trait DumperTraces
     {
         $args = '';
         if ($frame->args !== []) {
+            $in = self::bracket('[');
+            $out = self::bracket(']');
             $args = self::dumpArray($frame->getNamedArgs());
-            $args = substr($args, strlen(self::bracket('[')), strrpos($args, self::bracket(']')) - 5);
+            $args = substr($args, strlen($in), strrpos($args, $out) - strlen($out));
         }
 
         $classMethod = '';

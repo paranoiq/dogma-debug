@@ -10,19 +10,13 @@
 namespace Dogma\Debug;
 
 use Throwable;
+use function debug_backtrace;
 use function get_class;
-use function microtime;
 use function restore_exception_handler;
 use function set_exception_handler;
 
 class ExceptionHandler
 {
-
-    /** @var int|null */
-    public static $printLimit = 0;
-
-    /** @var bool */
-    public static $uniqueOnly = true;
 
     public static function enable(): void
     {
@@ -34,18 +28,6 @@ class ExceptionHandler
         restore_exception_handler();
     }
 
-    /** alias for enable() */
-    public static function register(): void
-    {
-        self::enable();
-    }
-
-    /** alias for disable() */
-    public static function unregister(): void
-    {
-        self::disable();
-    }
-
     public static function handle(Throwable $e): void
     {
         DebugClient::init();
@@ -55,14 +37,14 @@ class ExceptionHandler
 
     public static function log(Throwable $e): void
     {
-        $time = microtime(true);
         $message = Ansi::white(' Exception: ', Ansi::LRED) . ' '
             . Dumper::name(get_class($e)) . ' ' . Ansi::lyellow($e->getMessage());
 
-        $backtrace = $e->getTrace();
-        $backtrace = Dumper::dumpBacktrace($backtrace, 0);
+        $trace = $e->getTrace() ?: debug_backtrace();
+        $callstack = Callstack::fromBacktrace($trace)->filter(Dumper::$traceSkip);
+        $trace = Dumper::formatCallstack($callstack, 1000, 1, [5, 5, 5, 5, 5]);
 
-        DebugClient::send(Packet::ERROR, $message, $backtrace, $time);
+        DebugClient::send(Packet::EXCEPTION, $message, $trace);
     }
 
 }

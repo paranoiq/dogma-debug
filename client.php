@@ -7,40 +7,40 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
-// spell-check-ignore: dt rl pid sapi URI rdm rda rf
+// spell-check-ignore: rl rb rf
 // phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable
 
 use Dogma\Debug\DebugClient;
 use Dogma\Debug\Dumper;
 
-$_dogma_debug_start = microtime(true);
+$_dogma_debug_start = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
 
-if (!class_exists(Dumper::class)) {
-    require_once __DIR__ . '/src/Debug/Str.php';
-    require_once __DIR__ . '/src/Debug/Ansi.php';
-    require_once __DIR__ . '/src/Debug/Http.php';
-    require_once __DIR__ . '/src/Debug/Packet.php';
-    require_once __DIR__ . '/src/Debug/System.php';
-    require_once __DIR__ . '/src/Debug/CallstackFrame.php';
-    require_once __DIR__ . '/src/Debug/Callstack.php';
-    require_once __DIR__ . '/src/Debug/DebugClient.php';
+if (!class_exists(DebugClient::class)) {
+    require_once __DIR__ . '/src/tools/Str.php';
+    require_once __DIR__ . '/src/tools/Ansi.php';
+    require_once __DIR__ . '/src/tools/Http.php';
+    require_once __DIR__ . '/src/tools/Request.php';
+    require_once __DIR__ . '/src/tools/System.php';
+    require_once __DIR__ . '/src/tools/Cp437.php';
+    require_once __DIR__ . '/src/Packet.php';
+    require_once __DIR__ . '/src/CallstackFrame.php';
+    require_once __DIR__ . '/src/Callstack.php';
+    require_once __DIR__ . '/src/DebugClient.php';
+
+    require_once __DIR__ . '/src/dumper/DumperFormatters.php';
+    require_once __DIR__ . '/src/dumper/DumperHandlers.php';
+    require_once __DIR__ . '/src/dumper/DumperHandlersDom.php';
+    require_once __DIR__ . '/src/dumper/DumperTraces.php';
+    require_once __DIR__ . '/src/dumper/Dumper.php';
+
+    require_once __DIR__ . '/src/handlers/ErrorHandler.php';
+    require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
+    require_once __DIR__ . '/src/handlers/IoHandler.php';
+    require_once __DIR__ . '/src/handlers/FileHandler.php';
+    require_once __DIR__ . '/src/handlers/SqlHandler.php';
+
     DebugClient::$timers['total'] = $_dogma_debug_start;
     unset($_dogma_debug_start);
-
-    require_once __DIR__ . '/src/Debug/Cp437.php';
-    require_once __DIR__ . '/src/Debug/DumperFormatters.php';
-    require_once __DIR__ . '/src/Debug/DumperHandlers.php';
-    require_once __DIR__ . '/src/Debug/DumperHandlersDom.php';
-    require_once __DIR__ . '/src/Debug/DumperTraces.php';
-    require_once __DIR__ . '/src/Debug/Dumper.php';
-
-    require_once __DIR__ . '/src/Debug/ErrorHandler.php';
-    require_once __DIR__ . '/src/Debug/ExceptionHandler.php';
-    require_once __DIR__ . '/src/Debug/FileStreamWrapper.php';
-
-    if (is_readable(__DIR__ . '/config.php')) {
-        require_once __DIR__ . '/config.php';
-    }
 
     /**
      * Local dump
@@ -82,6 +82,18 @@ if (!class_exists(Dumper::class)) {
     }
 
     /**
+     * Remote backtrace dump
+     *
+     * @param int|null $length
+     * @param int|null $argsDepth
+     * @param int[] $lines
+     */
+    function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
+    {
+        DebugClient::backtrace($length, $argsDepth, $lines);
+    }
+
+    /**
      * Remote function/method name dump
      */
     function rf(): void
@@ -108,6 +120,11 @@ if (!class_exists(Dumper::class)) {
     function rt($label = ''): void
     {
         DebugClient::timer($label);
+    }
+
+    // do not configure client when the current process is actually a starting server
+    if (is_readable(__DIR__ . '/config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
+        require_once __DIR__ . '/config.php';
     }
 
 }

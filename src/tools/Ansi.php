@@ -12,7 +12,6 @@
 namespace Dogma\Debug;
 
 use function hexdec;
-use function in_array;
 use function ltrim;
 use function preg_match;
 use function preg_replace;
@@ -27,6 +26,9 @@ final class Ansi
 
 	/** @var bool */
 	public static $off = false;
+
+    /** @var string */
+    public static $default = self::LGRAY;
 
 	public const WHITE = 'W';
 	public const LGRAY = 'w';
@@ -103,21 +105,21 @@ final class Ansi
 
     private const NAMED_COLORS = [
         // ansi 4bit colors
-        'white' => 'ffffff', // w
+        'white' => 'ffffff', // W
         'silver' => 'c0c0c0', // w
-        'red' => 'ff0000', // r
+        'red' => 'ff0000', // R
         'maroon' => '800000', // r
-        'lime' => '00ff00', // g
+        'lime' => '00ff00', // G
         'green' => '008000', // g
-        'blue' => '0000ff', // b
+        'blue' => '0000ff', // B
         'navy' => '000080', // b
-        'cyan' => '00ffff', // c
+        'cyan' => '00ffff', // C
         'teal' => '008080', // c
-        'magenta' => 'ff00ff', // m
+        'magenta' => 'ff00ff', // M
         'purple' => '800080', // m
-        'yellow' => 'ffff00', // y
+        'yellow' => 'ffff00', // Y
         'olive' => '808000', // y
-        'gray' => '808080', // k
+        'gray' => '808080', // K
         'black' => '000000', // k
 
         'aqua' => '00ffff', // alias
@@ -283,7 +285,11 @@ final class Ansi
 			$out .= "\x1B[" . self::$bg[$background] . 'm';
 		}
 
-		return $out . $string . "\x1B[0m";
+        $end = $background === null
+            ? "\x1B[" . self::$fg[self::$default] . "m" // does not reset background
+            : "\x1B[0m";
+
+		return $out . $string . $end;
 	}
 
     public static function colorStart(string $color): string

@@ -24,10 +24,11 @@ use function array_reverse;
 use function array_shift;
 use function array_slice;
 use function array_unshift;
-use function debug_backtrace;
+use function bin2hex;
 use function explode;
 use function get_class;
 use function get_resource_type;
+use function hexdec;
 use function implode;
 use function in_array;
 use function ini_get;
@@ -106,6 +107,9 @@ class Dumper
 
     /** @var string[] */
     public static $hiddenFields = [];
+
+    /** @var int */
+    public static $lengthInfoMin = 5;
 
     /** @var int unicode strings escaping/formatting */
     public static $stringsOutput = self::UNICODE_ESCAPE_ONLY;
@@ -196,11 +200,8 @@ class Dumper
         }
 
         try {
-            $callstack = Callstack::get();//->filter(self::$traceSkip);
-            rl(Dumper::varDump(debug_backtrace()));
-            rl(self::formatCallstack($callstack));
+            $callstack = Callstack::get()->filter(self::$traceSkip);
             $name = self::extractName($callstack);
-            rl($name);
             $value = self::dumpValue($value, 0, $name);
             $trace = self::formatCallstack($callstack, $traceLength, 0, []);
             if ($name !== null && $name[0] === '[') {
@@ -265,7 +266,7 @@ class Dumper
                 $info = ' ' . self::info('// PHP_INT_MAX');
             } elseif ($int === PHP_INT_MIN) {
                 $info = ' ' . self::info('// PHP_INT_MIN');
-            } elseif (!$sign && $int > 10000000 && strpos($key, 'time') !== false) {
+            } elseif (!$sign && $int > 10000000 && Str::contains($key, 'time')) {
                 $time = self::intToFormattedDate($int);
                 $info = ' ' . self::info('// ' . $time);
             } elseif (!$sign && $int > 1024 && preg_match('/size|bytes/', $key)) {
@@ -328,10 +329,17 @@ class Dumper
             $trimmed = ', trimmed';
         }
 
+        static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{12})}?~';
         if (!self::$showInfo) {
             $info = '';
-        } elseif ($key !== null && Ansi::isColor($string, !preg_match('/color|background/i', $key))) {
+        } elseif (preg_match($uuidRe, $string, $m) && $info = self::uuidInfo($m)) {
+            // ^^^
+        } elseif ($bytes === 32 && Str::contains($key, 'id') && $info = self::binaryUuidInfo($string)) {
+            // ^^^
+        } elseif ($key !== null && Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
             $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
+        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$trimmed && !$hidden && !$callable) {
+            $info = '';
         } elseif ($bytes === $length) {
             $info = ' ' . self::info("// $bytes B{$trimmed}{$hidden}{$callable}");
         } else {
@@ -339,7 +347,7 @@ class Dumper
         }
 
         // explode path on more lines
-        if ($key !== null && preg_match('/path(?!ext)/i', $key) && strpos($string, PATH_SEPARATOR) !== false) {
+        if ($key !== null && preg_match('/path(?!ext)/i', $key) && Str::contains($string, PATH_SEPARATOR)) {
             $infoBefore = self::$showInfo;
             self::$showInfo = false;
             $parts = explode(PATH_SEPARATOR, $string);
@@ -438,7 +446,7 @@ class Dumper
                 $parts = explode($infoPrefix, $item);
                 $parts[] = '';
                 [$v, $i] = $parts;
-                $i = str_replace(Ansi::RESET_FORMAT, '', $i);
+                //$i = str_replace(Ansi::RESET_FORMAT, '', $i);
                 $values[] = $v;
                 $infos[] = $i;
             }
@@ -492,7 +500,7 @@ class Dumper
         }
 
         if ($depth >= self::$maxDepth || in_array($class, self::$doNotTraverse)) {
-            if ($handlerResult !== '' && strpos($handlerResult, "\n") === false) {
+            if ($handlerResult !== '' && !Str::contains($handlerResult, "\n")) {
                 return $handlerResult;
             }
 
@@ -545,7 +553,7 @@ class Dumper
             $item = $indent . $access . ' ' . $fullName . $equal . $value;
 
             $pos = strrpos($item, $infoPrefix);
-            if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+            if ($pos !== false && Str::contains(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $semi . substr($item, $pos);
             } else {
                 $item .= $semi;
@@ -587,7 +595,7 @@ class Dumper
             $item = $indent . $access . ' ' . $name . $equal . $value;
 
             $pos = strrpos($item, $infoPrefix);
-            if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+            if ($pos !== false && Str::contains(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $semi . substr($item, $pos);
             } else {
                 $item .= $semi;
@@ -702,7 +710,7 @@ class Dumper
             $item = $indent . $var . $equal . $value;
 
             $pos = strrpos($item, $infoPrefix);
-            if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+            if ($pos !== false && Str::contains(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $semi . substr($item, $pos);
             } else {
                 $item .= $semi;
@@ -741,6 +749,7 @@ class Dumper
         return self::resource($name) . $info;
     }
 
+    /** @deprecated Use Callstack class instead */
     public static function dumpBacktrace(array $traces, int $argsDepth = 3): string
     {
         $oldDepth = self::$maxDepth;
@@ -782,6 +791,33 @@ class Dumper
     public static function objectHash($object): string
     {
         return substr(md5(spl_object_hash($object)), 0, 4);
+    }
+
+    public static function binaryUuidInfo(string $uuid): ?string
+    {
+        $uuid = bin2hex($uuid);
+        $formatted = substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-'
+            . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12);
+
+        $info = self::uuidInfo(explode('-', $formatted));
+
+        return $info ? $info . ', ' . $formatted : null;
+    }
+
+    public static function uuidInfo(array $parts): ?string
+    {
+        [$timeLow, $timeMid, $timeHigh, $sequence, ] = $parts;
+        $version = hexdec($timeHigh[0]) + (hexdec($sequence[0]) & 0b1110) * 16;
+
+        if ($version === 1) {
+            $time = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
+
+            return 'UUID v' . $version . ', ' . self::intToFormattedDate($time);
+        } elseif ($version < 6) {
+            return 'UUID v' . $version;
+        } else {
+            return null;
+        }
     }
 
     public static function intToFormattedDate(int $int): string
