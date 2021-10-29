@@ -21,14 +21,16 @@ use DOMElement;
 use DOMEntity;
 use DOMNodeList;
 use DOMText;
+use RuntimeException;
 use function count;
+use function error_get_last;
 use function get_class;
 use function implode;
 use function strrpos;
 use function substr;
 use function trim;
 
-trait DumperHandlersDom
+trait DumperFormattersDom
 {
 
     public static function dumpDomDocument(DOMDocument $document, int $depth = 0): string
@@ -40,7 +42,12 @@ trait DumperHandlersDom
 
     public static function dumpDomDocumentType(DOMDocumentType $type, int $depth = 0): string
     {
-        $value = self::value2($type->ownerDocument->saveHTML($type));
+        $html = $type->ownerDocument->saveHTML($type);
+        if ($html === false) {
+            throw new RuntimeException(error_get_last()['message']);
+        }
+
+        $value = self::value2($html);
 
         return $depth === 0
             ? $value
@@ -49,7 +56,12 @@ trait DumperHandlersDom
 
     public static function dumpDomEntity(DOMEntity $entity, int $depth = 0): string
     {
-        $value = self::value2($entity->ownerDocument->saveHTML($entity));
+        $html = $entity->ownerDocument->saveHTML($entity);
+        if ($html === false) {
+            throw new RuntimeException(error_get_last()['message']);
+        }
+
+        $value = self::value2($html);
 
         return $depth === 0
             ? $value
@@ -72,17 +84,15 @@ trait DumperHandlersDom
             $nodes[] = $node;
         }
 
-        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($fragment) . ', ' . count($fragment) . ' items') : '';
+        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($fragment) . ', ' . count($fragment->childNodes) . ' items') : '';
 
-        return self::name(get_class($fragment)) . self::bracket('(')  . "\n"
+        return self::name(get_class($fragment)) . self::bracket('(') . "\n"
             . implode("\n", $nodes) . "\n"
             . self::indent($depth) . self::bracket(')') . $info;
     }
 
     /**
      * @param NodeList|DOMNodeList $nodeList
-     * @param int $depth
-     * @return string
      */
     public static function dumpDomNodeList($nodeList, int $depth = 0): string
     {
@@ -102,7 +112,7 @@ trait DumperHandlersDom
 
         $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($nodeList) . ', ' . count($nodeList) . ' items') : '';
 
-        return self::name(get_class($nodeList)) . self::bracket('[')  . "\n"
+        return self::name(get_class($nodeList)) . self::bracket('[') . "\n"
             . implode("\n", $nodes) . "\n"
             . self::indent($depth) . self::bracket(']') . $info;
     }

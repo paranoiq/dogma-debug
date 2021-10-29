@@ -7,6 +7,9 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable Squiz.PHP.GlobalKeyword.NotAllowed
+// phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable.DisallowedSuperGlobalVariable
+
 namespace Dogma\Debug;
 
 use function implode;
@@ -38,7 +41,7 @@ class Request
     {
         global $argv;
 
-        return implode(' ', $argv);
+        return implode(' ', $argv ?? []);
     }
 
 }

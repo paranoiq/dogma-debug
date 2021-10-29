@@ -26,49 +26,6 @@ use function trim;
 trait DumperTraces
 {
 
-    /** @var int */
-    public static $traceLength = 1;
-
-    /** @var bool - show class, method, arguments */
-    public static $traceDetails = true;
-
-    /** @var int */
-    public static $traceArgsDepth = 0;
-
-    /** @var int[] - count of lines of code shown for each filtered frame. [5] means 5 lines for first, 0 for others... */
-    public static $traceCodeLines = [5];
-
-    /** @var array<string|null> ($class, $method) */
-    public static $traceSkip = [
-        [null, 'ld'],
-        [null, 'rd'],
-        [null, 'rc'],
-        [null, 'rb'],
-        [null, 'rf'],
-        [null, 'rl'],
-        [null, 'rt'],
-        [self::class, null],
-        [DebugClient::class, null],
-        [Callstack::class, null],
-        [ErrorHandler::class, null],
-        [ExceptionHandler::class, null],
-        [FileHandler::class, null],
-        [IoHandler::class, null],
-        [SqlHandler::class, null],
-        [Assert::class, null],
-
-        // proxies
-        [null, 'call_user_func'],
-        [null, 'call_user_func_array'],
-
-        // io origins
-        [null, 'Composer\Autoload\includeFile'],
-        ['Composer\Autoload\ClassLoader', 'loadClass'],
-    ];
-
-    /** @var string - common path prefix to remove from all paths */
-    public static $trimPathPrefix = '';
-
     public static function trimPathPrefixBefore(string $string): void
     {
         $traces = debug_backtrace();
@@ -96,7 +53,7 @@ trait DumperTraces
         }
     }
 
-    public static function extractName(Callstack $callstack): ?string
+    public static function findExpression(Callstack $callstack): ?string
     {
         $callstack = $callstack->filter(self::$traceSkip);
         foreach ($callstack->frames as $frame) {
@@ -105,13 +62,17 @@ trait DumperTraces
                 continue;
             }
 
-            return self::findExpression($line);
+            return self::getExpression($line);
         }
 
         return null;
     }
 
-    public static function findExpression(string $line): ?string
+    /**
+     * @param non-empty-string $line
+     * @return non-empty-string|null
+     */
+    public static function getExpression(string $line): ?string
     {
         $start = strpos($line, '(');
         if ($start === false) {
@@ -129,10 +90,18 @@ trait DumperTraces
         $bras = 0;
         foreach ($chars as $i => $char) {
             switch ($char) {
-                case '(': $pars++; break;
-                case ')': $pars--; break;
-                case '[': $bras++; break;
-                case ']': $bras--; break;
+                case '(':
+                    $pars++;
+                    break;
+                case ')':
+                    $pars--;
+                    break;
+                case '[':
+                    $bras++;
+                    break;
+                case ']':
+                    $bras--;
+                    break;
             }
             if ($pars === 1 && $bras === 0 && $char === ',') {
                 break;
@@ -146,9 +115,13 @@ trait DumperTraces
             return null;
         }
 
+        if ($expression === '') {
+            return null;
+        }
+
         // we need to go deeper!
         if (preg_match('~(?:ld|rd|rc|rf|rl|rt|Debug(?:Client)?::[a-zA-Z]+)\(.*\)~', $expression)) {
-            return self::findExpression($expression);
+            return self::getExpression($expression);
         }
 
         return $expression;

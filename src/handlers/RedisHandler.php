@@ -16,7 +16,7 @@ use function preg_replace;
 use function round;
 use function strtoupper;
 
-class SqlHandler
+class RedisHandler
 {
 
     public const CONNECT = 1;

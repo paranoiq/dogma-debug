@@ -7,6 +7,8 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
+
 namespace Dogma\Debug;
 
 use function range;
@@ -30,14 +32,11 @@ class Cp437
     private const SPECIAL_PRINTABLE = [
         '¤', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼',
         '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼',
-        '⌂'
+        '⌂',
     ];
 
     /**
-     * Binary string formatted as UTF-8 representation of original IPM PC (CP437) font
-     *
-     * @param string $string
-     * @return string
+     * Binary string formatted as UTF-8 representation of original IBM PC (CP437) font
      */
     public static function toUtf8Printable(string $string): string
     {

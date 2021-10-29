@@ -38,8 +38,8 @@ Dumper
 
 Dumper has a lot of features and configuration options to make dump outputs more compact, readable and usable - for example:
 - rich information about dumped values (sizes, lengths, formatted time for timestamps, binary components of flag integers...)
-- custom and built-in handlers for types
-- custom and built-in handlers for types in single-line mode
+- custom and built-in formatters for types
+- custom and built-in formatters for types in single-line mode
 - dumping static members of classes and functions (call as `rd(Foo::class)` or `rd([Foo::class, 'method'])`)
 - dumping bind values in closures
 - custom timer and measuring time and resources used in given request
@@ -83,10 +83,10 @@ traces:
 - `string[] Dumper::$trimPathPrefix` - list of prefixes of file paths to trim
   - configurable by `Dumper::trimPathPrefixBefore()` and `Dumper::trimPathPrefixAfter()`
 
-handlers:
-- `bool Dumper::$useHandlers` - switch to use custom and built-in type handlers (default `true`)
-- `array<class-string, callable> Dumper::$handlers` - list of custom and built-in type handlers
-- `array<class-string, callable> Dumper::$shortHandlers` - list of custom and built-in type handlers for single line dumps when $maxDepth is reached
+formatters:
+- `bool Dumper::$useFormatters` - switch to use custom and built-in type formatters (default `true`)
+- `array<class-string, callable> Dumper::$formatters` - list of custom and built-in type formatters
+- `array<class-string, callable> Dumper::$shortFormatters` - list of custom and built-in type formatters for single line dumps when $maxDepth is reached
 - `class-string[] Dumper::$doNotTraverse` - list of class names forbidden from traversing (won't pollute output)
 
 output:

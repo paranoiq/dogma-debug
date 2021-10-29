@@ -1,17 +1,24 @@
 
 directories:
 	- src
+	- tests
+	- build
+	- stubs
 	- //
 
-dictionariesByFileName: []
+dictionariesByFileName:
+    */Ansi.php: skip
+    */Cp437.php: skip
 
 dictionariesByFileExtension:
     neon: en
     php: en php
+    phpt: en php
 
 dictionaryDirectories:
     - vendor/spell-checker/spell-checker
     - vendor/spell-checker/dictionary-en
+    - build
 
 localIgnores:
     *: bd rdx prepend prepended Equalable

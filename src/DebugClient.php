@@ -7,9 +7,18 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable Squiz.PHP.GlobalKeyword.NotAllowed
+// phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable.DisallowedSuperGlobalVariable
+
 namespace Dogma\Debug;
 
 use DateTime;
+use Socket;
+use const AF_INET;
+use const PHP_SAPI;
+use const PHP_VERSION;
+use const SOCK_STREAM;
+use const SOL_TCP;
 use function array_shift;
 use function array_sum;
 use function end;
@@ -36,11 +45,6 @@ use function strlen;
 use function strtolower;
 use function ucfirst;
 use function unserialize;
-use const AF_INET;
-use const PHP_SAPI;
-use const PHP_VERSION;
-use const SOCK_STREAM;
-use const SOL_TCP;
 
 class DebugClient
 {
@@ -66,7 +70,7 @@ class DebugClient
     /** @var float[] */
     public static $timers = [];
 
-    /** @var Socket|resource */
+    /** @var resource|Socket */
     private static $socket;
 
     /** @var bool */
@@ -77,45 +81,64 @@ class DebugClient
 
     /**
      * @param mixed $value
-     * @param int|bool $depth
      * @return mixed
      */
-    public static function dump($value, $depth = 5, int $trace = 1)
+    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
         ob_start();
 
-        $dump = Dumper::dump($value, $depth, $trace);
+        $dump = Dumper::dump($value, $maxDepth, $traceLength);
         self::send(Packet::DUMP, $dump);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
 
         return $value;
     }
 
     /**
-     * @param int|bool $depth
+     * @param mixed $value
+     * @return mixed
      */
-    public static function capture(callable $callback, $depth = 5, int $trace = 1): string
+    public static function varDump($value, bool $colors = true)
+    {
+        ob_start();
+
+        $dump = Dumper::varDump($value, $colors);
+        self::send(Packet::DUMP, $dump);
+
+        self::checkAccidentalOutput(__FUNCTION__);
+
+        return $value;
+    }
+
+    public static function capture(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
     {
         ob_start();
         $callback();
         $value = ob_get_clean();
 
+        if ($value === false) {
+            $message = Ansi::white(" Output buffer closed unexpectedly in DebugClient::capture(). ", Ansi::DRED);
+            self::send(Packet::ERROR, $message);
+
+            return '';
+        }
+
         ob_start();
 
-        $dump = Dumper::dump($value, $depth, $trace);
+        $dump = Dumper::dump($value, $maxDepth, $traceLength);
         self::send(Packet::DUMP, $dump);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
 
         return $value;
     }
 
     /**
-     * @param mixed $label
-     * @return mixed
+     * @param string|int|float|bool|null $label
+     * @return string|int|float|bool
      */
-    public static function label($label)
+    public static function label($label, ?string $name = null)
     {
         ob_start();
 
@@ -126,11 +149,11 @@ class DebugClient
         } elseif ($label === true) {
             $label = 'true';
         }
-        $message = Ansi::white(" $label ", Ansi::DRED);
+        $message = Ansi::white($name ? " $name: $label " : " $label ", Ansi::DRED);
 
         self::send(Packet::LABEL, $message);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
 
         return $label;
     }
@@ -147,7 +170,7 @@ class DebugClient
 
         self::send(Packet::TRACE, $trace);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
     }
 
     public static function function(): void
@@ -169,21 +192,21 @@ class DebugClient
 
         self::send(Packet::TRACE, $message);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
     }
 
     /**
-     * @param string|int|null $label
+     * @param string|int|null $name
      */
-    public static function timer($label = ''): void
+    public static function timer($name = ''): void
     {
         ob_start();
 
-        $label = (string) $label;
+        $name = (string) $name;
 
-        if (isset(self::$timers[$label])) {
-            $start = self::$timers[$label];
-            self::$timers[$label] = microtime(true);
+        if (isset(self::$timers[$name])) {
+            $start = self::$timers[$name];
+            self::$timers[$name] = microtime(true);
         } elseif (isset(self::$timers[null])) {
             $start = self::$timers[null];
             self::$timers[null] = microtime(true);
@@ -193,12 +216,12 @@ class DebugClient
         }
 
         $time = number_format((microtime(true) - $start) * 1000, 3, '.', ' ');
-        $label = $label ? ucfirst($label) : 'Timer';
-        $message = Ansi::white(" $label: $time ms ", Ansi::DGREEN);
+        $name = $name ? ucfirst($name) : 'Timer';
+        $message = Ansi::white(" $name: $time ms ", Ansi::DGREEN);
 
         self::send(Packet::TIMER, $message);
 
-        self::handleAccidentalOutput(ob_get_clean());
+        self::checkAccidentalOutput(__FUNCTION__);
     }
 
     // internals -------------------------------------------------------------------------------------------------------
@@ -270,13 +293,16 @@ class DebugClient
         });
     }
 
-    private static function handleAccidentalOutput(string $output): void
+    private static function checkAccidentalOutput(string $function): void
     {
+        $output = ob_get_clean();
         if ($output === "") {
             return;
+        } elseif ($output === false) {
+            $message = Ansi::white(" Output buffer closed unexpectedly in DebugClient::$function(). ", Ansi::DRED);
+        } else {
+            $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
         }
-
-        $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
 
         self::send(Packet::ERROR, $message);
     }
@@ -292,6 +318,7 @@ class DebugClient
     {
         global $argv;
 
+        /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
         $time = $dt->format(self::$timeFormat);
         $version = PHP_VERSION;
@@ -320,14 +347,14 @@ class DebugClient
         }
 
         // request headers
-        if (IoHandler::$requestHeaders) {
+        /*if (IoHandler::$requestHeaders) {
             // todo
         }
 
         // request body
         if (IoHandler::$requestBody) {
             // todo
-        }
+        }*/
 
         return Ansi::pad($header, self::getOutputWidth() - 2, '-');
     }
@@ -337,12 +364,12 @@ class DebugClient
         $footer = '';
 
         // last error
-        if (ErrorHandler::$showLastError) {
+        /*if (ErrorHandler::$showLastError) {
             $e = error_get_last();
             if ($e !== null) {
                 rd($e);
             }
-        }
+        }*/
 
         // response headers
         if (IoHandler::$responseHeaders) {
@@ -361,12 +388,14 @@ class DebugClient
         // common things
         $sapi = str_replace('handler', '', PHP_SAPI);
         $pid = $sapi === 'cli' ? ', #' . getmypid() : '';
-        IoHandler::terminateAllOutputBuffers();
+        if (IoHandler::enabled()) {
+            IoHandler::terminateAllOutputBuffers();
+        }
         $outputLength = IoHandler::getTotalLength();
         $output = $outputLength > 0 ? number_format($outputLength / 1024) . ' kB, ' : '';
         $start = self::$timers['total'];
         $time = number_format((microtime(true) - $start) * 1000, 0, '.', ' ');
-        $memory = number_format(memory_get_peak_usage(true) / 1024**2, 0, '.', ' ');
+        $memory = number_format(memory_get_peak_usage(true) / 1024 ** 2, 0, '.', ' ');
 
         $footer .= Ansi::white(" << {$output}$time ms, $memory MB{$pid} ", self::$headerColor);
 
@@ -389,7 +418,7 @@ class DebugClient
                 + $stats['events']['delete'] + $stats['events']['query'];
             $sqlTime = number_format($stats['time']['total'] * 1000);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| db: $conn conn, $queries quer, $sqlTime ms, $rows rows ", self::$headerColor);
+            $footer .= Ansi::white("| db: $conn con, $queries q, $sqlTime ms, $rows rows ", self::$headerColor);
         }
 
         // response code
@@ -420,7 +449,7 @@ class DebugClient
                     }
                     $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
                     if ($file !== '') {
-                        $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string)$file, (int)$line) . Dumper::info(' ' . $count . '×');
+                        $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string) $file, (int) $line) . Dumper::info(' ' . $count . '×');
                     }
                 }
             }

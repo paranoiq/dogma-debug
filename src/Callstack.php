@@ -7,15 +7,18 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable Squiz.PHP.GlobalKeyword.NotAllowed
+
 namespace Dogma\Debug;
 
 use ReflectionFunction;
 use ReflectionMethod;
-use function count;
-use function in_array;
-use function str_replace;
-use function debug_backtrace;
 use const PHP_SAPI;
+use function count;
+use function debug_backtrace;
+use function in_array;
+use function preg_match;
+use function str_replace;
 
 /**
  * In CallstackFrame a function is always paired with file and line in which it is defined,
@@ -36,6 +39,8 @@ use const PHP_SAPI;
  *   { file: foo.php, function: foo() }, // inside foo(), called from index.php
  *   { file: index.php, function: null }, // inside no function here, thus function is null
  * ]
+ *
+ * @phpstan-type PhpBacktraceItem array{file?: string, line?: int, function?: string, class?: class-string, object?: object, type?: '->'|'::'|null, args?: array<int, mixed>}
  */
 class Callstack
 {
@@ -60,7 +65,7 @@ class Callstack
     }
 
     /**
-     * @param array<string, int|string|null> $trace
+     * @param PhpBacktraceItem[] $trace
      * @return self
      */
     public static function fromBacktrace(array $trace): self
@@ -71,7 +76,8 @@ class Callstack
         for ($i = 0; $i <= count($trace); $i++) {
             $file = isset($trace[$i]['file']) ? str_replace('\\', '/', $trace[$i]['file']) : null;
             $line = $trace[$i]['line'] ?? null;
-            if ($file === str_replace('\\', '/', __FILE__)) {
+            if ($file !== null && $file === str_replace('\\', '/', __FILE__)) {
+                // always skip self
                 continue;
             }
 
@@ -103,21 +109,22 @@ class Callstack
                 }
             }
 
-            $frames[] = new CallstackFrame($file, $line, $function, $class, $object, $args, $type);
+            $frames[] = new CallstackFrame($file, $line, $class, $function, $type, $object, $args);
         }
 
         return new self($frames);
     }
 
     /**
-     * @param mixed[][] $skip (?string $class, ?string $method)[]
+     * @param string[] $filters
      */
-    public function filter(array $skip): self
+    public function filter(array $filters): self
     {
         $frames = [];
         foreach ($this->frames as $frame) {
-            foreach ($skip as [$skipClass, $skipMethod]) {
-                if ($frame->class === $skipClass && ($frame->function === $skipMethod || $skipMethod === null)) {
+            $name = $frame->export();
+            foreach ($filters as $filter) {
+                if (preg_match($filter, $name)) {
                     continue 2;
                 }
             }

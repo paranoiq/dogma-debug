@@ -1,10 +1,29 @@
 
 includes:
-	- phpstan.conf.php
+    - phpstan.conf.php
 
 parameters:
-	scanDirectories:
-		- ../tracy
+    level: 7
 
-	ignoreErrors:
-		- '#Method DogmaDebugColors::.* has parameter \$string with no typehint specified#'
+    checkGenericClassInNonGenericObjectType: false
+
+    featureToggles:
+        disableRuntimeReflectionProvider: true
+
+    paths:
+        - ../src
+        - ../client.php
+        - ../server.php
+        - ../tests/php71
+        - ../tests/Assert.php
+        - ../tests/bootstrap.php
+
+    scanDirectories:
+        - ../stubs
+
+    ignoreErrors:
+        - '~Method Dogma\\Debug\\Ansi::.* has parameter \$string with no typehint specified~' # casting to string anyway
+        - '~Method Dogma\\Debug\\Str::length\(\) should return int but returns~' # could happen with wrong encoding, but won't fix
+        - '~Method Dogma\\Debug\\Str::trim\(\) should return string but returns~' # cannot happen because start offset is always 0
+        - '~Method Dogma\\Debug\\Dumper::dumpDomNodeList\(\) has parameter \$nodeList with no value type specified~' # don't care
+        - '~Parameter #1 \$class of static method Dogma\\Debug\\Dumper::dumpClass\(\) expects class-string, string given~' # ok

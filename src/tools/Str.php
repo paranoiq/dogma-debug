@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use const PREG_OFFSET_CAPTURE;
 use function array_values;
 use function function_exists;
 use function grapheme_strlen;
@@ -27,7 +28,7 @@ use function substr;
 class Str
 {
 
-    public static function length(string $string, $encoding = 'utf-8'): int
+    public static function length(string $string, string $encoding = 'utf-8'): int
     {
         if (!preg_match('##u', $string)) {
             // not utf-8
@@ -80,6 +81,21 @@ class Str
     public static function replaceKeys(string $string, array $replacements): string
     {
         return str_replace(array_keys($replacements), array_values($replacements), $string);
+    }
+
+    /**
+     * @return int|false|null
+     */
+    public static function matchPos(string $string, string $pattern)
+    {
+        $result = preg_match($pattern, $string, $matches, PREG_OFFSET_CAPTURE);
+        if ($result === false) {
+            return false;
+        } elseif ($result === 0) {
+            return null;
+        }
+
+        return $matches[0][1];
     }
 
 }

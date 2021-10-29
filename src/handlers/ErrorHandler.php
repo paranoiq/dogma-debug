@@ -10,10 +10,6 @@
 namespace Dogma\Debug;
 
 use Throwable;
-use function error_reporting;
-use function microtime;
-use function restore_error_handler;
-use function set_error_handler;
 use const E_ALL;
 use const E_COMPILE_ERROR;
 use const E_COMPILE_WARNING;
@@ -30,6 +26,10 @@ use const E_USER_ERROR;
 use const E_USER_NOTICE;
 use const E_USER_WARNING;
 use const E_WARNING;
+use function error_reporting;
+use function microtime;
+use function restore_error_handler;
+use function set_error_handler;
 
 class ErrorHandler
 {
@@ -64,7 +64,7 @@ class ErrorHandler
     /** @var array<int, int> */
     private static $types = [];
 
-    /** @var array<string, int> */
+    /** @var array<string, array<string, int>> */
     private static $messages = [];
 
     /** @var callable|null */
@@ -96,7 +96,7 @@ class ErrorHandler
             if (self::$catch) {
                 return true;
             } elseif (self::$previous !== null) {
-                return (bool)(self::$previous)($type, $message, $file, $line, null);
+                return (bool) (self::$previous)($type, $message, $file, $line, null);
             } else {
                 return false;
             }
@@ -122,9 +122,9 @@ class ErrorHandler
         $places = self::$ignore[$typeMessage] ?? [];
         // start match
         if ($places === []) {
-            foreach (self::$ignore as $tm => $pl) {
-                if (Str::startsWith($typeMessage, $tm)) {
-                    $places = $pl;
+            foreach (self::$ignore as $m => $p) {
+                if (Str::startsWith($typeMessage, $m)) {
+                    $places = $p;
                 }
             }
         }
@@ -202,7 +202,7 @@ class ErrorHandler
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, array<string, int>>
      */
     public static function getMessages(): array
     {

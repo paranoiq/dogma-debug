@@ -3,7 +3,6 @@
 namespace Dogma\Tests\Debug;
 
 use Dogma\Debug\Assert;
-use Dogma\Debug\Dumper;
 
 require_once __DIR__ . '/../bootstrap.php';
 
@@ -18,3 +17,5 @@ Assert::dump($f, '<Closure> <static fn (<$a<, <$b<): int ><{>< // ><?path><?file
    <$d> <=> <2><;>
 <}>');
 */
+
+Assert::true(true);

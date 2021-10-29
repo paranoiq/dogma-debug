@@ -69,7 +69,7 @@ class Packet
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);
             $this->counter = DebugClient::$counter++;
-            $this->pid = getmypid();
+            $this->pid = (int) getmypid();
         }
     }
 

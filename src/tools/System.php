@@ -9,12 +9,12 @@
 
 namespace Dogma\Debug;
 
+use const PHP_OS;
 use function cli_set_process_title;
 use function exec;
 use function explode;
 use function strtolower;
 use function trim;
-use const PHP_OS;
 
 class System
 {
@@ -35,8 +35,8 @@ class System
 
         if (self::isWindows()) {
             exec('mode CON', $output);
-            [, self::$columns] = explode(':', $output[4]);
-            self::$columns = (int) trim(self::$columns);
+            [, $columns] = explode(':', $output[4]);
+            self::$columns = (int) trim($columns);
         }
 
         return self::$columns ?: 120;

@@ -10,14 +10,12 @@
 namespace Dogma\Debug;
 
 use LogicException;
-use function fopen;
-use function fread;
+use function file_get_contents;
 use function get_included_files;
 use function ob_end_flush;
 use function ob_get_level;
 use function ob_start;
 use function strlen;
-
 
 class IoHandler
 {
@@ -79,6 +77,11 @@ class IoHandler
         }
     }
 
+    public static function enabled(): bool
+    {
+        return self::$enabled;
+    }
+
     public static function terminateAllOutputBuffers(): void
     {
         $n = ob_get_level();
@@ -99,7 +102,7 @@ class IoHandler
     public static function handle(string $output, int $phase, ?Callstack $callstack = null)
     {
         if ($output === '') {
-            return false;
+            return '';
         }
         self::$length += strlen($output);
 
@@ -129,9 +132,10 @@ class IoHandler
         self::$init = true;
 
         foreach (get_included_files() as $file) {
-            if (fread(fopen($file, 'r'), 3) === self::BOM) {
+            $start = file_get_contents($file, false, null, 0, 3);
+            if ($start === self::BOM) {
                 $callstack = new Callstack([
-                    new CallstackFrame($file, 1, null, null, null, [], null),
+                    new CallstackFrame($file, 1),
                 ]);
                 self::handle(self::BOM, 0, $callstack);
             }

@@ -11,6 +11,10 @@
 
 namespace Dogma\Debug;
 
+use Socket;
+use const AF_INET;
+use const SOCK_STREAM;
+use const SOL_TCP;
 use function explode;
 use function round;
 use function serialize;
@@ -21,15 +25,10 @@ use function socket_create;
 use function socket_last_error;
 use function socket_listen;
 use function socket_read;
-use function socket_set_blocking;
 use function socket_set_nonblock;
 use function socket_write;
-use function stream_set_blocking;
 use function unserialize;
 use function usleep;
-use const AF_INET;
-use const SOCK_STREAM;
-use const SOL_TCP;
 
 class DebugServer
 {
@@ -40,8 +39,8 @@ class DebugServer
     /** @var string */
     private $address;
 
-    /** @var resource */
-    private $sock;
+    /** @var Socket|resource */
+    private $socket;
 
     /** @var Packet|null */
     private $lastRequest;
@@ -61,7 +60,7 @@ class DebugServer
 
         $connections = [];
         while (true) {
-            $newConnection = socket_accept($this->sock);
+            $newConnection = socket_accept($this->socket);
             if ($newConnection) {
                 //socket_set_nonblock($newConnection);
                 $connections[] = $newConnection;
@@ -89,8 +88,7 @@ class DebugServer
     }
 
     /**
-     * @param string $content
-     * @param resource|string $connection
+     * @param resource|Socket $connection
      */
     private function processRequest(string $content, $connection): void
     {
@@ -99,7 +97,7 @@ class DebugServer
                 continue;
             }
 
-            /** @var Packet $request */
+            /** @var Packet|false $request */
             $request = unserialize($message, ['allowed_classes' => [Packet::class]]);
             if ($request === false) {
                 echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
@@ -143,21 +141,22 @@ class DebugServer
 
     private function connect(): void
     {
-        $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        //$this->sock = stream_socket_server("tcp://$this->address:$this->port");
-        if (!$this->sock) {
+        $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        //$sock = stream_socket_server("tcp://$this->address:$this->port");
+        if ($sock === false) {
             echo Ansi::lred("Could not create socket.\n");
             exit(1);
         }
-        if (@!socket_bind($this->sock, $this->address, $this->port)) {
+        $this->socket = $sock;
+        if (@!socket_bind($this->socket, $this->address, $this->port)) {
             echo Ansi::lred("Could not bind to address.\n");
             exit(1);
         }
-        if (!socket_listen($this->sock, 20)) {
+        if (!socket_listen($this->socket, 20)) {
             echo Ansi::lred("Could not listen on socket.\n");
             exit(1);
         }
-        if (!socket_set_nonblock($this->sock)) {
+        if (!socket_set_nonblock($this->socket)) {
             echo Ansi::lred("Could not set socket to non-blocking.\n");
             exit(1);
         }

@@ -16,6 +16,7 @@ use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionObject;
 use RuntimeException;
+use const FILE_IGNORE_NEW_LINES;
 use function array_slice;
 use function error_clear_last;
 use function error_get_last;
@@ -24,7 +25,6 @@ use function file_get_contents;
 use function implode;
 use function in_array;
 use function is_int;
-use const FILE_IGNORE_NEW_LINES;
 
 class CallstackFrame
 {
@@ -38,10 +38,10 @@ class CallstackFrame
     /** @var int|null */
     public $line;
 
-    /** @var string */
+    /** @var string|null */
     public $function;
 
-    /** @var string|null */
+    /** @var class-string|null */
     public $class;
 
     /** @var object|null */
@@ -50,28 +50,35 @@ class CallstackFrame
     /** @var mixed[] */
     public $args;
 
-    /** @var string self::INSTANCE | self::STATIC */
+    /** @var string|null self::INSTANCE | self::STATIC */
     public $type;
 
     /**
+     * @param class-string|null $class
+     * @param self::INSTANCE|self::STATIC|null $type
+     * @param object|null $object
      * @param mixed[] $args
      */
     public function __construct(
         ?string $file,
         ?int $line,
-        ?string $function,
-        ?string $class,
-        $object,
-        array $args,
-        $type
+        ?string $class = null,
+        ?string $function = null,
+        ?string $type = null,
+        $object = null,
+        array $args = []
     ) {
+        if ($class !== null && $type === null) {
+            throw new LogicException('When $class is set, then $type must also be set.');
+        }
+
         $this->file = $file;
         $this->line = $line;
         $this->class = $class;
-        $this->object = $object;
         $this->function = $function;
-        $this->args = $args;
         $this->type = $type;
+        $this->object = $object;
+        $this->args = $args;
     }
 
     public function getFullName(): string
@@ -110,6 +117,9 @@ class CallstackFrame
         return $this->class !== null && Str::startsWith($this->class, 'class@anonymous');
     }
 
+    /**
+     * @return mixed[]
+     */
     public function getNamedArgs(): array
     {
         if ($this->args === []) {
@@ -193,13 +203,18 @@ class CallstackFrame
 
     // code ------------------------------------------------------------------------------------------------------------
 
+    /**
+     * @return non-empty-string|null
+     */
     public function getLineCode(): ?string
     {
         if ($this->file === null) {
             return null;
         }
 
-        return self::readLines($this->file, $this->line - 1, 1)[0];
+        $line = self::readLines($this->file, $this->line - 1, 1)[0];
+
+        return $line !== '' ? $line : null;
     }
 
     /**
@@ -297,7 +312,7 @@ class CallstackFrame
         }
 
         if ($result === false) {
-            throw new RuntimeException("Cannot read file $file: " . error_get_last());
+            throw new RuntimeException("Cannot read file $file: " . error_get_last()['message']);
         }
 
         return $result;
@@ -318,6 +333,11 @@ class CallstackFrame
         return $start !== 0 || $count !== null
             ? array_slice($result, $start, (int) $count, false)
             : $result;
+    }
+
+    public function export(): string
+    {
+        return $this->class ? $this->class . $this->type . $this->function : (string) $this->function;
     }
 
 }

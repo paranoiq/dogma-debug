@@ -12,6 +12,7 @@ namespace Dogma\Debug;
 class Http
 {
 
+    /** @var string[] */
     public static $methodColors = [
         'get' => Ansi::DCYAN,
         'head' => Ansi::DCYAN,
@@ -25,6 +26,7 @@ class Http
         'ajax' => Ansi::DRED,
     ];
 
+    /** @var string[] */
     public static $responseColors = [
         1 => Ansi::DYELLOW,
         2 => Ansi::DGREEN,

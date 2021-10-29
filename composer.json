@@ -16,7 +16,7 @@
     },
     "require-dev": {
         "dogma/dogma": "*",
-        "dogma/dogma-dev": "0.1.18"
+        "dogma/dogma-dev": "0.1.22"
     },
     "suggest": {
         "ext-mb": "Any of these for unicode strings",
@@ -27,56 +27,60 @@
         "da": "composer dump-autoload",
 
         "check:run": [
+            "@lint:run",
             "@tests:run",
             "@phpstan:run",
             "@phpcs:run",
-            "@spell:run",
-            "@lint:run"
+            "@spell:run"
         ],
         "check:all": [
+            "@lint:all",
             "@tests:all",
             "@phpstan:all",
-            "@lint:all",
             "@phpcs:run",
             "@spell:run"
         ],
 
-        "tests:run": "php vendor/nette/tester/src/tester tests/main tests/php74 -c tests --colors 1",
+        "tests:run": "php vendor/nette/tester/src/tester tests/php71 tests/php74 -c tests --colors 1",
         "tests:all": [
-            "true || php81 vendor/nette/tester/src/tester tests -c tests --colors 1",
-            "php80 vendor/nette/tester/src/tester tests/main tests/php74 -c tests --colors 1",
-            "php74 vendor/nette/tester/src/tester tests/main tests/php74 -c tests --colors 1",
-            "php73 vendor/nette/tester/src/tester tests/main -c tests --colors 1",
-            "php72 vendor/nette/tester/src/tester tests/main -c tests --colors 1",
-            "php71 vendor/nette/tester/src/tester tests/main -c tests --colors 1"
+            "php81 vendor/nette/tester/src/tester tests -c tests --colors 1",
+            "php80 vendor/nette/tester/src/tester tests/php71 tests/php74 -c tests --colors 1",
+            "php74 vendor/nette/tester/src/tester tests/php71 tests/php74 -c tests --colors 1",
+            "php73 vendor/nette/tester/src/tester tests/php71 -c tests --colors 1",
+            "php72 vendor/nette/tester/src/tester tests/php71 -c tests --colors 1",
+            "php71 vendor/nette/tester/src/tester tests/php71 -c tests --colors 1"
         ],
         "tests:coverage": "php vendor/nette/tester/src/tester tests -c tests --colors 1 -p phpdbg --coverage tests/coverage.html --coverage-src src",
 
-        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon -l 8 src",
+        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon",
         "phpstan:all": [
-            "php80 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon -l 8 src",
-            "php74 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon -l 8 src"
+            "php81 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon --memory-limit 256M",
+            "php80 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon",
+            "php74 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon",
+            "php73 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon",
+            "php72 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon",
+            "php71 vendor/phpstan/phpstan/phpstan analyse -c build/phpstan.neon"
+        ],
+
+        "lint:run": "php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+        "lint:all": [
+            "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+            "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+            "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+            "php73 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+            "php72 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
+            "php71 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php"
         ],
 
         "phpcs:run": [
             "@phpcs:src",
             "@phpcs:tests"
         ],
-        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml src",
-        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml tests",
-        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml src tests",
+        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp src client.php server.php",
+        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp tests",
+        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp src client.php server.php tests",
 
-        "lint:run": "php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-        "lint:all": [
-            "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-            "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-            "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-            "php73 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-            "php72 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src",
-            "php71 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src"
-        ],
-
-        "spell:run": "php vendor/spell-checker/spell-checker/spellchecker.php -c build/spell-checker.neon --checkDictionaryFiles --memoryLimit 1024M --noLogo"
+        "spell:run": "php vendor/spell-checker/spell-checker/spell-checker.php -c build/spell-checker.neon --checkDictionaryFiles --memoryLimit 1024M --noLogo"
     },
     "scripts-descriptions": {
         "da": "Dump autoloader (shortcut)",
@@ -86,7 +90,7 @@
         "tests:all": "Run tests on all supported PHP versions (7.1 - 8.1)",
         "tests:coverage": "Run tests with code coverage",
         "phpstan:run": "Run PHPStan check",
-        "phpstan:all": "Run PHPStan check on PHP 7.4 and 8.0",
+        "phpstan:all": "Run PHPStan check on all supported PHP versions (7.1 - 8.1)",
         "phpcs:run": "Run CS check",
         "phpcs:src": "Run CS check on /src",
         "phpcs:tests": "Run CS check on /tests",

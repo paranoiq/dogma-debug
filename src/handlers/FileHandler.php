@@ -7,8 +7,23 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+
 namespace Dogma\Debug;
 
+use const STREAM_META_ACCESS;
+use const STREAM_META_GROUP;
+use const STREAM_META_GROUP_NAME;
+use const STREAM_META_OWNER;
+use const STREAM_META_OWNER_NAME;
+use const STREAM_META_TOUCH;
+use const STREAM_MKDIR_RECURSIVE;
+use const STREAM_OPTION_READ_BUFFER;
+use const STREAM_OPTION_READ_TIMEOUT;
+use const STREAM_OPTION_WRITE_BUFFER;
+use const STREAM_URL_STAT_LINK;
+use const STREAM_URL_STAT_QUIET;
+use const STREAM_USE_PATH;
 use function array_slice;
 use function array_sum;
 use function closedir;
@@ -24,6 +39,10 @@ use function ftruncate;
 use function func_get_args;
 use function fwrite;
 use function getcwd;
+use function implode;
+use function is_callable;
+use function is_int;
+use function is_scalar;
 use function microtime;
 use function readdir;
 use function rewinddir;
@@ -38,20 +57,10 @@ use function stream_wrapper_restore;
 use function stream_wrapper_unregister;
 use function strlen;
 use function time;
-use const STREAM_META_ACCESS;
-use const STREAM_META_GROUP;
-use const STREAM_META_GROUP_NAME;
-use const STREAM_META_OWNER;
-use const STREAM_META_OWNER_NAME;
-use const STREAM_META_TOUCH;
-use const STREAM_MKDIR_RECURSIVE;
-use const STREAM_OPTION_READ_BUFFER;
-use const STREAM_OPTION_READ_TIMEOUT;
-use const STREAM_OPTION_WRITE_BUFFER;
-use const STREAM_URL_STAT_LINK;
-use const STREAM_URL_STAT_QUIET;
-use const STREAM_USE_PATH;
 
+/**
+ * @see https://www.php.net/manual/en/class.streamwrapper.php
+ */
 class FileHandler
 {
 
@@ -110,7 +119,7 @@ class FileHandler
     private static $workingDirectory;
 
     /** @var resource|null */
-    private $context;
+    public $context;
 
     /** @var resource|null */
     private $handle;
@@ -142,9 +151,9 @@ class FileHandler
     {
         // detect and log working directory change
         // todo: is this thread safe?
-        $cwd = str_replace('\\', '/', getcwd());
+        $cwd = str_replace('\\', '/', (string) getcwd());
         if ((self::$log & self::CHANGE_DIR) && $cwd !== self::$workingDirectory) {
-            $message = Dumper::wrapperCall('chdir', [], (int) $this->handle);
+            $message = self::formatCall('chdir', [], (int) $this->handle);
             $message = Ansi::color(' ' . self::PROTOCOL . ': ', Ansi::WHITE, Ansi::DGREEN)
                 . ' ' . Dumper::file($cwd) . ' ' . $message;
 
@@ -172,7 +181,7 @@ class FileHandler
         if (!self::$logIncludes && $isInclude) {
             return;
         }
-        if (self::$logFilter && !(self::$logFilter)($event, $time, $message, $path, $isInclude)) {
+        if (is_callable(self::$logFilter) && !(self::$logFilter)($event, $time, $message, $path, $isInclude)) {
             return;
         }
 
@@ -202,7 +211,7 @@ class FileHandler
                 : $this->native('fopen', $this->path, $mode, $usePath);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('open', [$mode, $options], (int) $this->handle);
+            $message = self::formatCall('open', [$mode, $options], (int) $this->handle);
             $this->log(self::OPEN, $time, $message, $this->path);
         }
 
@@ -216,7 +225,7 @@ class FileHandler
             fclose($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall( 'close');
+            $message = self::formatCall('close');
             $this->log(self::CLOSE, $time, $message, $this->path);
         }
     }
@@ -229,13 +238,16 @@ class FileHandler
             $result = $operation ? flock($this->handle, $operation) : true;
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('lock', [$operation], $result);
+            $message = self::formatCall('lock', [$operation], $result);
             $this->log(self::LOCK, $time, $message, $this->path);
         }
 
         return $result;
     }
 
+    /**
+     * @return string|false
+     */
     public function stream_read(int $count)
     {
         $result = false;
@@ -244,13 +256,16 @@ class FileHandler
             $result = fread($this->handle, $count);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('read', [$count], $result === false ? false : strlen($result));
+            $message = self::formatCall('read', [$count], $result === false ? false : strlen($result));
             $this->log(self::READ, $time, $message, $this->path);
         }
 
         return $result;
     }
 
+    /**
+     * @return int|false
+     */
     public function stream_write(string $data)
     {
         $result = false;
@@ -259,7 +274,7 @@ class FileHandler
             $result = fwrite($this->handle, $data);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('write', [strlen($data)], $result);
+            $message = self::formatCall('write', [strlen($data)], $result);
             $this->log(self::WRITE, $time, $message, $this->path);
         }
 
@@ -274,7 +289,7 @@ class FileHandler
             $result = ftruncate($this->handle, $newSize);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('truncate', [$newSize], $result);
+            $message = self::formatCall('truncate', [$newSize], $result);
             $this->log(self::TRUNCATE, $time, $message, $this->path);
         }
 
@@ -289,7 +304,7 @@ class FileHandler
             $result = fflush($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('flush', [], $result);
+            $message = self::formatCall('flush', [], $result);
             $this->log(self::FLUSH, $time, $message, $this->path);
         }
 
@@ -304,7 +319,7 @@ class FileHandler
             $result = fseek($this->handle, $offset, $whence) === 0;
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('seek', [$offset], $result);
+            $message = self::formatCall('seek', [$offset], $result);
             $this->log(self::SEEK, $time, $message, $this->path);
         }
 
@@ -319,14 +334,17 @@ class FileHandler
             $result = feof($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('eof', [], $result);
+            $message = self::formatCall('eof', [], $result);
             $this->log(self::INFO, $time, $message, $this->path);
         }
 
         return $result;
     }
 
-    public function stream_tell(): int
+    /**
+     * @return int|false
+     */
+    public function stream_tell()
     {
         $result = false;
         $time = microtime(true);
@@ -334,13 +352,16 @@ class FileHandler
             $result = ftell($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('tell', [], $result);
+            $message = self::formatCall('tell', [], $result);
             $this->log(self::INFO, $time, $message, $this->path);
         }
 
         return $result;
     }
 
+    /**
+     * @return mixed[]|false
+     */
     public function stream_stat()
     {
         $result = false;
@@ -349,13 +370,16 @@ class FileHandler
             $result = fstat($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('stat', [], $this->formatStat($result));
+            $message = self::formatCall('stat', [], $this->formatStat($result));
             $this->log(self::STAT, $time, $message, $this->path);
         }
 
         return $result;
     }
 
+    /**
+     * @param mixed $value
+     */
     public function stream_metadata(string $path, int $option, $value): bool
     {
         $result = false;
@@ -368,7 +392,7 @@ class FileHandler
                     $result = $this->native('touch', $path, $t1, $t2);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('touch', [$t1, $t2], $result);
+                    $message = self::formatCall('touch', [$t1, $t2], $result);
                     $this->log(self::META, $time, $message, $path);
                 }
 
@@ -379,7 +403,7 @@ class FileHandler
                     $result = $this->native('chown', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('chown', [$value], $result);
+                    $message = self::formatCall('chown', [$value], $result);
                     $this->log(self::META, $time, $message, $path);
                 }
 
@@ -390,7 +414,7 @@ class FileHandler
                     $result = $this->native('chgrp', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('chgrp', [$value], $result);
+                    $message = self::formatCall('chgrp', [$value], $result);
                     $this->log(self::META, $time, $message, $path);
                 }
 
@@ -400,7 +424,7 @@ class FileHandler
                     $result = $this->native('chmod', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('chmod', [$value], $result);
+                    $message = self::formatCall('chmod', [$value], $result);
                     $this->log(self::META, $time, $message, $path);
                 }
 
@@ -420,7 +444,7 @@ class FileHandler
                     $result = stream_set_blocking($this->handle, (bool) $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('set_blocking', [$option, $arg1], $result);
+                    $message = self::formatCall('set_blocking', [$option, $arg1], $result);
                     $this->log(self::SET, $time, $message, $this->path);
                 }
                 return $result;
@@ -429,7 +453,7 @@ class FileHandler
                     $result = stream_set_read_buffer($this->handle, $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('set_read_buffer', [$option, $arg1], (bool) $result);
+                    $message = self::formatCall('set_read_buffer', [$option, $arg1], (bool) $result);
                     $this->log(self::SET, $time, $message, $this->path);
                 }
                 return (bool) $result;
@@ -439,7 +463,7 @@ class FileHandler
                     $result = stream_set_write_buffer($this->handle, $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('set_write_buffer', [$option, $arg1], (bool) $result);
+                    $message = self::formatCall('set_write_buffer', [$option, $arg1], (bool) $result);
                     $this->log(self::SET, $time, $message, $this->path);
                 }
                 return (bool) $result;
@@ -448,7 +472,7 @@ class FileHandler
                     $result = stream_set_timeout($this->handle, $arg1, $arg2);
                 } finally {
                     $time = microtime(true) - $time;
-                    $message = Dumper::wrapperCall('set_read_timeout', [$option, $arg1, $arg2], $result);
+                    $message = self::formatCall('set_read_timeout', [$option, $arg1, $arg2], $result);
                     $this->log(self::SET, $time, $message, $this->path);
                 }
                 return $result;
@@ -457,6 +481,9 @@ class FileHandler
         }
     }
 
+    /**
+     * @return resource|null
+     */
     public function stream_cast(int $castAs)
     {
         return $this->handle;
@@ -475,13 +502,16 @@ class FileHandler
                 : $this->native('opendir', $this->path);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('opendir', [], (int) $this->handle);
+            $message = self::formatCall('opendir', [], (int) $this->handle);
             $this->log(self::OPEN_DIR, $time, $message, $this->path);
         }
 
         return (bool) $this->handle;
     }
 
+    /**
+     * @return string|false
+     */
     public function dir_readdir()
     {
         $result = false;
@@ -490,7 +520,7 @@ class FileHandler
             $result = readdir($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('readdir', [], $result);
+            $message = self::formatCall('readdir', [], $result);
             $this->log(self::READ_DIR, $time, $message, $this->path);
         }
 
@@ -504,7 +534,7 @@ class FileHandler
             rewinddir($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('rewinddir');
+            $message = self::formatCall('rewinddir');
             $this->log(self::REWIND_DIR, $time, $message, $this->path);
         }
 
@@ -518,7 +548,7 @@ class FileHandler
             closedir($this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('closedir');
+            $message = self::formatCall('closedir');
             $this->log(self::CLOSE_DIR, $time, $message, $this->path);
         }
     }
@@ -539,7 +569,7 @@ class FileHandler
             $time = microtime(true) - $time;
             // todo: argument hints
             $hints = ['options' => [STREAM_MKDIR_RECURSIVE => 'STREAM_MKDIR_RECURSIVE', STREAM_REPORT_ERRORS => 'STREAM_REPORT_ERRORS']];
-            $message = Dumper::wrapperCall('mkdir', ['permissions' => $permissions, 'mkdir.options' => $options], $result);
+            $message = self::formatCall('mkdir', ['permissions' => $permissions, 'mkdir.options' => $options], $result);
             $this->log(self::MAKE_DIR, $time, $message, $path);
         }
 
@@ -556,7 +586,7 @@ class FileHandler
                 : $this->native('rmdir', $path);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('rmdir', [], $result);
+            $message = self::formatCall('rmdir', [], $result);
             $this->log(self::REMOVE_DIR, $time, $message, $path);
         }
 
@@ -573,7 +603,7 @@ class FileHandler
                 : $this->native('rename', $pathFrom, $pathTo);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('rename', [$pathTo], $result);
+            $message = self::formatCall('rename', [$pathTo], $result);
             $this->log(self::RENAME, $time, $message, $pathFrom);
         }
 
@@ -588,13 +618,16 @@ class FileHandler
             $result = $this->native('unlink', $path);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('unlink', [], $result);
+            $message = self::formatCall('unlink', [], $result);
             $this->log(self::UNLINK, $time, $message, $path);
         }
 
         return $result;
     }
 
+    /**
+     * @return mixed[]|false
+     */
     public function url_stat(string $path, int $flags)
     {
         $func = $flags & STREAM_URL_STAT_LINK ? 'lstat' : 'stat';
@@ -607,7 +640,7 @@ class FileHandler
                 : $this->native($func, $path);
         } finally {
             $time = microtime(true) - $time;
-            $message = Dumper::wrapperCall('url_stat', [$flags], $this->formatStat($result));
+            $message = self::formatCall('url_stat', [$flags], $this->formatStat($result));
             $this->log(self::STAT, $time, $message, $path);
         }
 
@@ -616,7 +649,10 @@ class FileHandler
 
     // helpers ---------------------------------------------------------------------------------------------------------
 
-    private function native(string $function)
+    /**
+     * @return mixed
+     */
+    private function native(callable $function)
     {
         stream_wrapper_restore(self::PROTOCOL);
         try {
@@ -628,6 +664,46 @@ class FileHandler
     }
 
     /**
+     * @param array<int|string|null> $params
+     * @param int|string|mixed[]|bool|null $return
+     */
+    private static function formatCall(string $name, array $params = [], $return = null/*, array $hints = []*/): string
+    {
+        $info = Dumper::$showInfo;
+        Dumper::$showInfo = null;
+
+        $formatted = [];
+        foreach ($params as $key => $value) {
+            $key = is_int($key) ? null : $key;
+            $formatted[] = Dumper::dumpValue($value, 0, $key);
+        }
+        $params = implode(Ansi::color(', ', Dumper::$colors['function']), $formatted);
+
+        if ($return === null) {
+            $output = '';
+            $end = ')';
+        } elseif (is_scalar($return)) {
+            $output = ' ' . Dumper::dumpValue($return);
+            $end = '):';
+        } else {
+            $output = [];
+            foreach ($return as $k => $v) {
+                if (is_int($k)) {
+                    $output[] = Dumper::dumpValue($v);
+                } else {
+                    $output[] = Ansi::color($k . ':', Dumper::$colors['function']) . ' ' . Dumper::dumpValue($v);
+                }
+            }
+            $output = ' ' . implode(' ', $output);
+            $end = '):';
+        }
+
+        Dumper::$showInfo = $info;
+
+        return Ansi::color($name . '(', Dumper::$colors['function']) . $params . Ansi::color($end, Dumper::$colors['function']) . $output;
+    }
+
+    /**
      * @param mixed[]|false $stat
      * @return mixed[]|false
      */
@@ -636,7 +712,7 @@ class FileHandler
         return $stat === false
             ? false
             : [
-                $this->formatMode($stat['mode']),
+                0 => $this->formatMode($stat['mode']),
                 'size' => $stat['size'],
                 //'links' => $stat['nlink'],
                 //'uid' => $stat['uid'],

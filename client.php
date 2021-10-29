@@ -8,12 +8,27 @@
  */
 
 // spell-check-ignore: rl rb rf
+// phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable
 
 use Dogma\Debug\DebugClient;
 use Dogma\Debug\Dumper;
 
-$_dogma_debug_start = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+$_dogma_debug_start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+
+// do not load auto-prepended libs when in test cases
+// tester loads local copy, which may differ from stable auto-prepended version
+$_dogma_debug_prepend = ini_get('auto_prepend_file');
+$_dogma_debug_script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
+if ($_dogma_debug_prepend === str_replace('\\', '/', __FILE__)
+    && substr($_dogma_debug_script, -5) === '.phpt'
+    && substr($_dogma_debug_script, 0, (int) strpos($_dogma_debug_script, 'dogma-debug'))
+        !== substr($_dogma_debug_prepend, 0, (int) strpos($_dogma_debug_prepend, 'dogma-debug'))
+) {
+    unset($_dogma_debug_prepend, $_dogma_debug_script);
+    return;
+}
+unset($_dogma_debug_prepend, $_dogma_debug_script);
 
 if (!class_exists(DebugClient::class)) {
     require_once __DIR__ . '/src/tools/Str.php';
@@ -28,8 +43,9 @@ if (!class_exists(DebugClient::class)) {
     require_once __DIR__ . '/src/DebugClient.php';
 
     require_once __DIR__ . '/src/dumper/DumperFormatters.php';
-    require_once __DIR__ . '/src/dumper/DumperHandlers.php';
-    require_once __DIR__ . '/src/dumper/DumperHandlersDom.php';
+    require_once __DIR__ . '/src/dumper/DumperFormattersDogma.php';
+    require_once __DIR__ . '/src/dumper/DumperFormattersDom.php';
+    require_once __DIR__ . '/src/dumper/DumperFormattersConsistence.php';
     require_once __DIR__ . '/src/dumper/DumperTraces.php';
     require_once __DIR__ . '/src/dumper/Dumper.php';
 
@@ -48,9 +64,9 @@ if (!class_exists(DebugClient::class)) {
      * @param mixed $value
      * @return mixed
      */
-    function ld($value, $depth = 5, int $trace = 1)
+    function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
-        echo Dumper::dump($value, $depth, $trace) . "\n";
+        echo Dumper::dump($value, $maxDepth, $traceLength) . "\n";
 
         return $value;
     }
@@ -59,33 +75,35 @@ if (!class_exists(DebugClient::class)) {
      * Remote dump
      *
      * @param mixed $value
-     * @param int|bool $depth
-     * @param int $trace
      * @return mixed
      */
-    function rd($value, $depth = 5, int $trace = 1)
+    function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
-        return DebugClient::dump($value, $depth, $trace);
+        return DebugClient::dump($value, $maxDepth, $traceLength);
+    }
+
+    /**
+     * Remote dump implemented with native var_dump() + some colors
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    function rvd($value, bool $colors = true)
+    {
+        return DebugClient::varDump($value, $colors);
     }
 
     /**
      * Remote capture dump
-     *
-     * @param callable $callback
-     * @param int|bool $depth
-     * @param int $trace
-     * @return string
      */
-    function rc(callable $callback, $depth = 5, int $trace = 1): string
+    function rc(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
     {
-        return DebugClient::capture($callback, $depth, $trace);
+        return DebugClient::capture($callback, $maxDepth, $traceLength);
     }
 
     /**
      * Remote backtrace dump
      *
-     * @param int|null $length
-     * @param int|null $argsDepth
      * @param int[] $lines
      */
     function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
@@ -94,7 +112,7 @@ if (!class_exists(DebugClient::class)) {
     }
 
     /**
-     * Remote function/method name dump
+     * Remotely print function/method name
      */
     function rf(): void
     {
@@ -104,29 +122,28 @@ if (!class_exists(DebugClient::class)) {
     /**
      * Remote label print
      *
-     * @param mixed $label
-     * @return mixed
+     * @param string|int|float|bool $label
+     * @return string|int|float|bool
      */
-    function rl($label)
+    function rl($label, ?string $name = null)
     {
-        return DebugClient::label($label);
+        return DebugClient::label($label, $name);
     }
 
     /**
      * Remote timer
      *
-     * @param string|int|null $label
+     * @param string|int|null $name
      */
-    function rt($label = ''): void
+    function rt($name = ''): void
     {
-        DebugClient::timer($label);
+        DebugClient::timer($name);
     }
 
-    // do not configure client when the current process is actually a starting server
+    // configure client, unless the current process is actually a starting server
     if (is_readable(__DIR__ . '/config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
         require_once __DIR__ . '/config.php';
     }
-
 }
 
 ?>
