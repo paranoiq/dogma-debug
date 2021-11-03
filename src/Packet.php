@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use function getmypid;
 use function microtime;
 
 class Packet
@@ -21,13 +20,14 @@ class Packet
     public const LABEL = 4;
     public const TIMER = 5;
     public const TRACE = 6;
-    public const STD_IO = 7;
-    public const FILE_IO = 8;
-    public const DB_IO = 9;
-    public const HTTP_IO = 10;
-    public const FTP_IO = 11;
-    public const ERROR = 12;
-    public const EXCEPTION = 13;
+    public const TAKEOVER = 7;
+    public const STD_IO = 8;
+    public const FILE_IO = 9;
+    public const DB_IO = 10;
+    public const HTTP_IO = 11;
+    public const FTP_IO = 12;
+    public const ERROR = 13;
+    public const EXCEPTION = 14;
 
     public const OUTPUT_WIDTH = 100;
 
@@ -51,8 +51,8 @@ class Packet
     /** @var float|null */
     public $duration = 0.0;
 
-    /** @var int|null */
-    public $pid = 0;
+    /** @var string|null */
+    public $pid = '0';
 
     public function __construct(
         int $type,
@@ -68,8 +68,8 @@ class Packet
 
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);
-            $this->counter = DebugClient::$counter++;
-            $this->pid = (int) getmypid();
+            $this->counter = Debugger::$counter++;
+            $this->pid = System::getId();
         }
     }
 

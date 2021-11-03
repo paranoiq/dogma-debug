@@ -39,8 +39,14 @@ class DebugServer
     /** @var string */
     private $address;
 
-    /** @var Socket|resource */
+    /** @var resource|Socket */
     private $socket;
+
+    /** @var resource[]|Socket[] */
+    private $connections = [];
+
+    /** @var bool */
+    private $groupInfo = true;
 
     /** @var Packet|null */
     private $lastRequest;
@@ -54,28 +60,38 @@ class DebugServer
         $this->address = $address;
     }
 
+    /**
+     * @return never-return
+     */
     public function run(): void
     {
         $this->connect();
 
-        $connections = [];
         while (true) {
             $newConnection = socket_accept($this->socket);
             if ($newConnection) {
                 //socket_set_nonblock($newConnection);
-                $connections[] = $newConnection;
+                $this->connections[] = $newConnection;
             }
 
-            foreach ($connections as $i => $connection) {
+            foreach ($this->connections as $i => $connection) {
                 $content = socket_read($connection, 1000000);
                 if ($content === false) {
                     if (socket_last_error() === 10035) { // Win: WSAEWOULDBLOCK
                         continue;
                     }
+                    // closed
                     socket_close($connection);
-                    unset($connections[$i]);
-                } elseif ($content) {
-                    $this->processRequest($content, $connection);
+                    unset($this->connections[$i]);
+                } elseif ($content === '') {
+                    // nothing to read
+                    continue;
+                }
+
+                $outro = $this->processRequest($content, $i);
+                if ($outro) {
+                    socket_close($connection);
+                    unset($this->connections[$i]);
                 }
             }
             /*$content = stream_socket_recvfrom($this->sock, 1, 0, $peer);
@@ -87,11 +103,9 @@ class DebugServer
         }
     }
 
-    /**
-     * @param resource|Socket $connection
-     */
-    private function processRequest(string $content, $connection): void
+    private function processRequest(string $content, int $i): bool
     {
+        $outro = false;
         foreach (explode(Packet::MARKER, $content) as $message) {
             if ($message === '') {
                 continue;
@@ -106,13 +120,14 @@ class DebugServer
 
             if ($request->type === Packet::OUTPUT_WIDTH) {
                 $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
-                socket_write($connection, $response . Packet::MARKER);
+                socket_write($this->connections[$i], $response . Packet::MARKER);
                 //stream_socket_sendto($this->sock, $response, 0, $connection);
                 continue;
             }
 
             // delete previous backtrace to save space
-            if ($this->lastRequest
+            if ($this->groupInfo
+                && $this->lastRequest
                 && $request->backtrace
                 && $this->lastRequest->backtrace === $request->backtrace
                 && $this->lastRequest->type === $request->type
@@ -124,6 +139,9 @@ class DebugServer
                 $this->durationSum = $request->duration;
             }
 
+            if (count($this->connections) > 1 && $request->type !== Packet::INTRO && $request->type !== Packet::OUTRO) {
+                echo Ansi::white(" #$request->pid ", Ansi::DYELLOW) . ' ';
+            }
             echo $request->payload . "\n";
 
             echo $request->backtrace;
@@ -136,7 +154,13 @@ class DebugServer
             }
 
             $this->lastRequest = $request;
+
+            if ($request->type === Packet::OUTRO) {
+                $outro = true;
+            }
         }
+
+        return $outro;
     }
 
     private function connect(): void

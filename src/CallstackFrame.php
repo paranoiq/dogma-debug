@@ -81,6 +81,18 @@ class CallstackFrame
         $this->args = $args;
     }
 
+    /**
+     * @param string|array{class-string, string} $callable
+     */
+    public function is($callable): bool
+    {
+        if (is_array($callable)) {
+            return $this->class === $callable[0] && $this->function === $callable[1];
+        } else {
+            return $this->class === null && $this->function === $callable;
+        }
+    }
+
     public function getFullName(): string
     {
         return $this->class ? ($this->class . $this->type . $this->function) : $this->function;

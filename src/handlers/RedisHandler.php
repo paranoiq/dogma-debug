@@ -100,7 +100,7 @@ class RedisHandler
 
         $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 10, 0, []);
 
-        DebugClient::send(Packet::FILE_IO, $message, $backtrace, $time);
+        Debugger::send(Packet::FILE_IO, $message, $backtrace, $time);
     }
 
     public static function handleDibiEvent(Event $event, ?string $connection = null): void

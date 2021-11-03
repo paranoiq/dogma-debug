@@ -27,14 +27,62 @@ class Request
         return (bool) preg_match($pattern, $_SERVER['SCRIPT_URL']);
     }
 
+    /**
+     * @param string[] $patterns
+     */
+    public static function urlMatchesAny(array $patterns): bool
+    {
+        if (!isset($_SERVER['SCRIPT_URL'])) {
+            return false;
+        }
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $_SERVER['SCRIPT_URL'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function fileMatches(string $pattern): bool
     {
         return (bool) preg_match($pattern, $_SERVER['SCRIPT_FILENAME']);
     }
 
+    /**
+     * @param string[] $patterns
+     */
+    public static function fileMatchesAny(array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $_SERVER['SCRIPT_FILENAME'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function commandMatches(string $pattern): bool
     {
         return (bool) preg_match($pattern, self::getCommandLine());
+    }
+
+    /**
+     * @param string[] $patterns
+     */
+    public static function commandMatchesAny(array $patterns): bool
+    {
+        $cl = self::getCommandLine();
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $cl)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function getCommandLine(): string

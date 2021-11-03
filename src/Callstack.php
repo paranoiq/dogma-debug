@@ -13,6 +13,7 @@ namespace Dogma\Debug;
 
 use ReflectionFunction;
 use ReflectionMethod;
+use Throwable;
 use const PHP_SAPI;
 use function count;
 use function debug_backtrace;
@@ -62,6 +63,16 @@ class Callstack
     public static function get(): self
     {
         return self::fromBacktrace(debug_backtrace());
+    }
+
+    public static function fromThrowable(Throwable $e): self
+    {
+        $trace = $e->getTrace();
+        if ($trace) {
+            return self::fromBacktrace($trace);
+        }
+
+        return new self([new CallstackFrame($e->getFile(), $e->getLine())]);
     }
 
     /**
@@ -129,6 +140,11 @@ class Callstack
                 }
             }
             $frames[] = $frame;
+        }
+
+        // do not apply filters when result is empty
+        if ($frames === []) {
+            return $this;
         }
 
         return new self($frames);

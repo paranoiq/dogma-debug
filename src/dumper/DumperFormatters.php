@@ -95,18 +95,24 @@ trait DumperFormatters
 
     public static function string(string $string, string $quote = '"'): string
     {
+        if (!self::$escapeNewlines) {
+            return Ansi::color($quote . $string . $quote, self::$colors['string']);
+        }
+
         $table = [
             "\0" => '\0',
             '\\' => '\\\\',
             '"' => '\"',
             "\r" => '\r',
-            "\n" => '\n',
             "\t" => '\t',
             "\e" => '\e',
         ];
+        if (self::$escapeNewlines) {
+            $table["\n"] = '\n';
+        }
 
         $escaped = preg_replace_callback('/([\0\\\\\\r\\n\\e"])/', static function (array $m) use ($table): string {
-            return Ansi::between($table[$m[1]], self::$colors['escape'], self::$colors['string']);
+            return Ansi::between($table[$m[1]] ?? $m[1], self::$colors['escape'], self::$colors['string']);
         }, $string);
 
         return Ansi::color($quote . $escaped . $quote, self::$colors['string']);
@@ -244,6 +250,15 @@ trait DumperFormatters
             . Ansi::color($fileName, self::$colors['file'])
             . Ansi::color(':', self::$colors['info'])
             . Ansi::color((string) $line, self::$colors['line']);
+    }
+
+    public static function url(string $url): string
+    {
+        $url = (string) preg_replace('/([a-zA-Z0-9_-]+)=/', Ansi::dyellow('$1') . '=', $url);
+        $url = (string) preg_replace('/=([a-zA-Z0-9_-]+)/', '=' . Ansi::lcyan('$1'), $url);
+        $url = (string) preg_replace('/[\\/?&=]/', Ansi::dgray('$0'), $url);
+
+        return $url;
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

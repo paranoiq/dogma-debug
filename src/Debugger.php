@@ -24,7 +24,6 @@ use function array_sum;
 use function end;
 use function error_get_last;
 use function explode;
-use function getmypid;
 use function headers_list;
 use function http_response_code;
 use function implode;
@@ -35,6 +34,7 @@ use function ob_get_clean;
 use function ob_start;
 use function register_shutdown_function;
 use function serialize;
+use function socket_close;
 use function socket_connect;
 use function socket_create;
 use function socket_read;
@@ -46,7 +46,7 @@ use function strtolower;
 use function ucfirst;
 use function unserialize;
 
-class DebugClient
+class Debugger
 {
 
     /** @var string */
@@ -118,7 +118,7 @@ class DebugClient
         $value = ob_get_clean();
 
         if ($value === false) {
-            $message = Ansi::white(" Output buffer closed unexpectedly in DebugClient::capture(). ", Ansi::DRED);
+            $message = Ansi::white(" Output buffer closed unexpectedly in Debugger::capture(). ", Ansi::DRED);
             self::send(Packet::ERROR, $message);
 
             return '';
@@ -177,7 +177,7 @@ class DebugClient
     {
         ob_start();
 
-        $frame = Callstack::get()->filter(Dumper::$traceSkip)->last();
+        $frame = Callstack::get()->filter(['~Debugger::function$~', '~^rf$~'])->last();
         $class = $frame->class ?? null;
         $function = $frame->function ?? null;
 
@@ -288,6 +288,7 @@ class DebugClient
         register_shutdown_function(static function (): void {
             if (!self::$shutdownDone) {
                 self::$shutdownDone = true;
+                //socket_close(self::$socket);
                 self::send(Packet::OUTRO, self::createFooter());
             }
         });
@@ -299,7 +300,7 @@ class DebugClient
         if ($output === "") {
             return;
         } elseif ($output === false) {
-            $message = Ansi::white(" Output buffer closed unexpectedly in DebugClient::$function(). ", Ansi::DRED);
+            $message = Ansi::white(" Output buffer closed unexpectedly in Debugger::$function(). ", Ansi::DRED);
         } else {
             $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
         }
@@ -321,20 +322,16 @@ class DebugClient
         /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
         $time = $dt->format(self::$timeFormat);
+        $id = System::getId();
         $version = PHP_VERSION;
         $sapi = str_replace('handler', '', PHP_SAPI);
-        $header = "\n" . Ansi::white(" >> $time | PHP $version", self::$headerColor);
+        $header = "\n" . Ansi::white(" >> #$id $time | PHP $version, $sapi ", self::$headerColor) . ' ';
 
         if ($sapi === 'cli') {
-            $pid = getmypid(); // . ' (' . cli_get_process_title() . ')';
-            $header .= Ansi::white(", $sapi, #$pid ", self::$headerColor) . ' ';
-
             $args = $argv;
             $args[0] = Dumper::file($args[0]);
             $header .= implode(' ', $args) . ' ';
         } else {
-            $header .= Ansi::white(", $sapi ", self::$headerColor) . ' ';
-
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                 $header .= Ansi::white(' AJAX ', Http::$methodColors['ajax']) . ' ';
             }
@@ -342,17 +339,17 @@ class DebugClient
                 $header .= Ansi::white(' ' . $_SERVER['REQUEST_METHOD'] . ' ', Http::$methodColors[strtolower($_SERVER['REQUEST_METHOD'])]) . ' ';
             }
             if (!empty($_SERVER['SCRIPT_URI'])) {
-                $header .= Dumper::highlightUrl($_SERVER['SCRIPT_URI']) . ' ';
+                $header .= Dumper::url($_SERVER['SCRIPT_URI']) . ' ';
             }
         }
 
         // request headers
-        /*if (IoHandler::$requestHeaders) {
+        /*if (RequestHandler::$requestHeaders) {
             // todo
         }
 
         // request body
-        if (IoHandler::$requestBody) {
+        if (RequestHandler::$requestBody) {
             // todo
         }*/
 
@@ -372,7 +369,7 @@ class DebugClient
         }*/
 
         // response headers
-        if (IoHandler::$responseHeaders) {
+        if (RequestHandler::$responseHeaders) {
             $headers = headers_list();
             if ($headers !== []) {
                 $footer .= Ansi::white(' headers: ', Ansi::DGREEN) . "\n";
@@ -386,18 +383,17 @@ class DebugClient
         }
 
         // common things
-        $sapi = str_replace('handler', '', PHP_SAPI);
-        $pid = $sapi === 'cli' ? ', #' . getmypid() : '';
-        if (IoHandler::enabled()) {
-            IoHandler::terminateAllOutputBuffers();
+        if (OutputHandler::enabled()) {
+            OutputHandler::terminateAllOutputBuffers();
         }
-        $outputLength = IoHandler::getTotalLength();
+        $outputLength = OutputHandler::getTotalLength();
         $output = $outputLength > 0 ? number_format($outputLength / 1024) . ' kB, ' : '';
         $start = self::$timers['total'];
         $time = number_format((microtime(true) - $start) * 1000, 0, '.', ' ');
         $memory = number_format(memory_get_peak_usage(true) / 1024 ** 2, 0, '.', ' ');
+        $id = System::getId();
 
-        $footer .= Ansi::white(" << {$output}$time ms, $memory MB{$pid} ", self::$headerColor);
+        $footer .= Ansi::white(" << #$id, {$output}$time ms, $memory MB ", self::$headerColor);
 
         // file io
         $stats = FileHandler::getStats();
@@ -408,6 +404,17 @@ class DebugClient
         $userTime = number_format($stats['userTime']['total'] * 1000);
         if ($userTime > 0.000001) {
             $footer .= Ansi::white("| file: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+        }
+
+        // phar io
+        $stats = PharHandler::getStats();
+        $includeTime = number_format($stats['includeTime']['total'] * 1000);
+        if ($includeTime > 0.000001) {
+            $footer .= Ansi::white("| phinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
+        }
+        $userTime = number_format($stats['userTime']['total'] * 1000);
+        if ($userTime > 0.000001) {
+            $footer .= Ansi::white("| phar: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
         // database

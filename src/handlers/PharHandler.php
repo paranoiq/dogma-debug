@@ -26,32 +26,15 @@ use const STREAM_URL_STAT_QUIET;
 use const STREAM_USE_PATH;
 use function array_slice;
 use function array_sum;
-use function closedir;
-use function fclose;
-use function feof;
-use function fflush;
-use function flock;
-use function fread;
-use function fseek;
-use function fstat;
-use function ftell;
-use function ftruncate;
 use function func_get_args;
-use function fwrite;
 use function getcwd;
 use function implode;
 use function is_callable;
 use function is_int;
 use function is_scalar;
 use function microtime;
-use function readdir;
-use function rewinddir;
 use function round;
 use function str_replace;
-use function stream_set_blocking;
-use function stream_set_read_buffer;
-use function stream_set_timeout;
-use function stream_set_write_buffer;
 use function stream_wrapper_register;
 use function stream_wrapper_restore;
 use function stream_wrapper_unregister;
@@ -62,7 +45,7 @@ use function time;
 /**
  * @see https://www.php.net/manual/en/class.streamwrapper.php
  */
-class FileHandler
+class PharHandler
 {
 
     public const OPEN = 0x1;
@@ -93,7 +76,7 @@ class FileHandler
     public const ALL = 0x1FFFFF;
     public const NONE = 0;
 
-    private const PROTOCOL = 'file';
+    private const PROTOCOL = 'phar';
     private const INCLUDE_FLAGS = 16512;
 
     /** @var int Types of events to log */
@@ -169,11 +152,7 @@ class FileHandler
         return self::$enabled;
     }
 
-    /**
-     * @param mixed[] $params
-     * @param mixed|null $return
-     */
-    private function log(int $event, float $time, string $path, string $call, array $params = [], $return = null): void
+    private function log(int $event, float $time, string $message, string $path): void
     {
         // detect and log working directory change
         // todo: is this thread safe?
@@ -207,14 +186,13 @@ class FileHandler
         if (!self::$logIncludes && $isInclude) {
             return;
         }
-        if (is_callable(self::$logFilter) && !(self::$logFilter)($event, $time, $path, $isInclude, $call, $params, $return)) {
+        if (is_callable(self::$logFilter) && !(self::$logFilter)($event, $time, $message, $path, $isInclude)) {
             return;
         }
 
         $path = Dumper::file($path);
 
         $timeFormatted = Ansi::color('(' . round($time * 1000000) . ' μs)', Dumper::$colors['time']);
-        $message = self::formatCall($call, $params, $return);
         $message = Ansi::color(' ' . self::PROTOCOL . ': ', Ansi::WHITE, Ansi::DGREEN)
             . ' ' . $path . ' ' . $message . ' ' . $timeFormatted;
 
@@ -238,12 +216,18 @@ class FileHandler
                 : $this->previous('fopen', $this->path, $mode, $usePath);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::OPEN, $time, $this->path, 'open', [$mode, $options], (int) $this->handle);
+            $message = self::formatCall('open', [$mode, $options], (int) $this->handle);
+            $this->log(self::OPEN, $time, $message, $this->path);
         }
 
         $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
         if ($this->handle && $isInclude && Takeover::enabled()) {
-            $buffer = $this->stream_read(100000000, true);
+            $buffer = '';
+            do {
+                // native phar handler does not return bigger chunks than 8192, hence the loop
+                $b = $this->stream_read(8192, true);
+                $buffer .= $b;
+            } while ($b !== false && $b !== '');
 
             if ($buffer) {
                 $this->readBuffer = Takeover::hack($buffer, $path);
@@ -258,10 +242,11 @@ class FileHandler
     {
         $time = microtime(true);
         try {
-            fclose($this->handle);
+            $this->previous('fclose', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::CLOSE, $time, $this->path, 'close');
+            $message = self::formatCall('close');
+            $this->log(self::CLOSE, $time, $message, $this->path);
         }
     }
 
@@ -270,10 +255,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = $operation ? flock($this->handle, $operation) : true;
+            $result = $this->previous('flock', $this->handle, $operation);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::LOCK, $time, $this->path, 'lock', [$operation], $result);
+            $message = self::formatCall('lock', [$operation], $result);
+            $this->log(self::LOCK, $time, $message, $this->path);
         }
 
         return $result;
@@ -284,12 +270,12 @@ class FileHandler
      */
     public function stream_read(int $count, bool $buffer = false)
     {
-        if ($this->readBuffer) {
+        if (!$buffer && $this->readBuffer) {
             $result = substr($this->readBuffer, 0, $count);
             $this->readBuffer = substr($this->readBuffer, $count);
 
-            $return = $result === false ? false : strlen($result);
-            $this->log(self::READ, 0.0, $this->path, 'read', [$count, 'buffered'], $return);
+            $message = self::formatCall('read', [$count, 'buffered'], $result === false ? false : strlen($result));
+            $this->log(self::READ, 0.0, $message, $this->path);
 
             return $result;
         }
@@ -297,12 +283,12 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = fread($this->handle, $count);
+            $result = $this->previous('fread', $this->handle, $count);
         } finally {
             $time = microtime(true) - $time;
             $params = $buffer ? [$count, 'buffering'] : [$count];
-            $return = $result === false ? false : strlen($result);
-            $this->log(self::READ, $time, $this->path, 'read', $params, $return);
+            $message = self::formatCall('read', $params, $result === false ? false : strlen($result));
+            $this->log(self::READ, $time, $message, $this->path);
         }
 
         return $result;
@@ -316,10 +302,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = fwrite($this->handle, $data);
+            $result = $this->previous('fwrite', $this->handle, $data);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::WRITE, $time, $this->path, 'write', [strlen($data)], $result);
+            $message = self::formatCall('write', [strlen($data)], $result);
+            $this->log(self::WRITE, $time, $message, $this->path);
         }
 
         return $result;
@@ -330,10 +317,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = ftruncate($this->handle, $newSize);
+            $result = $this->previous('ftruncate', $this->handle, $newSize);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::TRUNCATE, $time, $this->path, 'truncate', [$newSize], $result);
+            $message = self::formatCall('truncate', [$newSize], $result);
+            $this->log(self::TRUNCATE, $time, $message, $this->path);
         }
 
         return $result;
@@ -344,10 +332,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = fflush($this->handle);
+            $result = $this->previous('fflush', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::FLUSH, $time, $this->path, 'flush', [], $result);
+            $message = self::formatCall('flush', [], $result);
+            $this->log(self::FLUSH, $time, $message, $this->path);
         }
 
         return $result;
@@ -358,10 +347,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = fseek($this->handle, $offset, $whence) === 0;
+            $result = $this->previous('fseek', $this->handle, $offset, $whence) === 0;
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::SEEK, $time, $this->path, 'seek', [$offset], $result);
+            $message = self::formatCall('seek', [$offset], $result);
+            $this->log(self::SEEK, $time, $message, $this->path);
         }
 
         return $result;
@@ -371,7 +361,8 @@ class FileHandler
     {
         if ($this->readBuffer) {
             $result = false;
-            $this->log(self::INFO, 0.0, $this->path, 'eof', ['buffered'], $result);
+            $message = self::formatCall('eof', ['buffered'], $result);
+            $this->log(self::INFO, 0.0, $message, $this->path);
 
             return $result;
         }
@@ -379,10 +370,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = feof($this->handle);
+            $result = $this->previous('feof', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::INFO, $time, $this->path, 'eof', [], $result);
+            $message = self::formatCall('eof', [], $result);
+            $this->log(self::INFO, $time, $message, $this->path);
         }
 
         return $result;
@@ -396,10 +388,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = ftell($this->handle);
+            $result = $this->previous('ftell', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::INFO, $time, $this->path, 'tell', [], $result);
+            $message = self::formatCall('tell', [], $result);
+            $this->log(self::INFO, $time, $message, $this->path);
         }
 
         return $result;
@@ -413,10 +406,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = fstat($this->handle);
+            $result = $this->previous('fstat', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::STAT, $time, $this->path, 'stat', [], $this->formatStat($result));
+            $message = self::formatCall('stat', [], $this->formatStat($result));
+            $this->log(self::STAT, $time, $message, $this->path);
         }
 
         // file size is changed by Takeover magic
@@ -442,7 +436,8 @@ class FileHandler
                     $result = $this->previous('touch', $path, $t1, $t2);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::META, $time, $path, 'touch', [$t1, $t2], $result);
+                    $message = self::formatCall('touch', [$t1, $t2], $result);
+                    $this->log(self::META, $time, $message, $path);
                 }
 
                 return $result;
@@ -452,7 +447,8 @@ class FileHandler
                     $result = $this->previous('chown', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::META, $time, $path, 'chown', [$value], $result);
+                    $message = self::formatCall('chown', [$value], $result);
+                    $this->log(self::META, $time, $message, $path);
                 }
 
                 return $result;
@@ -462,7 +458,8 @@ class FileHandler
                     $result = $this->previous('chgrp', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::META, $time, $path, 'chgrp', [$value], $result);
+                    $message = self::formatCall('chgrp', [$value], $result);
+                    $this->log(self::META, $time, $message, $path);
                 }
 
                 return $result;
@@ -471,7 +468,8 @@ class FileHandler
                     $result = $this->previous('chmod', $path, $value);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::META, $time, $path, 'chmod', [$value], $result);
+                    $message = self::formatCall('chmod', [$value], $result);
+                    $this->log(self::META, $time, $message, $path);
                 }
 
                 return $result;
@@ -487,35 +485,39 @@ class FileHandler
         switch ($option) {
             case STREAM_OPTION_BLOCKING:
                 try {
-                    $result = stream_set_blocking($this->handle, (bool) $arg1);
+                    $result = $this->previous('stream_set_blocking', $this->handle, (bool) $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::SET, $time, $this->path, 'set_blocking', [$option, $arg1], $result);
+                    $message = self::formatCall('set_blocking', [$option, $arg1], $result);
+                    $this->log(self::SET, $time, $message, $this->path);
                 }
                 return $result;
             case STREAM_OPTION_READ_BUFFER:
                 try {
-                    $result = stream_set_read_buffer($this->handle, $arg1);
+                    $result = $this->previous('stream_set_read_buffer', $this->handle, $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::SET, $time, $this->path, 'set_read_buffer', [$option, $arg1], (bool) $result);
+                    $message = self::formatCall('set_read_buffer', [$option, $arg1], (bool) $result);
+                    $this->log(self::SET, $time, $message, $this->path);
                 }
                 return (bool) $result;
             case STREAM_OPTION_WRITE_BUFFER:
                 $time = microtime(true);
                 try {
-                    $result = stream_set_write_buffer($this->handle, $arg1);
+                    $result = $this->previous('stream_set_write_buffer', $this->handle, $arg1);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::SET, $time, $this->path, 'set_write_buffer', [$option, $arg1], (bool) $result);
+                    $message = self::formatCall('set_write_buffer', [$option, $arg1], (bool) $result);
+                    $this->log(self::SET, $time, $message, $this->path);
                 }
                 return (bool) $result;
             case STREAM_OPTION_READ_TIMEOUT:
                 try {
-                    $result = stream_set_timeout($this->handle, $arg1, $arg2);
+                    $result = $this->previous('stream_set_timeout', $this->handle, $arg1, $arg2);
                 } finally {
                     $time = microtime(true) - $time;
-                    $this->log(self::SET, $time, $this->path, 'set_read_timeout', [$option, $arg1, $arg2], $result);
+                    $message = self::formatCall('set_read_timeout', [$option, $arg1, $arg2], $result);
+                    $this->log(self::SET, $time, $message, $this->path);
                 }
                 return $result;
             default:
@@ -544,7 +546,8 @@ class FileHandler
                 : $this->previous('opendir', $this->path);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::OPEN_DIR, $time, $this->path, 'opendir', [], (int) $this->handle);
+            $message = self::formatCall('opendir', [], (int) $this->handle);
+            $this->log(self::OPEN_DIR, $time, $message, $this->path);
         }
 
         return (bool) $this->handle;
@@ -558,10 +561,11 @@ class FileHandler
         $result = false;
         $time = microtime(true);
         try {
-            $result = readdir($this->handle);
+            $result = $this->previous('readdir', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::READ_DIR, $time, $this->path, 'readdir', [], $result);
+            $message = self::formatCall('readdir', [], $result);
+            $this->log(self::READ_DIR, $time, $message, $this->path);
         }
 
         return $result;
@@ -571,10 +575,11 @@ class FileHandler
     {
         $time = microtime(true);
         try {
-            rewinddir($this->handle);
+            $this->previous('rewinddir', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::REWIND_DIR, $time, $this->path, 'rewinddir');
+            $message = self::formatCall('rewinddir');
+            $this->log(self::REWIND_DIR, $time, $message, $this->path);
         }
 
         return true;
@@ -584,10 +589,11 @@ class FileHandler
     {
         $time = microtime(true);
         try {
-            closedir($this->handle);
+            $this->previous('closedir', $this->handle);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::CLOSE_DIR, $time, $this->path, 'closedir');
+            $message = self::formatCall('closedir');
+            $this->log(self::CLOSE_DIR, $time, $message, $this->path);
         }
     }
 
@@ -607,8 +613,8 @@ class FileHandler
             $time = microtime(true) - $time;
             // todo: argument hints
             $hints = ['options' => [STREAM_MKDIR_RECURSIVE => 'STREAM_MKDIR_RECURSIVE', STREAM_REPORT_ERRORS => 'STREAM_REPORT_ERRORS']];
-            $params = ['permissions' => $permissions, 'mkdir.options' => $options];
-            $this->log(self::MAKE_DIR, $time, $path, 'mkdir', $params, $result);
+            $message = self::formatCall('mkdir', ['permissions' => $permissions, 'mkdir.options' => $options], $result);
+            $this->log(self::MAKE_DIR, $time, $message, $path);
         }
 
         return $result;
@@ -624,7 +630,8 @@ class FileHandler
                 : $this->previous('rmdir', $path);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::REMOVE_DIR, $time, $path, 'rmdir', [], $result);
+            $message = self::formatCall('rmdir', [], $result);
+            $this->log(self::REMOVE_DIR, $time, $message, $path);
         }
 
         return $result;
@@ -640,7 +647,8 @@ class FileHandler
                 : $this->previous('rename', $pathFrom, $pathTo);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::RENAME, $time, $pathFrom, 'rename', [$pathTo], $result);
+            $message = self::formatCall('rename', [$pathTo], $result);
+            $this->log(self::RENAME, $time, $message, $pathFrom);
         }
 
         return $result;
@@ -654,7 +662,8 @@ class FileHandler
             $result = $this->previous('unlink', $path);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::UNLINK, $time, $path, 'unlink', [], $result);
+            $message = self::formatCall('unlink', [], $result);
+            $this->log(self::UNLINK, $time, $message, $path);
         }
 
         return $result;
@@ -675,7 +684,8 @@ class FileHandler
                 : $this->previous($func, $path);
         } finally {
             $time = microtime(true) - $time;
-            $this->log(self::STAT, $time, $path, 'url_stat', [$flags], $this->formatStat($result));
+            $message = self::formatCall('url_stat', [$flags], $this->formatStat($result));
+            $this->log(self::STAT, $time, $message, $path);
         }
 
         return $result;

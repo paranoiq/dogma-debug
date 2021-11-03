@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use function array_slice;
+use function array_values;
 use function debug_backtrace;
 use function end;
 use function implode;
@@ -187,10 +188,48 @@ trait DumperTraces
 
         $fileLine = '';
         if ($frame->file !== null && $frame->line !== null) {
-            $fileLine = self::fileLine($frame->file, $frame->line);
+            $fileLine = self::fileLine(self::normalizePath($frame->file), $frame->line);
         }
 
         return self::info("^--- in ") . $fileLine . $classMethod;
+    }
+
+    /**
+     * Normalize file path:
+     * - changes \ to /
+     * - removes . dirs
+     * - resolves .. dirs if possible
+     * - removes duplicate /
+     * - removes ending /
+     * - removes starting / from relative paths
+     * - keeps / after uri scheme intact (https://en.wikipedia.org/wiki/File_URI_scheme)
+     *
+     * @param string $path
+     * @param bool $relative
+     * @return string
+     */
+    public static function normalizePath(string $path, bool $relative = false): string
+    {
+        $path = str_replace('\\', '/', $path);
+
+        $patterns = [
+            '~/\./~' => '/', // remove . dirs
+            '~(?<!:)(?<!:/)/{2,}~' => '/', // remove duplicate /, but keep up to three / after uri scheme
+            '~([^/\.]+/(?R)*\.\./?)~' => '', // resolve .. dirs
+        ];
+        do {
+            $previous = $path;
+            $path = preg_replace(array_keys($patterns), array_values($patterns), $path);
+        } while ($path !== $previous);
+
+        $patterns = [
+            '~/+\.?$~' => '', // end /.
+            '~^\.$~' => '', // sole .
+            '~^/\.~' => '.', // /.. on start
+        ];
+        $path = preg_replace(array_keys($patterns), array_values($patterns), $path);
+
+        return $relative && $path[0] === '/' ? substr($path, 1) : $path;
     }
 
 }

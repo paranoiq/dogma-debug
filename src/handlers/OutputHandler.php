@@ -17,7 +17,7 @@ use function ob_get_level;
 use function ob_start;
 use function strlen;
 
-class IoHandler
+class OutputHandler
 {
 
     public const BOM = "\xEF\xBB\xBF";
@@ -28,14 +28,7 @@ class IoHandler
     /** @var int Max length of printed output samples */
     public static $maxLength = 100;
 
-    /** @var bool Print response headers */
-    public static $responseHeaders = false;
-
-    /** @var bool Print request headers */
-    public static $requestHeaders = false;
-
-    /** @var bool Print request body */
-    public static $requestBody = false;
+    // internals -------------------------------------------------------------------------------------------------------
 
     /** @var bool */
     private static $enabled = false;
@@ -49,12 +42,7 @@ class IoHandler
     /** @var int */
     private static $length = 0;
 
-    public static function enable(
-        bool $showOutput = false,
-        bool $responseHeaders = false,
-        bool $requestHeaders = false,
-        bool $requestBody = false
-    ): void
+    public static function enable(bool $showOutput = false): void
     {
         if (self::$enabled) {
             return;
@@ -62,9 +50,6 @@ class IoHandler
         self::$enabled = true;
         self::$initialLevel = ob_get_level();
         self::$printOutput = $showOutput;
-        self::$responseHeaders = $responseHeaders;
-        self::$requestHeaders = $requestHeaders;
-        self::$requestBody = $requestBody;
 
         self::init();
         ob_start([self::class, 'handle'], 1);
@@ -119,7 +104,7 @@ class IoHandler
         $callstack = $callstack ?? Callstack::get()->filter(Dumper::$traceSkip);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, []);
 
-        DebugClient::send(Packet::STD_IO, $message, $backtrace);
+        Debugger::send(Packet::STD_IO, $message, $backtrace);
 
         return false;
     }

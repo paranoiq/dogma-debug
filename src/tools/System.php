@@ -10,11 +10,15 @@
 namespace Dogma\Debug;
 
 use const PHP_OS;
+
 use function cli_set_process_title;
 use function exec;
 use function explode;
+use function function_exists;
+use function getmypid;
 use function strtolower;
 use function trim;
+use function zend_thread_id;
 
 class System
 {
@@ -54,6 +58,16 @@ class System
         $os = strtolower(PHP_OS);
 
         return Str::contains($os, 'win') && !Str::contains($os, 'darwin');
+    }
+
+    public static function getId(): string
+    {
+        $id = (string) (int) getmypid();
+        if (function_exists('zend_thread_id')) {
+            $id .= '/' . zend_thread_id();
+        }
+
+        return $id;
     }
 
     public static function setProcessName(string $name): void

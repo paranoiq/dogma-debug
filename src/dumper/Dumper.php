@@ -131,6 +131,9 @@ class Dumper
     /** @var int - max length of dumped strings */
     public static $maxLength = 10000;
 
+    /** @var bool - escape newlines as \n or print them */
+    public static $escapeNewlines = true;
+
     /** @var string - encoding of dumped strings (output encoding is always utf-8) */
     public static $stringsEncoding = 'utf-8';
 
@@ -192,7 +195,8 @@ class Dumper
     public static $traceSkip = [
         '~^Dogma\\\\Debug\\\\~', // Debugger classes
         '~^(ld|rd|rc|rb|rf|rl|rt)$~', // shortcut functions
-        '~^call_user_func~', // proxies
+        '~^call_user_func~', // call proxies
+        '~^(trigger|user)_error$~', // error proxies
         '~^Composer\\\\Autoload\\\\~', // composer loaders
         '~^loadClass~',
     ];
@@ -313,7 +317,7 @@ class Dumper
 
         if ($dump === false) {
             $message = Ansi::white(" Output buffer closed unexpectedly in Dumper::varDump(). ", Ansi::DRED);
-            DebugClient::send(Packet::ERROR, $message);
+            Debugger::send(Packet::ERROR, $message);
 
             return '';
         }
@@ -527,6 +531,16 @@ class Dumper
             $trimmed = ', trimmed';
         }
 
+        $path = '';
+        if (($key !== null && preg_match('~file|path~', $key))
+            || preg_match('~^[a-z]:[/\\\\]~i', $string)
+            || ($string !== '' && $string[0] === '/')
+            || Str::contains($string, '/../')
+        ) {
+            $path = self::normalizePath($string);
+            $path = ($path === $string) ? ', ' . $path : '';
+        }
+
         // phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedElseif
         // phpcs:disable SlevomatCodingStandard.ControlStructures.AssignmentInCondition.AssignmentInCondition
         static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{12})}?~';
@@ -538,15 +552,15 @@ class Dumper
             // ^^^
         } elseif ($key !== null && Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
             $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
-        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$trimmed && !$hidden && !$callable) {
+        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$path && !$trimmed && !$hidden && !$callable) {
             $info = '';
         } elseif ($bytes === $length) {
-            $info = ' ' . self::info("// $bytes B{$trimmed}{$hidden}{$callable}");
+            $info = ' ' . self::info("// $bytes B{$path}{$trimmed}{$hidden}{$callable}");
         } else {
-            $info = ' ' . self::info("// $bytes B, $length ch{$trimmed}{$hidden}{$callable}");
+            $info = ' ' . self::info("// $bytes B, $length ch{$path}{$trimmed}{$hidden}{$callable}");
         }
 
-        // explode path on more lines
+        // explode path list on more lines
         if ($key !== null && preg_match('/path(?!ext)/i', $key) && Str::contains($string, PATH_SEPARATOR)) {
             $infoBefore = self::$showInfo;
             self::$showInfo = false;
@@ -966,15 +980,6 @@ class Dumper
         $info = self::$showInfo ? ' ' . self::info('#' . (int) $resource) : '';
 
         return self::resource($name) . $info;
-    }
-
-    public static function highlightUrl(string $url): string
-    {
-        $url = (string) preg_replace('/([a-zA-Z0-9_-]+)=/', Ansi::dyellow('$1') . '=', $url);
-        $url = (string) preg_replace('/=([a-zA-Z0-9_-]+)/', '=' . Ansi::lcyan('$1'), $url);
-        $url = (string) preg_replace('/[\\/?&=]/', Ansi::dgray('$0'), $url);
-
-        return $url;
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

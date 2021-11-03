@@ -8,7 +8,7 @@
  */
 
 use Dogma\Debug\Ansi;
-use Dogma\Debug\DebugClient;
+use Dogma\Debug\Debugger;
 use Dogma\Debug\DebugServer;
 use Dogma\Debug\System;
 
@@ -17,7 +17,7 @@ error_reporting(E_ALL);
 set_time_limit(0);
 
 // client may have been loaded earlier by auto_prepend_file directive
-if (!class_exists(DebugClient::class)) {
+if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/System.php';

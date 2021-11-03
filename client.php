@@ -11,8 +11,17 @@
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable
 
-use Dogma\Debug\DebugClient;
+use Dogma\Debug\Ansi;
+use Dogma\Debug\Callstack;
+use Dogma\Debug\CallstackFrame;
+use Dogma\Debug\Debugger;
 use Dogma\Debug\Dumper;
+use Dogma\Debug\Http;
+use Dogma\Debug\Packet;
+use Dogma\Debug\Request;
+use Dogma\Debug\Str;
+use Dogma\Debug\System;
+use Dogma\Debug\Takeover;
 
 $_dogma_debug_start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
 
@@ -30,7 +39,7 @@ if ($_dogma_debug_prepend === str_replace('\\', '/', __FILE__)
 }
 unset($_dogma_debug_prepend, $_dogma_debug_script);
 
-if (!class_exists(DebugClient::class)) {
+if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/Http.php';
@@ -40,7 +49,8 @@ if (!class_exists(DebugClient::class)) {
     require_once __DIR__ . '/src/Packet.php';
     require_once __DIR__ . '/src/CallstackFrame.php';
     require_once __DIR__ . '/src/Callstack.php';
-    require_once __DIR__ . '/src/DebugClient.php';
+    require_once __DIR__ . '/src/Takeover.php';
+    require_once __DIR__ . '/src/Debugger.php';
 
     require_once __DIR__ . '/src/dumper/DumperFormatters.php';
     require_once __DIR__ . '/src/dumper/DumperFormattersDogma.php';
@@ -51,11 +61,21 @@ if (!class_exists(DebugClient::class)) {
 
     require_once __DIR__ . '/src/handlers/ErrorHandler.php';
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
-    require_once __DIR__ . '/src/handlers/IoHandler.php';
+    require_once __DIR__ . '/src/handlers/ProcessHandler.php';
+    require_once __DIR__ . '/src/handlers/ShutdownHandler.php';
     require_once __DIR__ . '/src/handlers/FileHandler.php';
+    require_once __DIR__ . '/src/handlers/PharHandler.php';
+    require_once __DIR__ . '/src/handlers/OutputHandler.php';
+    require_once __DIR__ . '/src/handlers/RequestHandler.php';
     require_once __DIR__ . '/src/handlers/SqlHandler.php';
 
-    DebugClient::$timers['total'] = $_dogma_debug_start;
+    // force classes to load. otherwise, it may fail in the middle of a stream_wrapper call used by require
+    array_map('class_exists', [
+        Str::class, Ansi::class, Http::class, Request::class, System::class, Packet::class, CallstackFrame::class,
+        Callstack::class, Takeover::class, Debugger::class, Dumper::class, Debugger::class,
+    ]);
+
+    Debugger::$timers['total'] = $_dogma_debug_start;
     unset($_dogma_debug_start);
 
     /**
@@ -79,7 +99,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
-        return DebugClient::dump($value, $maxDepth, $traceLength);
+        return Debugger::dump($value, $maxDepth, $traceLength);
     }
 
     /**
@@ -90,7 +110,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rvd($value, bool $colors = true)
     {
-        return DebugClient::varDump($value, $colors);
+        return Debugger::varDump($value, $colors);
     }
 
     /**
@@ -98,7 +118,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rc(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
     {
-        return DebugClient::capture($callback, $maxDepth, $traceLength);
+        return Debugger::capture($callback, $maxDepth, $traceLength);
     }
 
     /**
@@ -108,7 +128,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
     {
-        DebugClient::backtrace($length, $argsDepth, $lines);
+        Debugger::backtrace($length, $argsDepth, $lines);
     }
 
     /**
@@ -116,7 +136,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rf(): void
     {
-        DebugClient::function();
+        Debugger::function();
     }
 
     /**
@@ -127,7 +147,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rl($label, ?string $name = null)
     {
-        return DebugClient::label($label, $name);
+        return Debugger::label($label, $name);
     }
 
     /**
@@ -137,7 +157,7 @@ if (!class_exists(DebugClient::class)) {
      */
     function rt($name = ''): void
     {
-        DebugClient::timer($name);
+        Debugger::timer($name);
     }
 
     // configure client, unless the current process is actually a starting server
