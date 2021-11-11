@@ -95,7 +95,7 @@ trait DumperFormatters
 
     public static function string(string $string, string $quote = '"'): string
     {
-        if (!self::$escapeNewlines) {
+        if (!self::$escapeStrings) {
             return Ansi::color($quote . $string . $quote, self::$colors['string']);
         }
 
@@ -104,12 +104,10 @@ trait DumperFormatters
             '\\' => '\\\\',
             '"' => '\"',
             "\r" => '\r',
+            "\n" => '\n',
             "\t" => '\t',
             "\e" => '\e',
         ];
-        if (self::$escapeNewlines) {
-            $table["\n"] = '\n';
-        }
 
         $escaped = preg_replace_callback('/([\0\\\\\\r\\n\\e"])/', static function (array $m) use ($table): string {
             return Ansi::between($table[$m[1]] ?? $m[1], self::$colors['escape'], self::$colors['string']);

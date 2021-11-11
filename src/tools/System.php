@@ -10,7 +10,6 @@
 namespace Dogma\Debug;
 
 use const PHP_OS;
-
 use function cli_set_process_title;
 use function exec;
 use function explode;

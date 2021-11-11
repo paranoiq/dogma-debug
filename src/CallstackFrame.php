@@ -82,7 +82,7 @@ class CallstackFrame
     }
 
     /**
-     * @param string|array{class-string, string} $callable
+     * @param string|array{string, string} $callable
      */
     public function is($callable): bool
     {
@@ -336,6 +336,9 @@ class CallstackFrame
     public static function readLines(string $file, int $start = 0, ?int $count = null): array
     {
         error_clear_last();
+        if (!is_file($file)) {
+            return [];
+        }
         $result = @file($file, FILE_IGNORE_NEW_LINES);
 
         if ($result === false) {

@@ -11,6 +11,19 @@ namespace Dogma\Debug;
 
 use function preg_replace;
 
+/**
+ * Using FileHandler and PharHandler, this class rewrites loaded PHP code on-the-fly to take control of various
+ * debugging related functions (like register_error_handler etc.). This is to prevent other tools from changing
+ * the environment and potentially silence some errors or just to track which tools are doing it (test frameworks etc.)
+ *
+ * FileHandler (and PharHandler if you are debugging a packed application) must be enabled for this
+ *
+ * Supported handlers so far and what functions they overload:
+ * - ErrorHandler: set_error_handler(), restore_error_handler(), error_reporting()
+ * - ExceptionHandler: set_exception_handler(), restore_exception_handler()
+ * - ShutdownHandler: register_shutdown_function()
+ * - RequestHandler: header()
+ */
 class Takeover
 {
 
@@ -21,17 +34,21 @@ class Takeover
     public const PREVENT_OTHERS = 4; // do not pass events to other/native handlers
 
     /** @var bool Report files where code has been modified */
-    public static $reportReplacements = true;
+    public static $logReplacements = true;
 
-    /** @var string */
-    public static $labelColor = Ansi::DMAGENTA;
+    /** @var bool Report when app code tries to call overloaded functions */
+    public static $logAttempts = true;
+
+    /** @var bool */
+    public static $filterTrace = true;
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    /** @var callable[] */
+    /** @var array<string, array{class-string, string}> */
     private static $replacements = [];
 
     /**
+     * Register system function to be overloaded with a static call
      * @param array{class-string, string} $callable
      */
     public static function register(string $function, array $callable): void
@@ -48,24 +65,42 @@ class Takeover
     {
         $replaced = [];
         foreach (self::$replacements as $function => $callable) {
-            $pattern = "~(?<![a-zA-Z0-9_\\\\])\\\\?$function(\s*\()~i";
+            // must not be preceded by: other name characters, namespace, `->`, `$` or `function `
+            $pattern = "~(?<![a-zA-Z0-9_\\\\>$])(?<!function )\\\\?$function(\s*\()~i";
             $replacement = '\\' . $callable[0] . '::' . $callable[1] . '$1';
 
             $result = preg_replace($pattern, $replacement, $code);
 
             if ($result !== $code) {
-                $replaced[] = $function;
+                $replaced[] = $function . '()';
             }
 
             $code = $result;
         }
 
-        if (self::$reportReplacements && $replaced !== []) {
-            $functions = implode(', ', $replaced);
-            Debugger::send(Packet::TAKEOVER, Ansi::white(" Replaced $functions in $file ", Ansi::DMAGENTA));
+        if (self::$logReplacements && $replaced !== []) {
+            $functions = Str::join($replaced, ', ', ' and ');
+            $message = Ansi::lmagenta("Overloaded $functions in: ") . Dumper::file($file);
+            Debugger::send(Packet::TAKEOVER, $message);
         }
 
         return $code;
+    }
+
+    public static function log(string $message): void
+    {
+        if (!self::$logAttempts) {
+            return;
+        }
+
+        $message = Ansi::white(' ' . $message . ' ', Ansi::DMAGENTA);
+        $callstack = Callstack::get();
+        if (self::$filterTrace) {
+            $callstack = $callstack->filter(Dumper::$traceSkip);
+        }
+        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+
+        Debugger::send(Packet::TAKEOVER, $message, $trace);
     }
 
 }

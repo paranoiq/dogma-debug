@@ -36,7 +36,7 @@ use function set_error_handler;
  * Error handling flow:
  * There are two modes in which this error handler can operate:
  *
- * 1) normal "civilised" behavior (default)
+ * 1) normal "civilized" behavior (default)
  * - in this case error handler registers as usual and receives a previously defined handler (that may be the native error handler)
  * - after handling an error you may decide, whether to call the previously registered error handler via $catch property
  *
@@ -76,6 +76,13 @@ class ErrorHandler
 
     /** @var bool */
     public static $filterTrace = true;
+
+    /** @var array<array{string, string}> */
+    public static $takeoverExceptions = [
+        ['Nette\Utils\Callback', 'invokeSafe'],
+        ['Symfony\Component\Process\Pipes\UnixPipes', 'readAndWrite'],
+        ['PhpAmqpLib\Wire\IO\AbstractIO', 'set_error_handler'],
+    ];
 
     // internals -------------------------------------------------------------------------------------------------------
 
@@ -185,19 +192,14 @@ class ErrorHandler
             throw new LogicException('Unsupported option. Check possible values of ErrorHandler::$levelTakeover.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return $old;
     }
 
-    public static function fakeRegister(?callable $callback, int $levels = E_ALL|E_STRICT): ?callable
+    public static function fakeRegister(?callable $callback, int $levels = E_ALL | E_STRICT): ?callable
     {
-        // todo: temporary
-        $frame = Callstack::get()->filter(Dumper::$traceSkip)->last();
-        $allowed = $frame->is(['Nette\Utils\Callback', 'invokeSafe'])
-            || $frame->is(['Symfony\Component\Process\Pipes\UnixPipes', 'readAndWrite']);
-
-        if ($allowed || self::$handlerTakeover === Takeover::NONE) {
+        if (self::allowed() || self::$handlerTakeover === Takeover::NONE) {
             return set_error_handler($callback, $levels);
         } elseif (self::$handlerTakeover === Takeover::LOG_OTHERS) {
             $old = set_error_handler($callback, $levels);
@@ -209,19 +211,14 @@ class ErrorHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return $old;
     }
 
     public static function fakeRestore(): bool
     {
-        // todo: temporary
-        $frame = Callstack::get()->filter(Dumper::$traceSkip)->last();
-        $allowed = $frame->is(['Nette\Utils\Callback', 'invokeSafe'])
-            || $frame->is(['Symfony\Component\Process\Pipes\UnixPipes', 'readAndWrite']);
-
-        if ($allowed || self::$handlerTakeover === Takeover::NONE) {
+        if (self::allowed() || self::$handlerTakeover === Takeover::NONE) {
             return restore_error_handler();
         } elseif (self::$handlerTakeover === Takeover::LOG_OTHERS) {
             restore_error_handler();
@@ -232,18 +229,21 @@ class ErrorHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return true;
     }
 
-    private static function logTakeover(string $message): void
+    private static function allowed(): bool
     {
-        $message = Ansi::white(' ' . $message . ' ', Takeover::$labelColor);
-        $callstack = Callstack::get()->filter(Dumper::$traceSkip);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $frame = Callstack::get()->filter(Dumper::$traceSkip)->last();
+        foreach (self::$takeoverExceptions as $exception) {
+            if ($frame->is($exception)) {
+                return true;
+            }
+        }
 
-        Debugger::send(Packet::TAKEOVER, $message, $trace);
+        return false;
     }
 
     private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): void

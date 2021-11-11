@@ -2,9 +2,10 @@
 
 // 7.1 - 7.4
 $ignore = [
-    '~Property Dogma\\\\Debug\\\\Debug(Client|Server)::\\$socket has unknown class Socket as its type~',
-    '~Parameter \\$connection of method Dogma\\\\Debug\\\\DebugServer::processRequest\\(\\) has invalid typehint type Socket~',
+    '~Property Dogma\\\\Debug\\\\(Debugger|Debug(Client|Server))::\\$(socket|connections) has unknown class Socket as its type~',
     '~Parameter #1 \\$socket of function socket_.* expects resource, resource\\|Socket given~',
+    '~Method Dogma\\\\Debug\\\\ShutdownHandler::fakeRegister\\(\\) should return bool\\|null but returns void~',
+    '~Result of function register_shutdown_function \\(void\\) is used~'
 ];
 if (PHP_VERSION_ID >= 80000) {
     $ignore = [

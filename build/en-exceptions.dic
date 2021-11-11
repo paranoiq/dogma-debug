@@ -4,6 +4,7 @@ rgb
 ansi
 sapi
 pid
+async
 fn
 tcp
 unicode
@@ -21,6 +22,9 @@ mtime
 atime
 uid
 gid
+ino
+rdev
+blksize
 headeropt
 filemode
 io
@@ -89,6 +93,9 @@ di
 baz
 áčř
 abcdef
+
+phinc
+htinc
 
 příliš
 žluťoučký

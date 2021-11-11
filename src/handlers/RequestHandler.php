@@ -10,9 +10,6 @@
 namespace Dogma\Debug;
 
 use LogicException;
-use const E_ALL;
-use const E_STRICT;
-use function set_error_handler;
 
 class RequestHandler
 {
@@ -28,7 +25,7 @@ class RequestHandler
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    /** @var bool Controlling other exception handlers */
+    /** @var int Controlling other exception handlers */
     private static $takeover = Takeover::NONE;
 
     /**
@@ -56,16 +53,7 @@ class RequestHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
-    }
-
-    private static function logTakeover(string $message): void
-    {
-        $message = Ansi::white(' ' . $message . ' ', Takeover::$labelColor);
-        $callstack = Callstack::get()->filter(Dumper::$traceSkip);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
-
-        Debugger::send(Packet::TAKEOVER, $message, $trace);
+        Takeover::log($message);
     }
 
 }

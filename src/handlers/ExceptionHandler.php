@@ -21,7 +21,7 @@ class ExceptionHandler
     /** @var bool */
     public static $filterTrace = true;
 
-    /** @var bool Controlling other exception handlers */
+    /** @var int Controlling other exception handlers */
     private static $takeover = Takeover::NONE;
 
     /** @var bool */
@@ -77,7 +77,7 @@ class ExceptionHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return $old;
     }
@@ -95,21 +95,9 @@ class ExceptionHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return true;
-    }
-
-    private static function logTakeover(string $message): void
-    {
-        $message = Ansi::white(' ' . $message . ' ', Takeover::$labelColor);
-        $callstack = Callstack::get();
-        if (self::$filterTrace) {
-            $callstack = $callstack->filter(Dumper::$traceSkip);
-        }
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
-
-        Debugger::send(Packet::TAKEOVER, $message, $trace);
     }
 
     public static function log(Throwable $e): void
@@ -127,7 +115,9 @@ class ExceptionHandler
             }
             $trace = Dumper::formatCallstack($callstack, 1000, 1, [5, 5, 5, 5, 5]);
         } catch (Throwable $e) {
-            rd($e);
+            Debugger::dump($e);
+
+            return;
         }
 
         Debugger::send(Packet::EXCEPTION, $message, $trace);

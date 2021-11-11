@@ -203,10 +203,6 @@ trait DumperTraces
      * - removes ending /
      * - removes starting / from relative paths
      * - keeps / after uri scheme intact (https://en.wikipedia.org/wiki/File_URI_scheme)
-     *
-     * @param string $path
-     * @param bool $relative
-     * @return string
      */
     public static function normalizePath(string $path, bool $relative = false): string
     {

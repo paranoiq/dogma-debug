@@ -15,10 +15,7 @@ use function register_shutdown_function;
 class ShutdownHandler
 {
 
-    /** @var bool */
-    public static $filterTrace = true;
-
-    /** @var bool Controlling other exception handlers */
+    /** @var int Controlling other exception handlers */
     private static $takeover = Takeover::NONE;
 
     /**
@@ -32,6 +29,9 @@ class ShutdownHandler
         self::$takeover = $handler;
     }
 
+    /**
+     * @param mixed ...$args
+     */
     public static function fakeRegister(?callable $callback, ...$args): ?bool
     {
         if (self::$takeover === Takeover::NONE) {
@@ -46,21 +46,9 @@ class ShutdownHandler
             throw new LogicException('Not implemented.');
         }
 
-        self::logTakeover($message);
+        Takeover::log($message);
 
         return $old;
-    }
-
-    private static function logTakeover(string $message): void
-    {
-        $message = Ansi::white(' ' . $message . ' ', Takeover::$labelColor);
-        $callstack = Callstack::get();
-        if (self::$filterTrace) {
-            $callstack = $callstack->filter(Dumper::$traceSkip);
-        }
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
-
-        Debugger::send(Packet::TAKEOVER, $message, $trace);
     }
 
 }

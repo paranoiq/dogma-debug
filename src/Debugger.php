@@ -34,7 +34,6 @@ use function ob_get_clean;
 use function ob_start;
 use function register_shutdown_function;
 use function serialize;
-use function socket_close;
 use function socket_connect;
 use function socket_create;
 use function socket_read;
@@ -288,7 +287,6 @@ class Debugger
         register_shutdown_function(static function (): void {
             if (!self::$shutdownDone) {
                 self::$shutdownDone = true;
-                //socket_close(self::$socket);
                 self::send(Packet::OUTRO, self::createFooter());
             }
         });
@@ -415,6 +413,17 @@ class Debugger
         $userTime = number_format($stats['userTime']['total'] * 1000);
         if ($userTime > 0.000001) {
             $footer .= Ansi::white("| phar: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+        }
+
+        // http io
+        $stats = HttpHandler::getStats();
+        $includeTime = number_format($stats['includeTime']['total'] * 1000);
+        if ($includeTime > 0.000001) {
+            $footer .= Ansi::white("| htinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
+        }
+        $userTime = number_format($stats['userTime']['total'] * 1000);
+        if ($userTime > 0.000001) {
+            $footer .= Ansi::white("| http: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
         // database

@@ -44,7 +44,7 @@ class ProcessHandler
 
     public static function disable(): void
     {
-
+        // todo
         self::$enabled = false;
     }
 

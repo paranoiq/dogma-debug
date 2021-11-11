@@ -83,6 +83,7 @@ class DebugServer
                     // closed
                     socket_close($connection);
                     unset($this->connections[$i]);
+                    continue;
                 } elseif ($content === '') {
                     // nothing to read
                     continue;

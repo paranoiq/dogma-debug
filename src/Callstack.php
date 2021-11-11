@@ -69,6 +69,12 @@ class Callstack
     {
         $trace = $e->getTrace();
         if ($trace) {
+            $file = $e->getFile();
+            $line = $e->getLine();
+            if ($file !== null) {
+                array_unshift($trace, ['file' => $file, 'line' => $line]);
+            }
+
             return self::fromBacktrace($trace);
         }
 

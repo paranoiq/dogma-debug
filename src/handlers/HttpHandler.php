@@ -9,14 +9,14 @@
 
 namespace Dogma\Debug;
 
-class FileHandler extends StreamWrapper
+class HttpHandler extends StreamWrapper
 {
     use StreamHandler;
 
-    private const PROTOCOL = 'file';
-    private const PACKET_TYPE = Packet::FILE_IO;
+    private const PROTOCOL = 'http';
+    private const PACKET_TYPE = Packet::HTTP_IO;
 
-    public const TIME_MULTIPLIER = 1000000;
-    public const TIME_UNIT = 'μs';
+    public const TIME_MULTIPLIER = 1000;
+    public const TIME_UNIT = 'ms';
 
 }

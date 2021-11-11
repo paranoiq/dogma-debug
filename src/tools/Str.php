@@ -10,12 +10,14 @@
 namespace Dogma\Debug;
 
 use const PREG_OFFSET_CAPTURE;
+use function array_pop;
 use function array_values;
 use function function_exists;
 use function grapheme_strlen;
 use function grapheme_substr;
 use function iconv_strlen;
 use function iconv_substr;
+use function implode;
 use function mb_strlen;
 use function mb_substr;
 use function preg_match;
@@ -81,6 +83,24 @@ class Str
     public static function replaceKeys(string $string, array $replacements): string
     {
         return str_replace(array_keys($replacements), array_values($replacements), $string);
+    }
+
+    /**
+     * @param string[] $items
+     */
+    public static function join(array $items, string $separator = '', ?string $lastSeparator = null): string
+    {
+        if (count($items) === 0) {
+            return '';
+        } elseif (count($items) === 1) {
+            return (string) array_pop($items);
+        } elseif ($lastSeparator === null) {
+            return implode($separator, $items);
+        } else {
+            $last = array_pop($items);
+
+            return implode($separator, $items) . $lastSeparator . $last;
+        }
     }
 
     /**

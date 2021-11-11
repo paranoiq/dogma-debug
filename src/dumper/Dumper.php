@@ -132,7 +132,7 @@ class Dumper
     public static $maxLength = 10000;
 
     /** @var bool - escape newlines as \n or print them */
-    public static $escapeNewlines = true;
+    public static $escapeStrings = true;
 
     /** @var string - encoding of dumped strings (output encoding is always utf-8) */
     public static $stringsEncoding = 'utf-8';

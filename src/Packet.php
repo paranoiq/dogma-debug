@@ -19,15 +19,16 @@ class Packet
     public const DUMP = 3;
     public const LABEL = 4;
     public const TIMER = 5;
-    public const TRACE = 6;
-    public const TAKEOVER = 7;
-    public const STD_IO = 8;
-    public const FILE_IO = 9;
-    public const DB_IO = 10;
-    public const HTTP_IO = 11;
-    public const FTP_IO = 12;
-    public const ERROR = 13;
-    public const EXCEPTION = 14;
+    public const ERROR = 6;
+    public const EXCEPTION = 7;
+    public const TRACE = 8;
+    public const TAKEOVER = 9;
+    public const STD_IO = 10;
+    public const FILE_IO = 11;
+    public const PHAR_IO = 12;
+    public const HTTP_IO = 13;
+    public const FTP_IO = 14;
+    public const DB_IO = 15;
 
     public const OUTPUT_WIDTH = 100;
 

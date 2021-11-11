@@ -9,6 +9,7 @@
 
 // spell-check-ignore: rl rb rf
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
+// phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 // phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable
 
 use Dogma\Debug\Ansi;
@@ -63,8 +64,11 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
     require_once __DIR__ . '/src/handlers/ProcessHandler.php';
     require_once __DIR__ . '/src/handlers/ShutdownHandler.php';
+    require_once __DIR__ . '/src/handlers/StreamHandler.php';
+    require_once __DIR__ . '/src/handlers/StreamWrapper.php';
     require_once __DIR__ . '/src/handlers/FileHandler.php';
     require_once __DIR__ . '/src/handlers/PharHandler.php';
+    require_once __DIR__ . '/src/handlers/HttpHandler.php';
     require_once __DIR__ . '/src/handlers/OutputHandler.php';
     require_once __DIR__ . '/src/handlers/RequestHandler.php';
     require_once __DIR__ . '/src/handlers/SqlHandler.php';
