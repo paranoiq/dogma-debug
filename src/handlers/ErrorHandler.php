@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use LogicException;
 use Throwable;
 use const E_ALL;
 use const E_COMPILE_ERROR;
@@ -33,6 +32,8 @@ use function restore_error_handler;
 use function set_error_handler;
 
 /**
+ * Tracks and displays error, warnings and notices
+ *
  * Error handling flow:
  * There are two modes in which this error handler can operate:
  *
@@ -108,10 +109,10 @@ class ErrorHandler
     private static $enabled = false;
 
     /** @var int */
-    private static $handlerTakeover = Takeover::NONE;
+    private static $takeoverHandlers = Takeover::NONE;
 
     /** @var int */
-    private static $levelTakeover = Takeover::NONE;
+    private static $takeoverDisplay = Takeover::NONE;
 
     public static function enable(int $types = E_ALL, bool $catch = false, int $printLimit = 0, bool $uniqueOnly = true): void
     {
@@ -121,24 +122,6 @@ class ErrorHandler
 
         self::$previous = set_error_handler([self::class, 'handle'], $types);
         self::$enabled = true;
-    }
-
-    /**
-     * Take control over set_error_handler(), restore_error_handler() and error_reporting()
-     *
-     * @param int $handler Takeover::NONE|Takeover::LOG_OTHERS|Takeover::ALWAYS_FIRST|Takeover::ALWAYS_LAST|Takeover::PREVENT_OTHERS
-     * @param int $errorLevel Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
-     */
-    public static function takeover(int $handler, int $errorLevel = Takeover::NONE): void
-    {
-        Takeover::register('set_error_handler', [self::class, 'fakeRegister']);
-        Takeover::register('restore_error_handler', [self::class, 'fakeRestore']);
-        self::$handlerTakeover = $handler;
-
-        if ($errorLevel !== Takeover::NONE) {
-            Takeover::register('error_reporting', [self::class, 'fakeReporting']);
-            self::$levelTakeover = $errorLevel;
-        }
     }
 
     public static function disable(): void
@@ -174,76 +157,6 @@ class ErrorHandler
             Debugger::send(Packet::ERROR, $e->getMessage(), $trace);
             return false;
         }
-    }
-
-    public static function fakeReporting(?int $level = null): int
-    {
-        if ($level === null) {
-            return error_reporting();
-        } elseif (self::$levelTakeover === Takeover::NONE) {
-            return error_reporting($level);
-        } elseif (self::$levelTakeover & Takeover::LOG_OTHERS) {
-            $old = error_reporting($level);
-            $message = "User code changing error level from $old to $level.";
-        } elseif (self::$levelTakeover === Takeover::PREVENT_OTHERS) {
-            $old = error_reporting();
-            $message = "User code trying to change error level from $old to $level (prevented).";
-        } else {
-            throw new LogicException('Unsupported option. Check possible values of ErrorHandler::$levelTakeover.');
-        }
-
-        Takeover::log($message);
-
-        return $old;
-    }
-
-    public static function fakeRegister(?callable $callback, int $levels = E_ALL | E_STRICT): ?callable
-    {
-        if (self::allowed() || self::$handlerTakeover === Takeover::NONE) {
-            return set_error_handler($callback, $levels);
-        } elseif (self::$handlerTakeover === Takeover::LOG_OTHERS) {
-            $old = set_error_handler($callback, $levels);
-            $message = "User code setting error handler.";
-        } elseif (self::$handlerTakeover === Takeover::PREVENT_OTHERS) {
-            $old = null;
-            $message = "User code trying to set error handler (prevented).";
-        } else {
-            throw new LogicException('Not implemented.');
-        }
-
-        Takeover::log($message);
-
-        return $old;
-    }
-
-    public static function fakeRestore(): bool
-    {
-        if (self::allowed() || self::$handlerTakeover === Takeover::NONE) {
-            return restore_error_handler();
-        } elseif (self::$handlerTakeover === Takeover::LOG_OTHERS) {
-            restore_error_handler();
-            $message = "User code restoring default error handler.";
-        } elseif (self::$handlerTakeover === Takeover::PREVENT_OTHERS) {
-            $message = "User code trying to restore previous error handler (prevented).";
-        } else {
-            throw new LogicException('Not implemented.');
-        }
-
-        Takeover::log($message);
-
-        return true;
-    }
-
-    private static function allowed(): bool
-    {
-        $frame = Callstack::get()->filter(Dumper::$traceSkip)->last();
-        foreach (self::$takeoverExceptions as $exception) {
-            if ($frame->is($exception)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): void
@@ -309,16 +222,12 @@ class ErrorHandler
 
     public static function log(int $type, string $message): void
     {
-        $time = microtime(true);
         $message = Ansi::white(' ' . self::typeDescription($type) . ': ', Ansi::LRED) . ' ' . Ansi::lyellow($message);
 
-        $callstack = Callstack::get();
-        if (self::$filterTrace) {
-            $callstack = $callstack->filter(Dumper::$traceSkip);
-        }
+        $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, 1000, null, [5]);
 
-        Debugger::send(Packet::ERROR, $message, $backtrace, $time);
+        Debugger::send(Packet::ERROR, $message, $backtrace);
     }
 
     private static function typeDescription(int $type): string
@@ -369,6 +278,63 @@ class ErrorHandler
         ksort(self::$messages);
 
         return self::$messages;
+    }
+
+    // takeover handlers -----------------------------------------------------------------------------------------------
+
+    /**
+     * Take control over set_error_handler() and restore_error_handler()
+     *
+     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::ALWAYS_FIRST|Takeover::ALWAYS_LAST|Takeover::PREVENT_OTHERS
+     */
+    public static function takeoverHandlers(int $level = Takeover::LOG_OTHERS): void
+    {
+        Takeover::register('error', 'set_error_handler', [self::class, 'fakeRegister']);
+        Takeover::register('error', 'restore_error_handler', [self::class, 'fakeRestore']);
+        self::$takeoverHandlers = $level;
+    }
+
+    /**
+     * Take control over error_reporting() and display_errors()
+     *
+     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     */
+    public static function takeoverDisplay(int $level = Takeover::LOG_OTHERS): void
+    {
+        Takeover::register('error', 'error_reporting', [self::class, 'fakeReporting']);
+        Takeover::register('error', 'display_errors', [self::class, 'fakeDisplay']);
+        self::$takeoverDisplay = $level;
+    }
+
+    public static function fakeReporting(?int $level = null): int
+    {
+        if ($level === null) {
+            return error_reporting();
+        } else {
+            return Takeover::handle('error', self::$takeoverHandlers, 'error_reporting', [$level], null, self::allowed());
+        }
+    }
+
+    public static function fakeRegister(?callable $callback, int $levels = E_ALL | E_STRICT): ?callable
+    {
+        return Takeover::handle('error', self::$takeoverHandlers, 'set_error_handler', [$callback, $levels], null, self::allowed());
+    }
+
+    public static function fakeRestore(): bool
+    {
+        return Takeover::handle('error', self::$takeoverHandlers, 'restore_error_handler', [], null, self::allowed());
+    }
+
+    private static function allowed(): bool
+    {
+        $frame = Callstack::get(Dumper::$traceFilters)->last();
+        foreach (self::$takeoverExceptions as $exception) {
+            if ($frame->is($exception)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

@@ -17,6 +17,9 @@ use function ob_get_level;
 use function ob_start;
 use function strlen;
 
+/**
+ * Tracks output operations - echo, print() etc.
+ */
 class OutputHandler
 {
 
@@ -97,11 +100,10 @@ class OutputHandler
 
         $oldMaxLength = Dumper::$maxLength;
         Dumper::$maxLength = self::$maxLength;
-        $message = Ansi::color(' output: ', Ansi::WHITE, Ansi::DGREEN)
-            . ' ' . Dumper::dumpString($output);
+        $message = Ansi::white(' output: ', Ansi::DGREEN) . ' ' . Dumper::dumpString($output);
         Dumper::$maxLength = $oldMaxLength;
 
-        $callstack = $callstack ?? Callstack::get()->filter(Dumper::$traceSkip);
+        $callstack = $callstack ?? Callstack::get(Dumper::$traceFilters);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, []);
 
         Debugger::send(Packet::STD_IO, $message, $backtrace);

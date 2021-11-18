@@ -116,7 +116,7 @@ class CallstackFrame
 
     public function isMethod(): bool
     {
-        return $this->class !== null;
+        return $this->class !== null && !Str::endsWith($this->function, '{closure}');
     }
 
     public function isStatic(): bool
@@ -168,9 +168,10 @@ class CallstackFrame
             $object = $this->object ?? $this->class;
 
             return new ReflectionMethod($object, $this->function);
+        } elseif ($this->isClosure()) {
+            // todo?
+            return new ReflectionFunction($this->function);
         }
-
-        // todo: closure
 
         return null;
     }

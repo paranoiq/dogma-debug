@@ -1,0 +1,103 @@
+<?php declare(strict_types = 1);
+/**
+ * This file is part of the Dogma library (https://github.com/paranoiq/dogma)
+ *
+ * Copyright (c) 2012 Vlasta Neubauer (@paranoiq)
+ *
+ * For the full copyright and license information read the file 'license.md', distributed with this source code
+ */
+
+// spell-check-ignore: rl rb rf
+// phpcs:disable PSR2.Files.EndFileNewline.NoneFound
+// phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
+
+use Dogma\Debug\Debugger;
+use Dogma\Debug\Dumper;
+
+require_once __DIR__ . '/client.php';
+
+if (!function_exists('rd')) {
+    /**
+     * Local dump
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
+    {
+        echo Dumper::dump($value, $maxDepth, $traceLength) . "\n";
+
+        return $value;
+    }
+
+    /**
+     * Remote dump
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
+    {
+        return Debugger::dump($value, $maxDepth, $traceLength);
+    }
+
+    /**
+     * Remote dump implemented with native var_dump() + some colors
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    function rvd($value, bool $colors = true)
+    {
+        return Debugger::varDump($value, $colors);
+    }
+
+    /**
+     * Remote capture dump
+     */
+    function rc(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
+    {
+        return Debugger::capture($callback, $maxDepth, $traceLength);
+    }
+
+    /**
+     * Remote backtrace dump
+     *
+     * @param int[] $lines
+     */
+    function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
+    {
+        Debugger::backtrace($length, $argsDepth, $lines);
+    }
+
+    /**
+     * Remotely print function/method name
+     */
+    function rf(): void
+    {
+        Debugger::function();
+    }
+
+    /**
+     * Remote label print
+     *
+     * @param string|int|float|bool $label
+     * @return string|int|float|bool
+     */
+    function rl($label, ?string $name = null)
+    {
+        return Debugger::label($label, $name);
+    }
+
+    /**
+     * Remote timer
+     *
+     * @param string|int|null $name
+     */
+    function rt($name = ''): void
+    {
+        Debugger::timer($name);
+    }
+}
+
+?>

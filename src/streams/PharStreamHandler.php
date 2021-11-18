@@ -9,14 +9,14 @@
 
 namespace Dogma\Debug;
 
-class HttpHandler extends StreamWrapper
+/**
+ * Tracks operations on PHP archive files (phar) opened via fopen() - protocol "phar://"
+ */
+class PharStreamHandler extends StreamHandler
 {
-    use StreamHandler;
+    use StreamHandlerShared;
 
-    private const PROTOCOL = 'http';
-    private const PACKET_TYPE = Packet::HTTP_IO;
-
-    public const TIME_MULTIPLIER = 1000;
-    public const TIME_UNIT = 'ms';
+    private const PROTOCOL = 'phar';
+    private const TIME_UNIT = 'μs';
 
 }

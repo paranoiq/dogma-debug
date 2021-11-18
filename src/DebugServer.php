@@ -45,6 +45,9 @@ class DebugServer
     /** @var resource[]|Socket[] */
     private $connections = [];
 
+    /** @var array<int, string> */
+    private $ids = [];
+
     /** @var bool */
     private $groupInfo = true;
 
@@ -75,14 +78,16 @@ class DebugServer
             }
 
             foreach ($this->connections as $i => $connection) {
-                $content = socket_read($connection, 1000000);
+                $content = @socket_read($connection, 1000000);
                 if ($content === false) {
                     if (socket_last_error() === 10035) { // Win: WSAEWOULDBLOCK
                         continue;
                     }
                     // closed
+                    echo "\n" . Ansi::white(" << #{$this->ids[$i]} disconnected ", Ansi::DYELLOW);
                     socket_close($connection);
                     unset($this->connections[$i]);
+                    unset($this->ids[$i]);
                     continue;
                 } elseif ($content === '') {
                     // nothing to read
@@ -114,11 +119,15 @@ class DebugServer
 
             /** @var Packet|false $request */
             $request = unserialize($message, ['allowed_classes' => [Packet::class]]);
+            // broken serialization - probably too big packet split to chunks
             if ($request === false) {
                 echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
                 continue;
             }
 
+            $this->ids[$i] = $request->pid;
+
+            // handle server -> client communication
             if ($request->type === Packet::OUTPUT_WIDTH) {
                 $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
                 socket_write($this->connections[$i], $response . Packet::MARKER);
@@ -133,25 +142,40 @@ class DebugServer
                 && $this->lastRequest->backtrace === $request->backtrace
                 && $this->lastRequest->type === $request->type
             ) {
-                echo Ansi::UP;
                 echo Ansi::DELETE_ROW;
+                echo Ansi::UP;
                 $this->durationSum += $request->duration;
             } else {
                 $this->durationSum = $request->duration;
             }
 
+            // process id
             if (count($this->connections) > 1 && $request->type !== Packet::INTRO && $request->type !== Packet::OUTRO) {
                 echo Ansi::white(" #$request->pid ", Ansi::DYELLOW) . ' ';
             }
-            echo $request->payload . "\n";
 
-            echo $request->backtrace;
+            // payload
+            echo "\n". $request->payload;
+
+            // duration
+            if ($request->duration > 0.000000000001) {
+                $unit = $request->duration < 0.001 ? 'μs' : 'ms';
+                $multiplier =  $unit === 'ms' ? 1000 : 1000000;
+                echo ' ' . Ansi::dblue('(' . round($request->duration * $multiplier) . ' ' . $unit . ')');
+            }
+
+            // backtrace
+            if ($request->backtrace) {
+                echo "\n" . $request->backtrace;
+            }
+
+            // duration sum for similar request from same place
             if ($request->backtrace && $this->durationSum !== $request->duration) {
                 if ($this->durationSum > 0.000000000001) {
-                    echo ' ' . Ansi::color('(total ' . round($this->durationSum * 1000000) . ' μs)', Dumper::$colors['time']) . "\n";
+                    $unit = $this->durationSum < 0.001 ? 'μs' : 'ms';
+                    $multiplier = $unit === 'ms' ? 1000 : 1000000;
+                    echo ' ' . Ansi::dblue('(total ' . round($this->durationSum * $multiplier) . ' ' . $unit . ')');
                 }
-            } elseif ($request->backtrace) {
-                echo "\n";
             }
 
             $this->lastRequest = $request;

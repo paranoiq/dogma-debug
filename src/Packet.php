@@ -9,7 +9,9 @@
 
 namespace Dogma\Debug;
 
+use Exception;
 use function microtime;
+use function substr;
 
 class Packet
 {
@@ -24,11 +26,9 @@ class Packet
     public const TRACE = 8;
     public const TAKEOVER = 9;
     public const STD_IO = 10;
-    public const FILE_IO = 11;
-    public const PHAR_IO = 12;
-    public const HTTP_IO = 13;
-    public const FTP_IO = 14;
-    public const DB_IO = 15;
+    public const STREAM_IO = 11;
+    public const SQL = 12;
+    public const REDIS = 13;
 
     public const OUTPUT_WIDTH = 100;
 
@@ -50,10 +50,16 @@ class Packet
     public $time = 0.0;
 
     /** @var float|null */
-    public $duration = 0.0;
+    public $duration;
 
     /** @var string|null */
     public $pid = '0';
+
+    /**
+     * @var int
+     * @internal
+     */
+    public static $count = 0;
 
     public function __construct(
         int $type,
@@ -62,6 +68,14 @@ class Packet
         ?float $duration = null
     )
     {
+        // todo: temporary
+        if (Str::endsWith($payload, "\n")) {
+            throw new Exception('Payload should not end with new line.');
+        }
+        if (strlen($payload) > Debugger::$maxMessageLength) {
+            $payload = substr($payload, 0, Debugger::$maxMessageLength) . Dumper::exceptions(' ... ');
+        }
+
         $this->type = $type;
         $this->payload = $payload;
         $this->backtrace = $backtrace;
@@ -69,7 +83,7 @@ class Packet
 
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);
-            $this->counter = Debugger::$counter++;
+            $this->counter = ++self::$count;
             $this->pid = System::getId();
         }
     }

@@ -192,10 +192,11 @@ class Dumper
     public static $traceCodeLines = [5];
 
     /** @var string[] - functions, classes and methods skipped from backtrace */
-    public static $traceSkip = [
+    public static $traceFilters = [
         '~^Dogma\\\\Debug\\\\~', // Debugger classes
         '~^(ld|rd|rc|rb|rf|rl|rt)$~', // shortcut functions
-        '~^call_user_func~', // call proxies
+        '~^call_user_func(_array)?$~', // call proxies
+        '~^forward_static_call(_array)?$~',
         '~^(trigger|user)_error$~', // error proxies
         '~^Composer\\\\Autoload\\\\~', // composer loaders
         '~^loadClass~',
@@ -387,7 +388,7 @@ class Dumper
         }
 
         try {
-            $callstack = Callstack::get()->filter(self::$traceSkip);
+            $callstack = Callstack::get(self::$traceFilters);
 
             $expression = self::$dumpExpressions ? self::findExpression($callstack) : null;
 
@@ -429,14 +430,14 @@ class Dumper
         } elseif (is_float($value)) {
             return self::dumpFloat($value, (string) $key);
         } elseif (is_string($value)) {
-            if (is_string($key) && substr($key, -7) === '::class') {
+            if (is_string($key) && Str::endsWith($key, '::class')) {
                 return self::dumpClass($value, $depth);
             } else {
                 return self::dumpString($value, $depth, (string) $key);
             }
         } elseif (is_array($value)) {
             // dump as callable when called as `dump([$foo, 'bar'])`
-            if (count($value) === 2 && is_callable($value) && $depth === 0 && is_string($key) && $key[0] === '[') {
+            if ($depth === 0 && count($value) === 2 && is_string($key) && $key[0] === '[' && is_callable($value)) {
                 return self::dumpMethod($value, $depth);
             } else {
                 return self::dumpArray($value, $depth);
@@ -466,7 +467,7 @@ class Dumper
                 $info = ' ' . self::info('// PHP_INT_MAX');
             } elseif ($int === PHP_INT_MIN) {
                 $info = ' ' . self::info('// PHP_INT_MIN');
-            } elseif (!$sign && $int > 10000000 && Str::contains($key, 'time')) {
+            } elseif (!$sign && $int > 10000000 && preg_match('/time|\\Wts/', $key)) {
                 $time = self::intToFormattedDate($int);
                 $info = ' ' . self::info('// ' . $time);
             } elseif (!$sign && $int > 1024 && preg_match('/size|bytes/', $key)) {
@@ -510,7 +511,7 @@ class Dumper
         return self::float($float . $decimal) . $info;
     }
 
-    public static function dumpString(string $string, int $depth = 0, string $key = ''): string
+    public static function dumpString(string $string, int $depth = 0, ?string $key = null): string
     {
         $callable = is_callable($string)
             ? ', callable'
@@ -538,7 +539,7 @@ class Dumper
             || Str::contains($string, '/../')
         ) {
             $path = self::normalizePath($string);
-            $path = ($path === $string) ? ', ' . $path : '';
+            $path = ($path !== $string) ? ', ' . $path : '';
         }
 
         // phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedElseif
@@ -548,7 +549,7 @@ class Dumper
             $info = '';
         } elseif (preg_match($uuidRe, $string, $m) && $info = self::uuidInfo($m)) {
             // ^^^
-        } elseif ($bytes === 32 && Str::contains($key, 'id') && $info = self::binaryUuidInfo($string)) {
+        } elseif ($key !== null && $bytes === 32 && Str::contains($key, 'id') && $info = self::binaryUuidInfo($string)) {
             // ^^^
         } elseif ($key !== null && Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
             $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));

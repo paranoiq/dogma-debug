@@ -15,6 +15,7 @@ use function exec;
 use function explode;
 use function function_exists;
 use function getmypid;
+use function preg_match;
 use function strtolower;
 use function trim;
 use function zend_thread_id;
@@ -22,27 +23,37 @@ use function zend_thread_id;
 class System
 {
 
-    /** @var int */
-    private static $columns;
+    public static function isWindows(): bool
+    {
+        static $win;
+        if ($win !== null) {
+            return $win;
+        }
+
+        $os = strtolower(PHP_OS);
+
+        return $win = (Str::contains($os, 'win') && !Str::contains($os, 'darwin'));
+    }
 
     public static function getTerminalWidth(): int
     {
-        if (self::$columns) {
-            return self::$columns;
+        static $col;
+        if ($col !== null) {
+            return $col;
         }
 
-        self::$columns = (int) @exec('tput cols');
-        if (self::$columns) {
-            return self::$columns;
+        $col = (int) @exec('tput cols');
+        if ($col) {
+            return $col;
         }
 
         if (self::isWindows()) {
             exec('mode CON', $output);
-            [, $columns] = explode(':', $output[4]);
-            self::$columns = (int) trim($columns);
+            [, $col] = explode(':', $output[4]);
+            $col = (int) trim($col);
         }
 
-        return self::$columns ?: 120;
+        return $col = $col ?: 120;
     }
 
     public static function switchTerminalToUtf8(): void
@@ -50,13 +61,6 @@ class System
         if (self::isWindows()) {
             exec('chcp 65001');
         }
-    }
-
-    public static function isWindows(): bool
-    {
-        $os = strtolower(PHP_OS);
-
-        return Str::contains($os, 'win') && !Str::contains($os, 'darwin');
     }
 
     public static function getId(): string

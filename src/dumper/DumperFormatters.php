@@ -18,7 +18,10 @@ use function basename;
 use function dirname;
 use function explode;
 use function implode;
+use function is_array;
 use function is_int;
+use function is_resource;
+use function is_scalar;
 use function preg_replace;
 use function preg_replace_callback;
 use function property_exists;
@@ -224,14 +227,15 @@ trait DumperFormatters
 
     public static function file(string $file): string
     {
-        $dirName = str_replace('\\', '/', dirname($file)) . '/';
+        $dirName = str_replace('\\', '/', dirname($file));
         $fileName = basename($file);
+        $separator = Str::contains($file, '://') ? '//' : '/';
 
         if (self::$trimPathPrefix && substr($dirName, 0, strlen(self::$trimPathPrefix)) === self::$trimPathPrefix) {
             $dirName = substr($dirName, strlen(self::$trimPathPrefix));
         }
 
-        return Ansi::color($dirName, self::$colors['path'])
+        return Ansi::color($dirName . $separator, self::$colors['path'])
             . Ansi::color($fileName, self::$colors['file']);
     }
 
@@ -257,6 +261,58 @@ trait DumperFormatters
         $url = (string) preg_replace('/[\\/?&=]/', Ansi::dgray('$0'), $url);
 
         return $url;
+    }
+
+    /**
+     * @param array<int|string|null> $params
+     * @param int|string|mixed[]|bool|null $return
+     */
+    public static function call(string $name, array $params = [], $return = null/*, array $hints = []*/): string
+    {
+        $info = Dumper::$showInfo;
+        Dumper::$showInfo = null;
+
+        $formatted = [];
+        foreach ($params as $key => $value) {
+            $key = is_int($key) ? null : $key;
+            $formatted[] = Dumper::dumpValue($value, 0, $key);
+        }
+        $params = implode(Ansi::color(', ', Dumper::$colors['function']), $formatted);
+
+        if ($return === null) {
+            $output = '';
+            $end = ')';
+        } elseif (is_scalar($return)) {
+            $output = ' ' . Dumper::dumpValue($return);
+            $end = '):';
+        } elseif (is_array($return)) {
+            $output = [];
+            foreach ($return as $k => $v) {
+                if (is_int($k)) {
+                    $output[] = Dumper::dumpValue($v);
+                } else {
+                    $output[] = Ansi::color($k . ':', Dumper::$colors['function']) . ' ' . Dumper::dumpValue($v);
+                }
+            }
+            $output = ' ' . implode(' ', $output);
+            $end = '):';
+        } elseif (is_resource($return)) {
+            $output = ' resource ' . (int) $return;
+            $end = '):';
+        }
+
+        Dumper::$showInfo = $info;
+
+        return self::func($name . '(', $params, $end, $output);
+    }
+
+    public static function func(string $name, string $params = '', string $end = '', string $return = ''): string
+    {
+        if ($params || $end || $return) {
+            return Ansi::color($name, Dumper::$colors['function']) . $params . Ansi::color($end, Dumper::$colors['function']) . $return;
+        } else {
+            return Ansi::color($name, Dumper::$colors['function']);
+        }
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

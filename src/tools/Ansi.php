@@ -53,7 +53,7 @@ final class Ansi
 
     public const RESET_FORMAT = "\x1B[0m";
     public const UP = "\x1B[A";
-    public const DELETE_ROW = "\x1B[K";
+    public const DELETE_ROW = "\x1B[2K";
 
     /** @var string[] */
     private static $fg = [

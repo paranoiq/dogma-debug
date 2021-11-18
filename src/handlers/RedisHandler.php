@@ -9,43 +9,56 @@
 
 namespace Dogma\Debug;
 
-use Dibi\DriverException;
-use Dibi\Event;
+use function substr;
+use const COUNT_RECURSIVE;
+use function array_map;
+use function array_merge;
+use function array_shift;
 use function array_sum;
-use function preg_replace;
-use function round;
-use function strtoupper;
+use function bzdecompress;
+use function count;
+use function ctype_digit;
+use function implode;
+use function is_array;
+use function is_numeric;
+use function is_string;
+use function json_decode;
+use function preg_match;
+use function strlen;
+use function trim;
+use function unserialize;
 
+/**
+ * Tracks and displays communication with Redis
+ */
 class RedisHandler
 {
 
-    public const CONNECT = 1;
-    public const SELECT = 4;
-    public const INSERT = 8;
-    public const DELETE = 16;
-    public const UPDATE = 32;
-    public const BEGIN = 64;
-    public const COMMIT = 128;
-    public const ROLLBACK = 256;
+    /** @var bool Turn logging on/off */
+    public static $log = true;
 
-    public const NONE = 0;
-    public const QUERY = self::SELECT | self::INSERT | self::DELETE | self::UPDATE;
-    public const TRANSACTION = self::BEGIN | self::COMMIT | self::ROLLBACK;
-    public const ALL = self::CONNECT | self::QUERY | self::TRANSACTION;
+    /** @var string[] Commands white list */
+    //public static $logEvents = [];
 
-    private const TYPES = [
-        self::CONNECT => 'connect',
-        self::SELECT => 'select',
-        self::INSERT => 'insert',
-        self::UPDATE => 'update',
-        self::QUERY => 'query',
-        self::BEGIN => 'begin',
-        self::COMMIT => 'commit',
-        self::ROLLBACK => 'rollback',
-    ];
+    /** @var string[] Commands black list */
+    //public static $logFilter = [];
 
-    /** @var int Types of events to log */
-    public static $log = self::ALL;
+    /** @var int Max length of logged message [bytes after formatting] */
+    public static $maxLength = 2000;
+
+    /** @var bool */
+    public static $filterTrace = true;
+
+    /** @var string[] */
+    public static $traceFilters = [];
+
+    // internals -------------------------------------------------------------------------------------------------------
+
+    /** @var string */
+    private static $lastCommand;
+
+    /** @var string[] */
+    private static $keys = [];
 
     /** @var int[] */
     private static $events = [];
@@ -54,64 +67,235 @@ class RedisHandler
     private static $time = [];
 
     /** @var int[] */
+    private static $data = [];
+
+    /** @var int[] */
     private static $rows = [];
 
-    public static function log(
-        int $type,
-        ?string $query,
-        ?int $rows,
-        float $time,
-        ?string $connection = null,
-        ?string $errorMessage = null,
-        ?int $errorCode = null
-    ): void
+    /** @var string */
+    private static $readBuffer = '';
+
+    /** @var RedisParser */
+    private static $parser;
+
+    /**
+     * @param 'tcp'|'udp'|'unix' $protocol
+     * @param int $port
+     */
+    public static function enableForPredis(string $protocol = 'tcp', int $port = 6379): void
     {
-        if (!isset(self::$events[$type])) {
-            self::$events[$type] = 0;
-            self::$time[$type] = 0.0;
-            self::$rows[$type] = 0;
+        $re = "~:$port$~";
+        FilesHandler::$redirect[$protocol]['fwrite'][$re] = [self::class, 'predisFwrite'];
+        FilesHandler::$redirect[$protocol]['fread'][$re] = [self::class, 'predisFread'];
+        FilesHandler::$redirect[$protocol]['fgets'][$re] = [self::class, 'predisFgets'];
+
+        self::$traceFilters = [
+            '~^Predis\\\\Connection\\\\StreamConnection~',
+            '~^Predis\\\\Connection\\\\AbstractConnection~',
+            '~^Predis\\\\Client~',
+        ];
+    }
+
+    // predis ----------------------------------------------------------------------------------------------------------
+
+    /**
+     * @param mixed[] $params
+     * @param mixed $return
+     */
+    public static function predisFwrite(string $path, float $duration, array $params, $return): void
+    {
+        if (self::$parser === null) {
+            self::$parser = new RedisParser();
         }
-        self::$events[$type]++;
-        self::$time[$type] += $time;
-        if ($rows !== null) {
-            self::$rows[$type] += $rows;
+        $query = self::$parser->parse($params[0]);
+
+        if (is_array($query)) {
+            $command = array_shift($query);
+            $args = array_map([self::class, 'formatArgument'], $query);
+            $query = Ansi::lgreen($command) . ' ' . implode(' ', $args);
+
+            self::logCommand($command, $args, $duration, strlen($params[0]));
+        } else {
+            $query = Ansi::lgreen($query);
+
+            self::logCommand($query, [], $duration, strlen($params[0]));
         }
 
-        if (!($type & self::$log)) {
+        if (!self::$log) {
             return;
         }
 
-        if ($query) {
-            $query = preg_replace('~\n\s*\n~m', "\n", $query);
-            $message = preg_replace('~\n\s{2,1000}~', "\n  ", $query);
-        } else {
-            $message = strtoupper(self::TYPES[$type]);
+        if (strlen($query) > self::$maxLength) {
+            $query = substr($query, 0, self::$maxLength) . ' ' . Dumper::exceptions('...');
         }
-        $message .= ';';
 
-        $timeFormatted = Ansi::color('(' . round($time * 1000) . ' ms)', Dumper::$colors['time']);
+        $message = Ansi::white(' redis: ', Ansi::DGREEN) . ' ' . $query;
 
-        $countFormatted = $rows !== null
-            ? ' ' . Ansi::color($rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['value'])
-            : '';
+        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
 
-        $message = Ansi::color($connection ? " DB $connection: " : ' DB: ', Ansi::WHITE, Ansi::DGREEN)
-            . ' ' . $message . $countFormatted . ' ' . $timeFormatted;
-
-        $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 10, 0, []);
-
-        Debugger::send(Packet::FILE_IO, $message, $backtrace, $time);
+        Debugger::send(Packet::REDIS, $message, $trace, $duration);
     }
 
-    public static function handleDibiEvent(Event $event, ?string $connection = null): void
+    /**
+     * @param mixed[] $params
+     * @param mixed $return
+     */
+    public static function predisFread(string $path, float $duration, array $params, $return): void
     {
-        $errorMessage = $errorCode = null;
-        if ($event->result instanceof DriverException) {
-            $errorMessage = $event->result->getMessage();
-            $errorCode = $event->result->getCode();
+        if (self::$parser === null) {
+            self::$parser = new RedisParser();
         }
 
-        self::log($event->type, $event->sql, $event->count, $event->time, $connection, $errorMessage, $errorCode);
+        $key = null;
+        if ($return === false) {
+            $response = Dumper::exceptions('ERROR');
+        } else {
+            if ($return !== '' && !Str::endsWith($return, "\r\n")) {
+                self::$readBuffer .= $return;
+                return;
+            } elseif (self::$readBuffer !== '') {
+                $return = self::$readBuffer . $return;
+                self::$readBuffer = '';
+            }
+
+            if (self::$keys !== []) {
+                $key = array_shift(self::$keys);
+            }
+
+            [$response, $rows] = self::formatResponse($return, $key);
+
+            // stats
+            self::$time[self::$lastCommand] += $duration;
+            self::$data[self::$lastCommand] += strlen($return);
+            self::$rows[self::$lastCommand] += $rows;
+        }
+
+        if (!self::$log) {
+            return;
+        }
+
+        if (strlen($response) > self::$maxLength) {
+            $response = substr($response, 0, self::$maxLength) . ' ' . Dumper::exceptions('...');
+        }
+
+        if ($key !== null) {
+            $message = Ansi::white(' redis: ', Ansi::DGREEN)
+                . ' ' . Dumper::key($key) . Dumper::symbol(':') . ' ' . $response;
+        } else {
+            $message = Ansi::white(' redis: ', Ansi::DGREEN) . ' ' . $response;
+        }
+
+        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+
+        Debugger::send(Packet::REDIS, $message, $trace, $duration);
+    }
+
+    public static function predisFgets(string $path, float $duration, array $params, $return): void
+    {
+        if (is_string($return) && ($return[0] === '*' || $return[0] === '$') && $return !== "$-1\r\n") {
+            return;
+        }
+        self::predisFread($path, $duration, $params, $return);
+    }
+
+    private static function formatArgument(string $message): string
+    {
+        $prefix = '';
+        if (Str::startsWith($message, 'BZ')) {
+            $message = bzdecompress($message);
+            $prefix = Dumper::exceptions('zip:') . ' ';
+        }
+
+        if ($message[0] === '{') {
+            // json encoded
+            $prefix .= Dumper::exceptions('json:') . ' ';
+            $value = Dumper::dumpValue(json_decode($message, true));
+        } elseif (preg_match('~^a:[0-9]+:\\{~', $message)) {
+            // php serializes
+            $prefix .= Dumper::exceptions('serialized:') . ' ';
+            $value = Dumper::dumpValue(unserialize($message, ['allowed_classes' => true]));
+        } else {
+            $value = Dumper::string($message);
+        }
+
+        return $prefix . $value;
+    }
+
+    /**
+     * @return array{string, int}
+     */
+    private static function formatResponse(string $message, ?string $key): array
+    {
+        $rows = 1;
+        $prefix = '';
+        if (Str::startsWith($message, 'BZ')) {
+            $message = bzdecompress($message);
+            $prefix = Dumper::exceptions('zip:') . ' ';
+        }
+
+        $c = $message[0];
+        if ($message === "$-1\r\n") {
+            $rows = 0;
+            $value = Dumper::null('null');
+        } elseif ($c === '+' || $c === '-' || $c === ':' || $c === '$' || $c === '*') {
+            // resp formatted responses
+            if ($c === '-') {
+                $prefix .= Ansi::lred('error:') . ' ';
+            }
+            $data = self::$parser->parse($message);
+            $rows = is_array($data) ? count($data, COUNT_RECURSIVE) : 1;
+            $value = Dumper::dumpValue($data, 0, $key);
+        } elseif ($message[0] === '{') {
+            // json encoded
+            $prefix .= Dumper::exceptions('json:') . ' ';
+            $value = Dumper::dumpValue(json_decode($message, true), 0, $key);
+        } elseif (preg_match('~^a:[0-9]+:\\{~', $message)) {
+            // php serializes
+            $prefix .= Dumper::exceptions('serialized:') . ' ';
+            $value = Dumper::dumpValue(unserialize($message, ['allowed_classes' => true]), 0, $key);
+        } else {
+            $t = trim($message);
+            if (ctype_digit($t)) {
+                $value = Dumper::dumpInt((int) $t, $key);
+            } elseif (is_numeric($t)) {
+                $value = Dumper::dumpFloat((float) $t, $key);
+            } elseif ($t !== '') {
+                $value = Dumper::dumpString($t, 0, $key);
+            } else {
+                $value = Dumper::null('null');
+            }
+        }
+
+        return [$prefix . $value, $rows];
+    }
+
+    // stats -----------------------------------------------------------------------------------------------------------
+
+    private static function logCommand(string $command, array $args, float $duration, int $data): void
+    {
+        // stats
+        self::$lastCommand = $command;
+        if (!isset(self::$events[$command])) {
+            self::$events[$command] = 1;
+            self::$time[$command] = $duration;
+            self::$data[$command] = $data;
+            self::$rows[$command] = 0;
+        } else {
+            self::$events[$command]++;
+            self::$time[$command] += $duration;
+            self::$data[$command] += $data;
+        }
+
+        // keys for results
+        if ($command === 'MGET') {
+            self::$keys = $args;
+        } elseif ($command === 'GET') {
+            self::$keys = [$args[1]];
+        } else {
+            self::$keys = [];
+        }
     }
 
     /**
@@ -120,43 +304,15 @@ class RedisHandler
     public static function getStats(): array
     {
         $stats = [
-            'events' => [
-                'connect' => self::$events[self::CONNECT] ?? 0,
-                'select' => self::$events[self::SELECT] ?? 0,
-                'insert' => self::$events[self::INSERT] ?? 0,
-                'delete' => self::$events[self::DELETE] ?? 0,
-                'update' => self::$events[self::UPDATE] ?? 0,
-                'query' => self::$events[self::QUERY] ?? 0,
-                'begin' => self::$events[self::BEGIN] ?? 0,
-                'commit' => self::$events[self::COMMIT] ?? 0,
-                'rollback' => self::$events[self::ROLLBACK] ?? 0,
-            ],
-            'time' => [
-                'connect' => self::$time[self::CONNECT] ?? 0.0,
-                'select' => self::$time[self::SELECT] ?? 0.0,
-                'insert' => self::$time[self::INSERT] ?? 0.0,
-                'delete' => self::$time[self::DELETE] ?? 0.0,
-                'update' => self::$time[self::UPDATE] ?? 0.0,
-                'query' => self::$time[self::QUERY] ?? 0.0,
-                'begin' => self::$time[self::BEGIN] ?? 0.0,
-                'commit' => self::$time[self::COMMIT] ?? 0.0,
-                'rollback' => self::$time[self::ROLLBACK] ?? 0.0,
-            ],
-            'rows' => [
-                'connect' => self::$rows[self::CONNECT] ?? 0,
-                'select' => self::$rows[self::SELECT] ?? 0,
-                'insert' => self::$rows[self::INSERT] ?? 0,
-                'delete' => self::$rows[self::DELETE] ?? 0,
-                'update' => self::$rows[self::UPDATE] ?? 0,
-                'query' => self::$rows[self::QUERY] ?? 0,
-                'begin' => self::$rows[self::BEGIN] ?? 0,
-                'commit' => self::$rows[self::COMMIT] ?? 0,
-                'rollback' => self::$rows[self::ROLLBACK] ?? 0,
-            ],
+            'events' => self::$events,
+            'time' => self::$time,
+            'data' => self::$data,
+            'rows' => self::$rows,
         ];
 
         $stats['events']['total'] = array_sum($stats['events']);
         $stats['time']['total'] = array_sum($stats['time']);
+        $stats['data']['total'] = array_sum($stats['data']);
         $stats['rows']['total'] = array_sum($stats['rows']);
 
         return $stats;

@@ -7,7 +7,6 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
-// spell-check-ignore: rl rb rf
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 // phpcs:disable SlevomatCodingStandard.Variables.DisallowSuperGlobalVariable
@@ -46,6 +45,8 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Http.php';
     require_once __DIR__ . '/src/tools/Request.php';
     require_once __DIR__ . '/src/tools/System.php';
+    require_once __DIR__ . '/src/tools/RedisParser.php';
+    require_once __DIR__ . '/src/tools/Resources.php';
     require_once __DIR__ . '/src/tools/Cp437.php';
     require_once __DIR__ . '/src/Packet.php';
     require_once __DIR__ . '/src/CallstackFrame.php';
@@ -54,24 +55,35 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/Debugger.php';
 
     require_once __DIR__ . '/src/dumper/DumperFormatters.php';
-    require_once __DIR__ . '/src/dumper/DumperFormattersDogma.php';
     require_once __DIR__ . '/src/dumper/DumperFormattersDom.php';
+    require_once __DIR__ . '/src/dumper/DumperFormattersDogma.php';
     require_once __DIR__ . '/src/dumper/DumperFormattersConsistence.php';
     require_once __DIR__ . '/src/dumper/DumperTraces.php';
     require_once __DIR__ . '/src/dumper/Dumper.php';
 
+    require_once __DIR__ . '/src/handlers/CurlHandler.php';
+    require_once __DIR__ . '/src/handlers/DnsHandler.php';
     require_once __DIR__ . '/src/handlers/ErrorHandler.php';
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
-    require_once __DIR__ . '/src/handlers/ProcessHandler.php';
+    require_once __DIR__ . '/src/handlers/FilesHandler.php';
+    require_once __DIR__ . '/src/handlers/MailHandler.php';
+    require_once __DIR__ . '/src/handlers/OutputHandler.php';
+    require_once __DIR__ . '/src/handlers/RedisHandler.php';
+    require_once __DIR__ . '/src/handlers/RequestHandler.php';
+    require_once __DIR__ . '/src/handlers/ResourcesHandler.php';
+    require_once __DIR__ . '/src/handlers/SettingsHandler.php';
     require_once __DIR__ . '/src/handlers/ShutdownHandler.php';
     require_once __DIR__ . '/src/handlers/StreamHandler.php';
-    require_once __DIR__ . '/src/handlers/StreamWrapper.php';
-    require_once __DIR__ . '/src/handlers/FileHandler.php';
-    require_once __DIR__ . '/src/handlers/PharHandler.php';
-    require_once __DIR__ . '/src/handlers/HttpHandler.php';
-    require_once __DIR__ . '/src/handlers/OutputHandler.php';
-    require_once __DIR__ . '/src/handlers/RequestHandler.php';
+    require_once __DIR__ . '/src/handlers/SyslogHandler.php';
     require_once __DIR__ . '/src/handlers/SqlHandler.php';
+
+    require_once __DIR__ . '/src/streams/StreamHandlerShared.php';
+    require_once __DIR__ . '/src/streams/FileStreamHandler.php';
+    require_once __DIR__ . '/src/streams/PharStreamHandler.php';
+    require_once __DIR__ . '/src/streams/FtpStreamHandler.php';
+    require_once __DIR__ . '/src/streams/HttpStreamHandler.php';
+    require_once __DIR__ . '/src/streams/PhpStreamHandler.php';
+    require_once __DIR__ . '/src/streams/ZlibStreamHandler.php';
 
     // force classes to load. otherwise, it may fail in the middle of a stream_wrapper call used by require
     array_map('class_exists', [
@@ -79,95 +91,14 @@ if (!class_exists(Debugger::class)) {
         Callstack::class, Takeover::class, Debugger::class, Dumper::class, Debugger::class,
     ]);
 
-    Debugger::$timers['total'] = $_dogma_debug_start;
-    unset($_dogma_debug_start);
-
-    /**
-     * Local dump
-     *
-     * @param mixed $value
-     * @return mixed
-     */
-    function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
-    {
-        echo Dumper::dump($value, $maxDepth, $traceLength) . "\n";
-
-        return $value;
-    }
-
-    /**
-     * Remote dump
-     *
-     * @param mixed $value
-     * @return mixed
-     */
-    function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
-    {
-        return Debugger::dump($value, $maxDepth, $traceLength);
-    }
-
-    /**
-     * Remote dump implemented with native var_dump() + some colors
-     *
-     * @param mixed $value
-     * @return mixed
-     */
-    function rvd($value, bool $colors = true)
-    {
-        return Debugger::varDump($value, $colors);
-    }
-
-    /**
-     * Remote capture dump
-     */
-    function rc(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
-    {
-        return Debugger::capture($callback, $maxDepth, $traceLength);
-    }
-
-    /**
-     * Remote backtrace dump
-     *
-     * @param int[] $lines
-     */
-    function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
-    {
-        Debugger::backtrace($length, $argsDepth, $lines);
-    }
-
-    /**
-     * Remotely print function/method name
-     */
-    function rf(): void
-    {
-        Debugger::function();
-    }
-
-    /**
-     * Remote label print
-     *
-     * @param string|int|float|bool $label
-     * @return string|int|float|bool
-     */
-    function rl($label, ?string $name = null)
-    {
-        return Debugger::label($label, $name);
-    }
-
-    /**
-     * Remote timer
-     *
-     * @param string|int|null $name
-     */
-    function rt($name = ''): void
-    {
-        Debugger::timer($name);
-    }
+    Debugger::setStart($_dogma_debug_start);
 
     // configure client, unless the current process is actually a starting server
-    if (is_readable(__DIR__ . '/config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
-        require_once __DIR__ . '/config.php';
+    if (is_readable(__DIR__ . '/debug-config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
+        require_once __DIR__ . '/debug-config.php';
     }
 }
+
+unset($_dogma_debug_start);
 
 ?>

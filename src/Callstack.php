@@ -60,12 +60,12 @@ class Callstack
         $this->frames = $frames;
     }
 
-    public static function get(): self
+    public static function get(array $filters = [], bool $filter = true): self
     {
-        return self::fromBacktrace(debug_backtrace());
+        return self::fromBacktrace(debug_backtrace(), $filters, $filter);
     }
 
-    public static function fromThrowable(Throwable $e): self
+    public static function fromThrowable(Throwable $e, array $filters = [], bool $filter = true): self
     {
         $trace = $e->getTrace();
         if ($trace) {
@@ -75,17 +75,19 @@ class Callstack
                 array_unshift($trace, ['file' => $file, 'line' => $line]);
             }
 
-            return self::fromBacktrace($trace);
+            return self::fromBacktrace($trace, $filters, $filter);
         }
 
-        return new self([new CallstackFrame($e->getFile(), $e->getLine())]);
+        $that = new self([new CallstackFrame($e->getFile(), $e->getLine())]);
+
+        return $filter && $filters ? $that->filter($filters) : $that;
     }
 
     /**
      * @param PhpBacktraceItem[] $trace
      * @return self
      */
-    public static function fromBacktrace(array $trace): self
+    public static function fromBacktrace(array $trace, array $filters = [], bool $filter = true): self
     {
         global $argv;
 
@@ -129,7 +131,9 @@ class Callstack
             $frames[] = new CallstackFrame($file, $line, $class, $function, $type, $object, $args);
         }
 
-        return new self($frames);
+        $that = new self($frames);
+
+        return $filter && $filters ? $that->filter($filters) : $that;
     }
 
     /**

@@ -9,14 +9,14 @@
 
 namespace Dogma\Debug;
 
-class PharHandler extends StreamWrapper
+/**
+ * Tracks operations on FTP(S) files opened via fopen() - protocol "ftp://" or "ftps://"
+ */
+class FtpStreamHandler extends StreamHandler
 {
-    use StreamHandler;
+    use StreamHandlerShared;
 
-    private const PROTOCOL = 'phar';
-    private const PACKET_TYPE = Packet::PHAR_IO;
-
-    public const TIME_MULTIPLIER = 1000000;
-    public const TIME_UNIT = 'μs';
+    private const PROTOCOL = 'ftp';
+    private const TIME_UNIT = 'ms';
 
 }

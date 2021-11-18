@@ -13,9 +13,11 @@ use Dibi\DriverException;
 use Dibi\Event;
 use function array_sum;
 use function preg_replace;
-use function round;
 use function strtoupper;
 
+/**
+ * Tracks and displays SQL operations on registered drivers
+ */
 class SqlHandler
 {
 
@@ -47,6 +49,9 @@ class SqlHandler
     /** @var int Types of events to log */
     public static $log = self::ALL;
 
+    /** @var bool */
+    public static $filterTrace = true;
+
     /** @var int[] */
     private static $events = [];
 
@@ -60,7 +65,7 @@ class SqlHandler
         int $type,
         ?string $query,
         ?int $rows,
-        float $time,
+        float $duration,
         ?string $connection = null,
         ?string $errorMessage = null,
         ?int $errorCode = null
@@ -72,7 +77,7 @@ class SqlHandler
             self::$rows[$type] = 0;
         }
         self::$events[$type]++;
-        self::$time[$type] += $time;
+        self::$time[$type] += $duration;
         if ($rows !== null) {
             self::$rows[$type] += $rows;
         }
@@ -89,18 +94,17 @@ class SqlHandler
         }
         $message .= ';';
 
-        $timeFormatted = Ansi::color('(' . round($time * 1000) . ' ms)', Dumper::$colors['time']);
-
         $countFormatted = $rows !== null
             ? ' ' . Ansi::color($rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['value'])
             : '';
 
-        $message = Ansi::color($connection ? " DB $connection: " : ' DB: ', Ansi::WHITE, Ansi::DGREEN)
-            . ' ' . $message . $countFormatted . ' ' . $timeFormatted;
+        $message = Ansi::white($connection ? " DB $connection: " : ' DB: ', Ansi::DGREEN)
+            . ' ' . $message . $countFormatted;
 
-        $backtrace = Dumper::formatCallstack(Callstack::get()->filter(Dumper::$traceSkip), 10, 0, []);
+        $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
+        $backtrace = Dumper::formatCallstack($callstack, 10, 0, []);
 
-        Debugger::send(Packet::FILE_IO, $message, $backtrace, $time);
+        Debugger::send(Packet::SQL, $message, $backtrace, $duration);
     }
 
     public static function handleDibiEvent(Event $event, ?string $connection = null): void

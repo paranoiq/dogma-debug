@@ -9,14 +9,14 @@
 
 namespace Dogma\Debug;
 
-class FileHandler extends StreamWrapper
+/**
+ * Tracks operations on zip files opened via fopen() - protocol "zlib://", "bzip2://" or "zip://"
+ */
+class ZlibStreamHandler extends StreamHandler
 {
-    use StreamHandler;
+    use StreamHandlerShared;
 
-    private const PROTOCOL = 'file';
-    private const PACKET_TYPE = Packet::FILE_IO;
-
-    public const TIME_MULTIPLIER = 1000000;
-    public const TIME_UNIT = 'μs';
+    private const PROTOCOL = 'zlib';
+    private const TIME_UNIT = 'μs';
 
 }

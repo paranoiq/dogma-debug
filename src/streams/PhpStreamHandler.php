@@ -9,12 +9,14 @@
 
 namespace Dogma\Debug;
 
-class Memory
+/**
+ * Tracks operations internal PHP streams opened via fopen() - protocol "php://"
+ */
+class PhpStreamHandler extends StreamHandler
 {
+    use StreamHandlerShared;
 
-    public static function find(): void
-    {
-        echo 1;
-    }
+    private const PROTOCOL = 'php';
+    private const TIME_UNIT = 'ms';
 
 }

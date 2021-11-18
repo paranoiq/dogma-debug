@@ -21,11 +21,14 @@ use const SOCK_STREAM;
 use const SOL_TCP;
 use function array_shift;
 use function array_sum;
+use function connection_aborted;
+use function connection_status;
 use function end;
 use function error_get_last;
 use function explode;
 use function headers_list;
 use function http_response_code;
+use function ignore_user_abort;
 use function implode;
 use function memory_get_peak_usage;
 use function microtime;
@@ -48,26 +51,72 @@ use function unserialize;
 class Debugger
 {
 
-    /** @var string */
+    /** @var string Address on which is server.php running */
     public static $remoteAddress = '127.0.0.1';
 
-    /** @var int */
+    /** @var int Port on which is server.php running */
     public static $remotePort = 1729;
 
-    /** @var int|null */
+    /** @var int Max length of a dump message [bytes after all formatting] */
+    public static $maxMessageLength = 20000;
+
+    /** @var callable[] Functions to call before debugger shutdown */
+    public static $beforeShutdown = [];
+
+    /** @var int|null Output console width (affects how dumps are formatted) */
     public static $outputWidth = 200;
 
-    /** @var string */
-    public static $timeFormat = 'D H:i:s.v';
+    /** @var string Format of time for request header */
+    public static $headerTimeFormat = 'D H:i:s.v';
 
-    /** @var string */
+    /** @var string Background color of request header, footer and process id label */
     public static $headerColor = Ansi::LYELLOW;
 
-    /** @var int */
-    public static $counter = 0;
+    /** @var string[] Background colors of handler labels */
+    public static $handlerColors = [
+        // handlers
+        'error' => Ansi::DGREEN,
+        'exception' => Ansi::DGREEN,
+        'files' => Ansi::DGREEN,
+        'mail' => Ansi::DGREEN,
+        'memory' => Ansi::DGREEN,
+        'output' => Ansi::DGREEN,
+        'redis' => Ansi::DGREEN,
+        'request' => Ansi::DGREEN,
+        'resources' => Ansi::DGREEN,
+        'settings' => Ansi::DGREEN,
+        'shutdown' => Ansi::DGREEN,
+        'sql' => Ansi::DGREEN,
+        'syslog' => Ansi::DGREEN,
+
+        // stream handlers (handled by *StreamHandler classes)
+        'data' => Ansi::DGREEN,
+        'file' => Ansi::DGREEN,
+        'ftp' => Ansi::DGREEN,
+        'http' => Ansi::DGREEN,
+        'phar' => Ansi::DGREEN,
+        'php' => Ansi::DGREEN,
+        'zlib' => Ansi::DGREEN,
+
+        // stream transports (handled by FilesHandler class)
+        'tcp' => Ansi::DGREEN,
+        'udp' => Ansi::DGREEN,
+        'unix' => Ansi::DGREEN,
+        'udg' => Ansi::DGREEN,
+        'ssl' => Ansi::DGREEN,
+        'tls' => Ansi::DGREEN,
+        'tlsv1.0' => Ansi::DGREEN,
+        'tlsv1.1' => Ansi::DGREEN,
+        'tlsv1.2' => Ansi::DGREEN,
+    ];
+
+    // internals -------------------------------------------------------------------------------------------------------
 
     /** @var float[] */
-    public static $timers = [];
+    private static $timers = [];
+
+    /** @var string|null exit(...)|signal (...)|memory limit (...)|time limit (...) */
+    private static $terminatedBy;
 
     /** @var resource|Socket */
     private static $socket;
@@ -164,7 +213,7 @@ class Debugger
     {
         ob_start();
 
-        $callstack = Callstack::get()->filter(Dumper::$traceSkip);
+        $callstack = Callstack::get(Dumper::$traceFilters);
         $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $lines);
 
         self::send(Packet::TRACE, $trace);
@@ -176,7 +225,7 @@ class Debugger
     {
         ob_start();
 
-        $frame = Callstack::get()->filter(['~Debugger::function$~', '~^rf$~'])->last();
+        $frame = Callstack::get(['~Debugger::function$~', '~^rf$~'])->last();
         $class = $frame->class ?? null;
         $function = $frame->function ?? null;
 
@@ -225,7 +274,12 @@ class Debugger
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    public static function send(int $type, string $message, string $backtrace = '', ?float $duration = null): void
+    public static function send(
+        int $type,
+        string $message,
+        string $backtrace = '',
+        ?float $duration = null
+    ): void
     {
         if (!self::$initDone) {
             self::init();
@@ -241,6 +295,16 @@ class Debugger
         }
     }
 
+    public static function setStart(float $time): void
+    {
+        self::$timers['total'] = $time;
+    }
+
+    public static function setTermination(string $reason): void
+    {
+        self::$terminatedBy = $reason;
+    }
+
     /**
      * When called by user, init() logs request start/end even if no other debug events are being logged.
      * Otherwise, debugger is initiated automatically with first error or user event.
@@ -252,7 +316,7 @@ class Debugger
         }
 
         if (!self::$initDone) {
-            if (self::$counter === 0) {
+            if (Packet::$count === 0) {
                 $header = self::createHeader();
                 $packet = serialize(new Packet(Packet::INTRO, $header)) . Packet::MARKER;
                 $result = @socket_write(self::$socket, $packet, strlen($packet));
@@ -286,8 +350,14 @@ class Debugger
 
         register_shutdown_function(static function (): void {
             if (!self::$shutdownDone) {
-                self::$shutdownDone = true;
-                self::send(Packet::OUTRO, self::createFooter());
+                try {
+                    foreach (self::$beforeShutdown as $callback) {
+                        $callback();
+                    }
+                } finally {
+                    self::$shutdownDone = true;
+                    self::send(Packet::OUTRO, self::createFooter());
+                }
             }
         });
     }
@@ -319,7 +389,7 @@ class Debugger
 
         /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
-        $time = $dt->format(self::$timeFormat);
+        $time = $dt->format(self::$headerTimeFormat);
         $id = System::getId();
         $version = PHP_VERSION;
         $sapi = str_replace('handler', '', PHP_SAPI);
@@ -394,7 +464,7 @@ class Debugger
         $footer .= Ansi::white(" << #$id, {$output}$time ms, $memory MB ", self::$headerColor);
 
         // file io
-        $stats = FileHandler::getStats();
+        $stats = FileStreamHandler::getStats();
         $includeTime = number_format($stats['includeTime']['total'] * 1000);
         if ($includeTime > 0.000001) {
             $footer .= Ansi::white("| inc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
@@ -405,7 +475,7 @@ class Debugger
         }
 
         // phar io
-        $stats = PharHandler::getStats();
+        $stats = PharStreamHandler::getStats();
         $includeTime = number_format($stats['includeTime']['total'] * 1000);
         if ($includeTime > 0.000001) {
             $footer .= Ansi::white("| phinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
@@ -416,7 +486,7 @@ class Debugger
         }
 
         // http io
-        $stats = HttpHandler::getStats();
+        $stats = HttpStreamHandler::getStats();
         $includeTime = number_format($stats['includeTime']['total'] * 1000);
         if ($includeTime > 0.000001) {
             $footer .= Ansi::white("| htinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
@@ -435,6 +505,28 @@ class Debugger
             $sqlTime = number_format($stats['time']['total'] * 1000);
             $rows = $stats['rows']['total'];
             $footer .= Ansi::white("| db: $conn con, $queries q, $sqlTime ms, $rows rows ", self::$headerColor);
+        }
+
+        // redis
+        $stats = RedisHandler::getStats();
+        $events = $stats['events']['total'];
+        if ($events > 0) {
+            $queries = $stats['events']['total'];
+            $redTime = number_format($stats['time']['total'] * 1000);
+            $data = Dumper::size($stats['data']['total']);
+            $rows = $stats['rows']['total'];
+            $footer .= Ansi::white("| redis: $queries q, $redTime ms, $data, $rows rows ", self::$headerColor);
+        }
+
+        // termination reason
+        if (Resources::timeLimit() !== 0.0 && Resources::timeRemaining() < 0 && (self::$terminatedBy === null || self::$terminatedBy === 'signal (profiling)')) {
+            $reason = 'time limit (' . Resources::timeLimit() . ' s)';
+            $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
+        } elseif (self::$terminatedBy !== null) {
+            $footer .= ' ' . Ansi::white(' ' . self::$terminatedBy . ' ', Ansi::LMAGENTA);
+        } elseif (PHP_SAPI !== 'cli' && !ignore_user_abort() && connection_aborted()) {
+            $reason = connection_status() === CONNECTION_ABORTED ? 'connection aborted' : 'connection timeout';
+            $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
         }
 
         // response code

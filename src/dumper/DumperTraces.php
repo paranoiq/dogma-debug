@@ -56,7 +56,7 @@ trait DumperTraces
 
     public static function findExpression(Callstack $callstack): ?string
     {
-        $callstack = $callstack->filter(self::$traceSkip);
+        $callstack = $callstack->filter(self::$traceFilters);
         foreach ($callstack->frames as $frame) {
             $line = $frame->getLineCode();
             if ($line === null) {

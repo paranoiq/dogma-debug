@@ -7,12 +7,18 @@ Remote console debugger
 - Tracy/Symfony debug bar alternative for debugging CLI scripts, background tasks, many concurrent requests etc.
 
 includes:
-- remote dumper (`Dogma\Debug\Dumper`)
-- exception handler (`Dogma\Debug\ExceptionHandler`)
-- error handler and statistics (`Dogma\Debug\ErrorHandler`)
-- std io tracker and statistics (`Dogma\Debug\IoHandler`)
-- file io tracker and statistics (`Dogma\Debug\FileHandler`)
-- SQL io tracker and statistics (`Dogma\Debug\SqlHandler`)
+- remote dumper with bunch of useful shortcut functions (`Dogma\Debug\Dumper`)
+- exception handler (`..\ExceptionHandler`)
+- error handler and statistics (`ErrorHandler`)
+- process signals and termination tracker (`ShutdownHandler`)
+- request info (`RequestHandler`)
+- resources usage tracker (`ResourcesHandler`)
+- std output tracker and statistics (`OutputHandler`)
+- SQL io tracker and statistics (`SqlHandler`)
+- Redis io tracker and statistics (`RedisHandler`)
+- handlers to track various groups of system functions (curl, dns, mail, settings, syslog)
+- stream handlers for debugging stream io operations (data, file, ftp, http, phar, zlib - `*StreamHandler`)
+- handler for debugging lower level io operations (tcp, udp, unix, udg, ssl, tls - `FilesHandler`)
 
 
 ### requirements:
@@ -29,8 +35,8 @@ Run `composer create-project dogma/dogma-debug`.
 ### usage:
 
 1) Run `php server.php` in some local console for displaying outputs (starts a socket server on port `1729`).
-2) Include `client.php` in your code or use it in `auto_prepend_file` directive in your `php.ini`.
-3) You can create `config.php` in the same directory as client to configure it.
+2) Include `shortcuts.php` or `client.php` in your code or use it in `auto_prepend_file` directive in your `php.ini`.
+3) You can create `debug-config.php` in the same directory as client to configure it.
 
 
 Dumper
@@ -49,12 +55,12 @@ Dumper has a lot of features and configuration options to make dump outputs more
 - custom colors configuration
 
 function shortcuts:
-- `ld($value, ...)` - dump value locally (`echo`es the output)
-- `rd($value, ...);` - dump value remotely
-- `rc(callable, ...)` - capture and dump result of a callable
-- `rf()` - print name of current function/method
-- `rl($label)` - print label
-- `rt([$label])` - print time since request start or last `rt()`
+- `ld($value, ...)` - dumps value locally (echoes the output)
+- `rd($value, ...);` - dumps value remotely
+- `rc(callable, ...)` - captures and dump result of a callable
+- `rf()` - prints name of current function/method
+- `rl($label)` - prints label
+- `rt([$label])` - prints time since request start or last `rt()`
 
 other:
 - `Dumper::varDump()` - better formatted and colorized `var_dump()`
@@ -120,26 +126,45 @@ activate by calling `ErrorHandler::enable($types)`
   - eg `ErrorHandler::$ignore = ['Notice: Undefined index "x".' => ['some-file.php:17', 'other-file.php:29']]`
 
 
-IoHandler
----------
+ProcessHandler
+--------------
 
-reports std io operations, request headers and body, response headers, output start
+reports process signals like SIGTERM etc. (not available on Windows)
 
-activate by calling `IoHandler::enable()`
+activate by calling `ProcessHandler::enable()`
+
+
+RequestHandler
+--------------
+
+reports request headers and body, response headers
+
+no activation needed
 
 ### configuration
 
-- `bool IoHandler::$printOutput` - Print output samples (default `false`)
-- `int IoHandler::$maxLength` - max length of printed output samples (default `100`)
 - `bool IoHandler::$responseHeaders` - print response headers (default `false`)
 - `bool IoHandler::$requestHeaders` - print request headers (default `false`)
 - `bool IoHandler::$requestBody` - print request body (default `false`)
 
 
-FileHandler
------------
+OutputHandler
+-------------
 
-reports file io operations (like `fopen()`, `fread()`, `fwrite()` etc.)
+reports output operations (echo) and output start
+
+activate by calling `OutputHandler::enable()`
+
+### configuration
+
+- `bool OutputHandler::$printOutput` - Print output samples (default `false`)
+- `int OutputHandler::$maxLength` - max length of printed output samples (default `100`)
+
+
+FileHandler / PharHandler / HttpHandler
+---------------------------------------
+
+reports file io operations on file/phar/http streams (like `fopen()`, `fread()`, `fwrite()` etc.)
 
 activate by calling `FileHandler::enable()`
 
