@@ -12,6 +12,7 @@ namespace Dogma\Debug;
 use function exec;
 use function getrusage;
 use function ini_get;
+use function is_string;
 use function memory_get_usage;
 use function microtime;
 use function preg_match;
@@ -29,23 +30,28 @@ class Resources
 
     /** @var int */
     //public $blockOutput = 0;
+
     /** @var int */
     //public $blockInput = 0;
 
     /** @var int */
     //public $messagesSent = 0;
+
     /** @var int */
     //public $messagesReceived = 0;
 
     /** @var int */
     public $maxMemory;
+
     /** @var int */
     //public $sharedMemory = 0;
+
     /** @var int */
     //public $privateMemory = 0;
 
     /** @var int */
     //public $pageReclaims = 0;
+
     /** @var int */
     public $pageFaults;
 
@@ -54,6 +60,7 @@ class Resources
 
     /** @var int */
     //public $switches = 0;
+
     /** @var int */
     //public $invSwitches = 0;
 
@@ -62,13 +69,16 @@ class Resources
 
     /** @var float */
     public $userTime;
+
     /** @var float */
     public $systemTime;
 
     /** @var float */
     public $time;
+
     /** @var int */
     public $phpMemory;
+
     /** @var int */
     public $realMemory;
 
@@ -79,6 +89,7 @@ class Resources
         $that->phpMemory = memory_get_usage();
         $that->realMemory = memory_get_usage(true);
 
+        /** @var int[] $u */
         $u = getrusage();
         $that->maxMemory = $u['ru_maxrss'];
         $that->pageFaults = $u['ru_majflt'];
@@ -134,8 +145,9 @@ class Resources
 
     public static function memoryLimit(): int
     {
-        $m = strtoupper(ini_get('memory_limit'));
+        $m = strtoupper((string) ini_get('memory_limit'));
         $n = (int) $m;
+        // spell-check-ignore: IB
         $m = trim(strrev($m), 'IB');
         if ($m[0] === 'K') {
             return $n * 1024;
@@ -173,9 +185,10 @@ class Resources
     {
         if (System::isWindows()) {
             // clock time
-            return microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
+            return microtime(true) - Debugger::getStart();
         } else {
             // used cpu time
+            /** @var int[] $u */
             $u = getrusage();
             return $u['ru_utime.tv_sec'] + ($u['ru_utime.tv_usec'] / 1000000)
                 + $u['ru_stime.tv_sec'] + ($u['ru_stime.tv_usec'] / 1000000);
@@ -210,8 +223,9 @@ class Resources
             }
         } else {
             // avg load for last 1 second
-            $loads = sys_getloadavg();
-            $cores = trim(shell_exec("grep -P '^physical id' /proc/cpuinfo|wc -l"));
+            $loads = sys_getloadavg() ?: [0.0];
+            $cores = shell_exec("grep -P '^physical id' /proc/cpuinfo|wc -l");
+            $cores = is_string($cores) ? (int) trim($cores) : 1;
 
             return ($loads[0] / $cores) / 100.0;
         }

@@ -1,13 +1,15 @@
 <?php declare(strict_types = 1);
 
+// phpcs:disable SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators.PreDecrementOperatorNotUsedAsStandalone
+
 namespace Dogma\Debug;
 
 use Exception;
 use function array_pop;
 use function count;
 use function end;
+use function is_int;
 use function key;
-use function sizeof;
 use function strlen;
 use function strpos;
 use function substr;
@@ -41,7 +43,6 @@ class RedisParser
     private $arraySizes;
 
     /**
-     * @param string $string
      * @return mixed
      */
     public function parse(string $string)
@@ -64,7 +65,6 @@ class RedisParser
                     $payload = substr($this->buffer, 1, $pos - 1);
                     $remove = $pos + 2;
                     break;
-
                 case self::TYPE_BULK_STRING:
                     $length = (int) substr($this->buffer, 1, $pos);
 
@@ -79,7 +79,6 @@ class RedisParser
                         $payload = substr($this->buffer, $pos + 2, $length);
                         $remove = $pos + $length + 4;
                     }
-
                     break;
                 default:
                     throw new Exception("Unknown resp data type: $type");
@@ -92,23 +91,21 @@ class RedisParser
                 case self::TYPE_ARRAY:
                     $payload = (int) $payload;
                     break;
-
                 case self::TYPE_ERROR:
-                    $payload = new Exception('Invalid query: ' . $payload);
+                    $payload = 'Invalid query: ' . $payload;
                     break;
-
                 default:
                     break;
             }
 
             if ($this->currentResponse !== null) { // extend array response
                 if ($type === self::TYPE_ARRAY) {
-                    if ($payload >= 0) {
+                    if (is_int($payload) && $payload >= 0) {
                         $this->arraySizes[] = $this->currentSize;
                         $this->arrayStack[] = &$this->currentResponse;
                         $this->currentSize = $payload + 1;
                         $this->currentResponse[] = [];
-                        $this->currentResponse = &$this->currentResponse[sizeof($this->currentResponse) - 1];
+                        $this->currentResponse = &$this->currentResponse[count($this->currentResponse) - 1];
                     } else {
                         $this->currentResponse[] = null;
                     }
@@ -118,8 +115,6 @@ class RedisParser
 
                 while (--$this->currentSize === 0) {
                     if (count($this->arrayStack) === 0) {
-                        //$cb = $this->responseCallback;
-                        //$cb($this->currentResponse);
                         $result = $this->currentResponse;
 
                         $this->currentResponse = null;
@@ -127,7 +122,7 @@ class RedisParser
                         return $result;
                     }
 
-                    // index doesn't start at 0 :(
+                    // index does not start at 0 :(
                     end($this->arrayStack);
                     $key = key($this->arrayStack);
                     $this->currentResponse = &$this->arrayStack[$key];
@@ -135,7 +130,7 @@ class RedisParser
                     unset($this->arrayStack[$key]);
                 }
             } elseif ($type === self::TYPE_ARRAY) { // start new array response
-                if ($payload > 0) {
+                if (is_int($payload) && $payload > 0) {
                     $this->currentSize = $payload;
                     $this->arrayStack = $this->arraySizes = $this->currentResponse = [];
                 } elseif ($payload === 0) {

@@ -37,7 +37,7 @@ Debugger::send(Packet::DUMP,
     . Ansi::rgb('khaki', null, '#F0E68C') . "\n"
     . Ansi::rgb('spring green', null, '#00FF7F') . "\n"
     . Ansi::rgb('cadet blue', null, '#5F9EA0') . "\n"
-    . Ansi::rgb('sienna', null, '#A0522D') . "\n"
+    . Ansi::rgb('sienna', null, '#A0522D')
 );
 
 Assert::true(true);

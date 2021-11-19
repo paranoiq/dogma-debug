@@ -16,7 +16,7 @@
     },
     "require-dev": {
         "dogma/dogma": "*",
-        "dogma/dogma-dev": "0.1.22"
+        "dogma/dogma-dev": "0.1.23"
     },
     "suggest": {
         "ext-mb": "Any of these for unicode strings",
@@ -76,9 +76,9 @@
             "@phpcs:src",
             "@phpcs:tests"
         ],
-        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp src client.php server.php",
-        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp tests",
-        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=vendor/dogma/dogma-dev/src/CodeSniffer/ruleset-tests.xml -sp src client.php server.php tests",
+        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/phpcs-ruleset.xml -sp src client.php server.php",
+        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/phpcs-ruleset-tests.xml -sp tests",
+        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=build/phpcs-ruleset-tests.xml -sp src client.php server.php tests",
 
         "spell:run": "php vendor/spell-checker/spell-checker/spell-checker.php -c build/spell-checker.neon --checkDictionaryFiles --memoryLimit 1024M --noLogo"
     },

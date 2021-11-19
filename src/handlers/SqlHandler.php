@@ -21,6 +21,8 @@ use function strtoupper;
 class SqlHandler
 {
 
+    public const NAME = 'sql';
+
     public const CONNECT = 1;
     public const SELECT = 4;
     public const INSERT = 8;
@@ -47,7 +49,7 @@ class SqlHandler
     ];
 
     /** @var int Types of events to log */
-    public static $log = self::ALL;
+    public static $logEvents = self::ALL;
 
     /** @var bool */
     public static $filterTrace = true;
@@ -82,7 +84,7 @@ class SqlHandler
             self::$rows[$type] += $rows;
         }
 
-        if (!($type & self::$log)) {
+        if (!($type & self::$logEvents)) {
             return;
         }
 
@@ -98,7 +100,7 @@ class SqlHandler
             ? ' ' . Ansi::color($rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['value'])
             : '';
 
-        $message = Ansi::white($connection ? " DB $connection: " : ' DB: ', Ansi::DGREEN)
+        $message = Ansi::white($connection ? " DB $connection: " : ' DB: ', Debugger::$handlerColors[self::NAME])
             . ' ' . $message . $countFormatted;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);

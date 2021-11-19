@@ -16,7 +16,6 @@ class FtpStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'ftp';
-    private const TIME_UNIT = 'ms';
+    public const PROTOCOL = 'ftp';
 
 }

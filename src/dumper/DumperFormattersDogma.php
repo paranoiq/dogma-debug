@@ -28,6 +28,7 @@ use function count;
 use function get_class;
 use function implode;
 use function str_replace;
+use function strpos;
 use function strrpos;
 use function substr;
 

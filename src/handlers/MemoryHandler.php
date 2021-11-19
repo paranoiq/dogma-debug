@@ -16,8 +16,10 @@ namespace Dogma\Debug;
 class MemoryHandler
 {
 
+    public const NAME = 'memory';
+
     /** @var int */
-    private static $takeover = Takeover::NONE;
+    private static $intercept = Intercept::NONE;
 
     /**
      * Searches object in memory (global, class static, function static) and returns path to given object.
@@ -31,36 +33,41 @@ class MemoryHandler
         return '';
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
-    public static function takeoverGc(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Takes control over gc_enable(), gc_disable(), gc_collect_cycles() and gc_mem_caches()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptGarbageCollection(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('memory', 'gc_enable', [self::class, 'fakeEnable']);
-        Takeover::register('memory', 'gc_disable', [self::class, 'fakeDisable']);
-        Takeover::register('memory', 'gc_collect_cycles', [self::class, 'fakeCollect']);
-        Takeover::register('memory', 'gc_mem_caches', [self::class, 'fakeCaches']);
+        Intercept::register(self::NAME, 'gc_enable', [self::class, 'fakeEnable']);
+        Intercept::register(self::NAME, 'gc_disable', [self::class, 'fakeDisable']);
+        Intercept::register(self::NAME, 'gc_collect_cycles', [self::class, 'fakeCollect']);
+        Intercept::register(self::NAME, 'gc_mem_caches', [self::class, 'fakeCaches']);
 
-        self::$takeover = $level;
+        self::$intercept = $level;
     }
 
     public static function fakeEnable(): void
     {
-        Takeover::handle('memory', self::$takeover, 'gc_enable', [], null);
+        Intercept::handle(self::NAME, self::$intercept, 'gc_enable', [], null);
     }
 
     public static function fakeDisable(): void
     {
-        Takeover::handle('memory', self::$takeover, 'gc_disable', [], null);
+        Intercept::handle(self::NAME, self::$intercept, 'gc_disable', [], null);
     }
 
     public static function fakeCollect(): int
     {
-        return Takeover::handle('memory', self::$takeover, 'gc_collect_cycles', [], 0);
+        return Intercept::handle(self::NAME, self::$intercept, 'gc_collect_cycles', [], 0);
     }
 
     public static function fakeCaches(): int
     {
-        return Takeover::handle('memory', self::$takeover, 'gc_mem_caches', [], 0);
+        return Intercept::handle(self::NAME, self::$intercept, 'gc_mem_caches', [], 0);
     }
 
 }

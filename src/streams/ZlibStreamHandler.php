@@ -16,7 +16,6 @@ class ZlibStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'zlib';
-    private const TIME_UNIT = 'μs';
+    public const PROTOCOL = 'zlib';
 
 }

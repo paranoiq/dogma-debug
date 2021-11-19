@@ -23,6 +23,8 @@ use function strlen;
 class OutputHandler
 {
 
+    public const NAME = 'output';
+
     public const BOM = "\xEF\xBB\xBF";
 
     /** @var bool Print output samples */

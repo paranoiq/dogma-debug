@@ -16,7 +16,6 @@ class DataStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'data';
-    private const TIME_UNIT = 'μs';
+    public const PROTOCOL = 'data';
 
 }

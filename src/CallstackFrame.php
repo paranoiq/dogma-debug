@@ -24,6 +24,8 @@ use function file;
 use function file_get_contents;
 use function implode;
 use function in_array;
+use function is_array;
+use function is_file;
 use function is_int;
 
 class CallstackFrame
@@ -313,6 +315,9 @@ class CallstackFrame
 
     // helpers ---------------------------------------------------------------------------------------------------------
 
+    /**
+     * @param positive-int|null $length
+     */
     public static function read(string $file, int $offset = 0, ?int $length = null): string
     {
         error_clear_last();

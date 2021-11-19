@@ -15,7 +15,9 @@ namespace Dogma\Debug;
 use DateTime;
 use Socket;
 use const AF_INET;
+use const CONNECTION_ABORTED;
 use const PHP_SAPI;
+use const PHP_SESSION_ACTIVE;
 use const PHP_VERSION;
 use const SOCK_STREAM;
 use const SOL_TCP;
@@ -37,6 +39,8 @@ use function ob_get_clean;
 use function ob_start;
 use function register_shutdown_function;
 use function serialize;
+use function session_status;
+use function session_write_close;
 use function socket_connect;
 use function socket_create;
 use function socket_read;
@@ -57,6 +61,9 @@ class Debugger
     /** @var int Port on which is server.php running */
     public static $remotePort = 1729;
 
+    /** @var bool Show notice when a debugger component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) */
+    public static $showDependenciesInfo = true;
+
     /** @var int Max length of a dump message [bytes after all formatting] */
     public static $maxMessageLength = 20000;
 
@@ -74,40 +81,40 @@ class Debugger
 
     /** @var string[] Background colors of handler labels */
     public static $handlerColors = [
-        // handlers
-        'error' => Ansi::DGREEN,
-        'exception' => Ansi::DGREEN,
-        'files' => Ansi::DGREEN,
-        'mail' => Ansi::DGREEN,
-        'memory' => Ansi::DGREEN,
-        'output' => Ansi::DGREEN,
-        'redis' => Ansi::DGREEN,
-        'request' => Ansi::DGREEN,
-        'resources' => Ansi::DGREEN,
-        'settings' => Ansi::DGREEN,
-        'shutdown' => Ansi::DGREEN,
-        'sql' => Ansi::DGREEN,
-        'syslog' => Ansi::DGREEN,
+        // intercept and other handlers
+        ErrorHandler::NAME => Ansi::DGREEN,
+        ExceptionHandler::NAME => Ansi::DGREEN,
+        FilesHandler::NAME => Ansi::DGREEN,
+        MailHandler::NAME => Ansi::DGREEN,
+        MemoryHandler::NAME => Ansi::DGREEN,
+        OutputHandler::NAME => Ansi::DGREEN,
+        RedisHandler::NAME => Ansi::DGREEN,
+        RequestHandler::NAME => Ansi::DGREEN,
+        ResourcesHandler::NAME => Ansi::DGREEN,
+        SettingsHandler::NAME => Ansi::DGREEN,
+        ShutdownHandler::NAME => Ansi::DGREEN,
+        SqlHandler::NAME => Ansi::DGREEN,
+        SyslogHandler::NAME => Ansi::DGREEN,
 
-        // stream handlers (handled by *StreamHandler classes)
-        'data' => Ansi::DGREEN,
-        'file' => Ansi::DGREEN,
-        'ftp' => Ansi::DGREEN,
-        'http' => Ansi::DGREEN,
-        'phar' => Ansi::DGREEN,
-        'php' => Ansi::DGREEN,
-        'zlib' => Ansi::DGREEN,
+        // stream handlers
+        DataStreamHandler::PROTOCOL => Ansi::DGREEN,
+        FileStreamHandler::PROTOCOL => Ansi::DGREEN,
+        FtpStreamHandler::PROTOCOL => Ansi::DGREEN,
+        HttpStreamHandler::PROTOCOL => Ansi::DGREEN,
+        PharStreamHandler::PROTOCOL => Ansi::DGREEN,
+        PhpStreamHandler::PROTOCOL => Ansi::DGREEN,
+        ZlibStreamHandler::PROTOCOL => Ansi::DGREEN,
 
-        // stream transports (handled by FilesHandler class)
-        'tcp' => Ansi::DGREEN,
-        'udp' => Ansi::DGREEN,
-        'unix' => Ansi::DGREEN,
-        'udg' => Ansi::DGREEN,
-        'ssl' => Ansi::DGREEN,
-        'tls' => Ansi::DGREEN,
-        'tlsv1.0' => Ansi::DGREEN,
-        'tlsv1.1' => Ansi::DGREEN,
-        'tlsv1.2' => Ansi::DGREEN,
+        // stream transports
+        FilesHandler::PROTOCOL_TCP => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_UDP => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_UNIX => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_UDG => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_SSL => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_TLS => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_TLS_10 => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_TLS_11 => Ansi::DGREEN,
+        FilesHandler::PROTOCOL_TLS_12 => Ansi::DGREEN,
     ];
 
     // internals -------------------------------------------------------------------------------------------------------
@@ -291,8 +298,42 @@ class Debugger
         $result = @socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
-            self::error(trim("Could not send data to debug server: $m", '.') . '.');
+            self::error("Could not send data to debug server: $m");
+            self::print($message . "\n" . $backtrace);
         }
+    }
+
+    public static function print(string $message): void
+    {
+        if (PHP_SAPI === 'cli') {
+            echo $message . "\n";
+        } else {
+            echo Ansi::removeColors($message) . "\n";
+        }
+    }
+
+    public static function dependencyInfo(string $message): void
+    {
+        if (self::$showDependenciesInfo) {
+            $callstack = Callstack::get(Dumper::$traceFilters);
+            self::send(Packet::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, []));
+        }
+    }
+
+    public static function error(string $message): void
+    {
+        $message = sprintf("Dogma Debugger: $message. Debug server should be running on %s:%s.", self::$remoteAddress, self::$remotePort);
+
+        if (PHP_SAPI === 'cli') {
+            echo Ansi::white($message) . "\n";
+        } else {
+            echo $message . "\n";
+        }
+    }
+
+    public static function getStart(): float
+    {
+        return self::$timers['total'];
     }
 
     public static function setStart(float $time): void
@@ -355,8 +396,8 @@ class Debugger
                         $callback();
                     }
                 } finally {
-                    self::$shutdownDone = true;
                     self::send(Packet::OUTRO, self::createFooter());
+                    self::$shutdownDone = true;
                 }
             }
         });
@@ -374,13 +415,6 @@ class Debugger
         }
 
         self::send(Packet::ERROR, $message);
-    }
-
-    private static function error(string $message): void
-    {
-        $message = sprintf("Dogma Debugger: $message. Debug server should be running on %s:%s.", self::$remoteAddress, self::$remotePort);
-
-        echo Ansi::white($message) . "\n";
     }
 
     private static function createHeader(): string
@@ -428,6 +462,12 @@ class Debugger
     {
         $footer = '';
 
+        // closing session
+        $sessionStatus = session_status();
+        if (SessionHandler::$terminateSessionInShutdownHandler && $sessionStatus === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         // last error
         /*if (ErrorHandler::$showLastError) {
             $e = error_get_last();
@@ -450,7 +490,7 @@ class Debugger
             }
         }
 
-        // common things
+        // common things (pid, output, time, memory)
         if (OutputHandler::enabled()) {
             OutputHandler::terminateAllOutputBuffers();
         }
@@ -460,40 +500,35 @@ class Debugger
         $time = number_format((microtime(true) - $start) * 1000, 0, '.', ' ');
         $memory = number_format(memory_get_peak_usage(true) / 1024 ** 2, 0, '.', ' ');
         $id = System::getId();
-
         $footer .= Ansi::white(" << #$id, {$output}$time ms, $memory MB ", self::$headerColor);
 
-        // file io
-        $stats = FileStreamHandler::getStats();
-        $includeTime = number_format($stats['includeTime']['total'] * 1000);
-        if ($includeTime > 0.000001) {
-            $footer .= Ansi::white("| inc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
+        // includes
+        $fileStats = FileStreamHandler::getStats();
+        $pharStats = PharStreamHandler::getStats();
+        $httpStats = HttpStreamHandler::getStats();
+        $includeCount = $fileStats['includeEvents']['open'] + $pharStats['includeEvents']['open'] + $httpStats['includeEvents']['open'];
+        $includeTime = $fileStats['includeTime']['total'] + $pharStats['includeTime']['total'] + $httpStats['includeTime']['total'];
+        if ($includeCount > 0) {
+            $includeTime = number_format($includeTime * 1000);
+            $footer .= Ansi::white("| inc: {$includeCount}× $includeTime ms ", self::$headerColor);
         }
-        $userTime = number_format($stats['userTime']['total'] * 1000);
-        if ($userTime > 0.000001) {
-            $footer .= Ansi::white("| file: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+
+        // file io
+        if ($fileStats['userEvents']['open'] > 0) {
+            $userTime = number_format($fileStats['userTime']['total'] * 1000);
+            $footer .= Ansi::white("| file: {$fileStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
         // phar io
-        $stats = PharStreamHandler::getStats();
-        $includeTime = number_format($stats['includeTime']['total'] * 1000);
-        if ($includeTime > 0.000001) {
-            $footer .= Ansi::white("| phinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
-        }
-        $userTime = number_format($stats['userTime']['total'] * 1000);
-        if ($userTime > 0.000001) {
-            $footer .= Ansi::white("| phar: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+        if ($pharStats['userEvents']['open'] > 0) {
+            $userTime = number_format($pharStats['userTime']['total'] * 1000);
+            $footer .= Ansi::white("| phar: {$pharStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
         // http io
-        $stats = HttpStreamHandler::getStats();
-        $includeTime = number_format($stats['includeTime']['total'] * 1000);
-        if ($includeTime > 0.000001) {
-            $footer .= Ansi::white("| htinc: {$stats['includeEvents']['open']}× $includeTime ms ", self::$headerColor);
-        }
-        $userTime = number_format($stats['userTime']['total'] * 1000);
-        if ($userTime > 0.000001) {
-            $footer .= Ansi::white("| http: {$stats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+        if ($httpStats['userEvents']['open'] > 0) {
+            $userTime = number_format($httpStats['userTime']['total'] * 1000);
+            $footer .= Ansi::white("| http: {$httpStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
         }
 
         // database
@@ -513,7 +548,7 @@ class Debugger
         if ($events > 0) {
             $queries = $stats['events']['total'];
             $redTime = number_format($stats['time']['total'] * 1000);
-            $data = Dumper::size($stats['data']['total']);
+            $data = Dumper::size((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
             $footer .= Ansi::white("| redis: $queries q, $redTime ms, $data, $rows rows ", self::$headerColor);
         }
@@ -579,7 +614,8 @@ class Debugger
         $packet = serialize(new Packet(Packet::OUTPUT_WIDTH, '')) . Packet::MARKER;
         $result = socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
-            self::error("Could not send data to debug server.");
+            $m = error_get_last()['message'] ?? '???';
+            self::error("Could not send data to debug server: $m");
         }
 
         $content = socket_read(self::$socket, 10000);

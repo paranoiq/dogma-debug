@@ -12,10 +12,12 @@
 namespace Dogma\Debug;
 
 use const E_USER_NOTICE;
+use const STR_PAD_RIGHT;
 use function hexdec;
 use function ltrim;
 use function preg_match;
 use function preg_replace;
+use function str_pad;
 use function strlen;
 use function strtolower;
 use function substr;

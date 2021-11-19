@@ -9,23 +9,20 @@
 
 namespace Dogma\Debug;
 
-
 use LogicException;
+use const SEEK_SET;
+use const STREAM_CLIENT_CONNECT;
 use function array_shift;
 use function call_user_func_array;
 use function count;
 use function explode;
 use function fopen;
-use function fseek;
 use function in_array;
 use function is_resource;
 use function microtime;
 use function preg_match;
-use function round;
 use function stream_get_meta_data;
 use function stream_socket_client;
-use const SEEK_SET;
-use const STREAM_CLIENT_CONNECT;
 
 /**
  * Tracks file operations regardless of stream protocol
@@ -34,11 +31,24 @@ use const STREAM_CLIENT_CONNECT;
 class FilesHandler
 {
 
-    /** @var int Types of events to log */
-    public static $log = StreamHandler::ALL & ~StreamHandler::INFO;
+    public const NAME = 'files';
 
-    /** @var string[] List of protocols to log - e.g. 'file', 'http', 'tcp' */
-    public static $logProtocols = ['unknown'];
+    public const PROTOCOL_TCP = 'tcp';
+    public const PROTOCOL_UDP = 'udp';
+    public const PROTOCOL_UNIX = 'unix';
+    public const PROTOCOL_UDG = 'udg';
+    public const PROTOCOL_SSL = 'ssl';
+    public const PROTOCOL_TLS = 'tls';
+    public const PROTOCOL_TLS_10 = 'tlsv1.0';
+    public const PROTOCOL_TLS_11 = 'tlsv1.1';
+    public const PROTOCOL_TLS_12 = 'tlsv1.2';
+    public const PROTOCOL_UNKNOWN = 'unknown';
+
+    /** @var int Types of events to log */
+    public static $logEvents = StreamHandler::ALL & ~StreamHandler::INFO;
+
+    /** @var string[] List of protocols to log self::PROTOCOL:* constants */
+    public static $logProtocols = [self::PROTOCOL_UNKNOWN];
 
     /** @var array<string, array<string, array<string, array{class-string, string}>>> ($protocol => $function => $pathExpression => $callable) */
     public static $redirect = [];
@@ -52,45 +62,49 @@ class FilesHandler
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var int */
-    private static $takeover = Takeover::NONE;
+    private static $intercept = Intercept::NONE;
 
     /** @var array<int, string> ($resourceId => $uri)  */
     private static $uris = [];
 
-    /** @var int[] */
-    private static $userEvents = [];
+    /** @var int[][] */
+    private static $events = [];
 
-    /** @var float[] */
-    private static $userTime = [];
+    /** @var float[][] */
+    private static $time = [];
+
+    public static function enabled(): bool
+    {
+        return self::$intercept !== Intercept::NONE;
+    }
 
     /**
      * Default implementation of an overloaded function handler
      *
      * @param string|resource $file
+     * @param callable-string $function
      * @param mixed[] $params
      * @param mixed $defaultReturn
      * @return mixed
      */
     public static function handle(int $group, $file, string $function, array $params, $defaultReturn)
     {
-        [$protocol, $path, $allowed] = self::allowed($group, $file);
+        [$protocol, $path, $ignored] = self::ignored($group, $file);
 
-        if ($allowed || self::$takeover === Takeover::NONE) {
-            return call_user_func_array($function, $params);
-        } elseif (self::$takeover === Takeover::LOG_OTHERS) {
+        if ($ignored || self::$intercept === Intercept::SILENT || self::$intercept === Intercept::LOG_CALLS) {
             $start = microtime(true);
             $result = call_user_func_array($function, $params);
             if ($params[0] === $path || is_resource($params[0])) {
                 array_shift($params);
             }
-            self::log($protocol, $path, microtime(true) - $start, $function, $params, $result);
+            self::redirectOrLog($protocol, $group, $path, microtime(true) - $start, $function, $params, $result, $ignored);
 
             return $result;
-        } elseif (self::$takeover === Takeover::PREVENT_OTHERS) {
+        } elseif (self::$intercept === Intercept::PREVENT_CALLS) {
             if ($params[0] === $path || is_resource($params[0])) {
                 array_shift($params);
             }
-            self::log($protocol, $path, null, $function, $params, $defaultReturn);
+            self::redirectOrLog($protocol, $group, $path, null, $function, $params, $defaultReturn);
 
             return $defaultReturn;
         } else {
@@ -102,9 +116,28 @@ class FilesHandler
      * @param mixed[] $params
      * @param mixed|null $return
      */
-    public static function log(string $handler, string $path, ?float $duration, string $function, array $params, $return): void
+    public static function redirectOrLog(
+        string $handler,
+        int $group,
+        string $path,
+        ?float $duration,
+        string $function,
+        array $params,
+        $return,
+        bool $ignored = false
+    ): void
     {
+        if (!isset(self::$events[$handler][$group])) {
+            self::$events[$handler][$group] = 0;
+            self::$time[$handler][$group] = 0.0;
+        }
+        self::$events[$handler][$group]++;
+        if ($duration !== null) {
+            self::$time[$handler][$group] += $duration;
+        }
+
         if (isset(self::$redirect[$handler][$function])) {
+            /** @var callable-string $redirect */
             foreach (self::$redirect[$handler][$function] as $expression => $redirect) {
                 if (preg_match($expression, $path)) {
                     $redirect($path, $duration, $params, $return);
@@ -113,23 +146,26 @@ class FilesHandler
             }
         }
 
+        if ($ignored || self::$intercept === Intercept::SILENT) {
+            return;
+        }
+
         $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler])
             . ' ' . Dumper::file($path) . ' ' . Dumper::call($function, $params, $return);
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, []);
 
-        Debugger::send(Packet::TAKEOVER, $message, $trace, $duration);
+        Debugger::send(Packet::INTERCEPT, $message, $trace, $duration);
     }
 
     /**
-     * @param int $action
      * @param string|resource $file
      * @return array{string, string, bool}
      */
-    private static function allowed(int $action, $file): array
+    private static function ignored(int $action, $file): array
     {
-        if ((self::$log & $action) === 0) {
+        if ((self::$logEvents & $action) === 0) {
             return ['', '', true];
         }
 
@@ -140,7 +176,7 @@ class FilesHandler
             if (count($parts) > 1) {
                 $protocol = $parts[0];
             } else {
-                $protocol = 'unknown';
+                $protocol = self::PROTOCOL_UNKNOWN;
             }
 
             if (isset(self::$uris[$resourceId])) {
@@ -153,7 +189,7 @@ class FilesHandler
             if (count($parts) > 1) {
                 $protocol = $parts[0];
             } else {
-                $protocol = 'file';
+                $protocol = FileStreamHandler::PROTOCOL;
             }
         }
 
@@ -162,118 +198,126 @@ class FilesHandler
         return [$protocol, $file, $allow];
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /**
+     * @return int[][][]|float[][][]
+     */
+    public function getStats(): array
+    {
+        return [self::$events, self::$time];
+    }
+
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
     /**
      * Take control over majority of file and directory functions
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverFiles(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptFileFunctions(int $level = Intercept::LOG_CALLS): void
     {
         // as in stream wrappers
-        Takeover::register('files', 'fopen', [self::class, 'fakeFopen']);
-        Takeover::register('files', 'fclose', [self::class, 'fakeFclose']);
-        Takeover::register('files', 'flock', [self::class, 'fakeFlock']);
-        Takeover::register('files', 'fread', [self::class, 'fakeFread']);
-        Takeover::register('files', 'fwrite', [self::class, 'fakeFwrite']);
-        Takeover::register('files', 'fputs', [self::class, 'fakeFwrite']); // alias ^
-        Takeover::register('files', 'ftruncate', [self::class, 'fakeFtruncate']);
-        Takeover::register('files', 'fflush', [self::class, 'fakeFflush']);
-        Takeover::register('files', 'fseek', [self::class, 'fakeFseek']);
-        Takeover::register('files', 'feof', [self::class, 'fakeFeof']);
-        Takeover::register('files', 'ftell', [self::class, 'fakeFtell']);
-        Takeover::register('files', 'fstat', [self::class, 'fakeFstat']); // STAT
+        Intercept::register(self::NAME, 'fopen', [self::class, 'fakeFopen']);
+        Intercept::register(self::NAME, 'fclose', [self::class, 'fakeFclose']);
+        Intercept::register(self::NAME, 'flock', [self::class, 'fakeFlock']);
+        Intercept::register(self::NAME, 'fread', [self::class, 'fakeFread']);
+        Intercept::register(self::NAME, 'fwrite', [self::class, 'fakeFwrite']);
+        Intercept::register(self::NAME, 'fputs', [self::class, 'fakeFwrite']); // alias ^
+        Intercept::register(self::NAME, 'ftruncate', [self::class, 'fakeFtruncate']);
+        Intercept::register(self::NAME, 'fflush', [self::class, 'fakeFflush']);
+        Intercept::register(self::NAME, 'fseek', [self::class, 'fakeFseek']);
+        Intercept::register(self::NAME, 'feof', [self::class, 'fakeFeof']);
+        Intercept::register(self::NAME, 'ftell', [self::class, 'fakeFtell']);
+        Intercept::register(self::NAME, 'fstat', [self::class, 'fakeFstat']); // STAT
 
-        Takeover::register('files', 'stream_socket_client', [self::class, 'fakeSocketClient']);
+        Intercept::register(self::NAME, 'stream_socket_client', [self::class, 'fakeSocketClient']);
 
-        Takeover::register('files', 'fgets', [self::class, 'fakeFgets']); // READ
+        Intercept::register(self::NAME, 'fgets', [self::class, 'fakeFgets']); // READ
 
-        /*Takeover::register('touch', [self::class, 'fakeTouch']); // META
-        Takeover::register('chown', [self::class, 'fakeChown']); // META
-        Takeover::register('chgrp', [self::class, 'fakeChgrp']); // META
-        Takeover::register('chmod', [self::class, 'fakeChmod']); // META
+        /*Intercept::register(self::NAME, 'touch', [self::class, 'fakeTouch']); // META
+        Intercept::register(self::NAME, 'chown', [self::class, 'fakeChown']); // META
+        Intercept::register(self::NAME, 'chgrp', [self::class, 'fakeChgrp']); // META
+        Intercept::register(self::NAME, 'chmod', [self::class, 'fakeChmod']); // META
 
-        Takeover::register('stream_set_blocking', [self::class, 'fakeSetBlocking']); // SET
-        Takeover::register('stream_set_read_buffer', [self::class, 'fakeSetReadBuffer']); // SET
-        Takeover::register('stream_set_write_buffer', [self::class, 'fakeSetWriteBuffer']); // SET
-        Takeover::register('stream_set_timeout', [self::class, 'fakeSetTimeout']); // SET
+        Intercept::register(self::NAME, 'stream_set_blocking', [self::class, 'fakeSetBlocking']); // SET
+        Intercept::register(self::NAME, 'stream_set_read_buffer', [self::class, 'fakeSetReadBuffer']); // SET
+        Intercept::register(self::NAME, 'stream_set_write_buffer', [self::class, 'fakeSetWriteBuffer']); // SET
+        Intercept::register(self::NAME, 'stream_set_timeout', [self::class, 'fakeSetTimeout']); // SET
 
-        Takeover::register('opendir', [self::class, 'fakeOpendir']);
-        Takeover::register('readdir', [self::class, 'fakeReaddir']);
-        Takeover::register('rewinddir', [self::class, 'fakeRewinddir']);
-        Takeover::register('closedir', [self::class, 'fakeClosedir']);
-        Takeover::register('mkdir', [self::class, 'fakeMkdir']);
-        Takeover::register('rmdir', [self::class, 'fakeRmdir']);
+        Intercept::register(self::NAME, 'opendir', [self::class, 'fakeOpendir']);
+        Intercept::register(self::NAME, 'readdir', [self::class, 'fakeReaddir']);
+        Intercept::register(self::NAME, 'rewinddir', [self::class, 'fakeRewinddir']);
+        Intercept::register(self::NAME, 'closedir', [self::class, 'fakeClosedir']);
+        Intercept::register(self::NAME, 'mkdir', [self::class, 'fakeMkdir']);
+        Intercept::register(self::NAME, 'rmdir', [self::class, 'fakeRmdir']);
 
-        Takeover::register('rename', [self::class, 'fakeRename']);
-        Takeover::register('unlink', [self::class, 'fakeUnlink']);
-        Takeover::register('lstat', [self::class, 'fakeLstat']); // STAT
-        Takeover::register('stat', [self::class, 'fakeStat']); // STAT
+        Intercept::register(self::NAME, 'rename', [self::class, 'fakeRename']);
+        Intercept::register(self::NAME, 'unlink', [self::class, 'fakeUnlink']);
+        Intercept::register(self::NAME, 'lstat', [self::class, 'fakeLstat']); // STAT
+        Intercept::register(self::NAME, 'stat', [self::class, 'fakeStat']); // STAT
 
         // other file functions
-        Takeover::register('glob', [self::class, 'fakeUmask']); // OPENDIR | READDIR
+        Intercept::register(self::NAME, 'glob', [self::class, 'fakeUmask']); // OPENDIR | READDIR
 
-        Takeover::register('tmpfile', [self::class, 'fakeTmpfile']); // OPEN
-        Takeover::register('readfile', [self::class, 'fakeReadfile']); // OPEN | READ
-        Takeover::register('file', [self::class, 'fakeFile']); // OPEN | LOCK? | READ
-        Takeover::register('file_get_contents', [self::class, 'fakeGetContents']); // OPEN | LOCK? | READ
-        Takeover::register('file_put_contents', [self::class, 'fakePutContents']); // OPEN | LOCK | WRITE
-        Takeover::register('copy', [self::class, 'fakeCopy']); // OPEN | LOCK? | READ? | WRITE
-        Takeover::register('link', [self::class, 'fakeLink']); // OPEN | WRITE
-        Takeover::register('symlink', [self::class, 'fakeSymlink']); // OPEN | WRITE
+        Intercept::register(self::NAME, 'tmpfile', [self::class, 'fakeTmpfile']); // OPEN
+        Intercept::register(self::NAME, 'readfile', [self::class, 'fakeReadfile']); // OPEN | READ
+        Intercept::register(self::NAME, 'file', [self::class, 'fakeFile']); // OPEN | LOCK? | READ
+        Intercept::register(self::NAME, 'file_get_contents', [self::class, 'fakeGetContents']); // OPEN | LOCK? | READ
+        Intercept::register(self::NAME, 'file_put_contents', [self::class, 'fakePutContents']); // OPEN | LOCK | WRITE
+        Intercept::register(self::NAME, 'copy', [self::class, 'fakeCopy']); // OPEN | LOCK? | READ? | WRITE
+        Intercept::register(self::NAME, 'link', [self::class, 'fakeLink']); // OPEN | WRITE
+        Intercept::register(self::NAME, 'symlink', [self::class, 'fakeSymlink']); // OPEN | WRITE
 
-        Takeover::register('rewind', [self::class, 'fakeRewind']); // TELL
+        Intercept::register(self::NAME, 'rewind', [self::class, 'fakeRewind']); // TELL
 
-        Takeover::register('fgetc', [self::class, 'fakeFgetc']); // READ
-        Takeover::register('fgets', [self::class, 'fakeFgets']); // READ
-        Takeover::register('fgetss', [self::class, 'fakeFgetss']); // READ
-        Takeover::register('fpassthru', [self::class, 'fakePassthru']); // READ
+        Intercept::register(self::NAME, 'fgetc', [self::class, 'fakeFgetc']); // READ
+        Intercept::register(self::NAME, 'fgets', [self::class, 'fakeFgets']); // READ
+        Intercept::register(self::NAME, 'fgetss', [self::class, 'fakeFgetss']); // READ
+        Intercept::register(self::NAME, 'fpassthru', [self::class, 'fakePassthru']); // READ
 
-        Takeover::register('fsync', [self::class, 'fakeSync']); // FLUSH
-        Takeover::register('fdatasync', [self::class, 'fakeDatasync']); // FLUSH
+        Intercept::register(self::NAME, 'fsync', [self::class, 'fakeSync']); // FLUSH
+        Intercept::register(self::NAME, 'fdatasync', [self::class, 'fakeDatasync']); // FLUSH
 
-        Takeover::register('fscanf', [self::class, 'fakeFscanf']); // READ
+        Intercept::register(self::NAME, 'fscanf', [self::class, 'fakeFscanf']); // READ
 
-        Takeover::register('lchgrp', [self::class, 'fakeLchgrp']); // META
-        Takeover::register('lchown', [self::class, 'fakeLchown']); // META
+        Intercept::register(self::NAME, 'lchgrp', [self::class, 'fakeLchgrp']); // META
+        Intercept::register(self::NAME, 'lchown', [self::class, 'fakeLchown']); // META
 
-        Takeover::register('file_exists', [self::class, 'fakeExists']); // STAT
-        Takeover::register('fileatime', [self::class, 'fakeAtime']); // STAT
-        Takeover::register('filectime', [self::class, 'fakeCtime']); // STAT
-        Takeover::register('filegroup', [self::class, 'fakeGroup']); // STAT
-        Takeover::register('fileinode', [self::class, 'fakeInode']); // STAT
-        Takeover::register('filemtime', [self::class, 'fakeMtime']); // STAT
-        Takeover::register('fileowner', [self::class, 'fakeOwner']); // STAT
-        Takeover::register('fileperms', [self::class, 'fakePerms']); // STAT
-        Takeover::register('filesize', [self::class, 'fakeSize']); // STAT
-        Takeover::register('filetype', [self::class, 'fakeType']); // STAT
-        Takeover::register('is_dir', [self::class, 'fakeIsDir']); // STAT
-        Takeover::register('is_executable', [self::class, 'fakeIsExecutable']); // STAT
-        Takeover::register('is_file', [self::class, 'fakeIsFile']); // STAT
-        Takeover::register('is_link', [self::class, 'fakeIsLink']); // STAT
-        Takeover::register('is_readable', [self::class, 'fakeIsReadable']); // STAT
-        Takeover::register('is_uploaded_file', [self::class, 'fakeIsUploaded']); // STAT
-        Takeover::register('is_writable', [self::class, 'fakeIsWritable']); // STAT
-        Takeover::register('is_writeable', [self::class, 'fakeIsWritable']); // alias ^
-        Takeover::register('linkinfo', [self::class, 'fakeLinkinfo']); // STAT
-        Takeover::register('realpath', [self::class, 'fakeRealpath']); // STAT
-        Takeover::register('readlink', [self::class, 'fakeReadlink']); // STAT
+        Intercept::register(self::NAME, 'file_exists', [self::class, 'fakeExists']); // STAT
+        Intercept::register(self::NAME, 'fileatime', [self::class, 'fakeAtime']); // STAT
+        Intercept::register(self::NAME, 'filectime', [self::class, 'fakeCtime']); // STAT
+        Intercept::register(self::NAME, 'filegroup', [self::class, 'fakeGroup']); // STAT
+        Intercept::register(self::NAME, 'fileinode', [self::class, 'fakeInode']); // STAT
+        Intercept::register(self::NAME, 'filemtime', [self::class, 'fakeMtime']); // STAT
+        Intercept::register(self::NAME, 'fileowner', [self::class, 'fakeOwner']); // STAT
+        Intercept::register(self::NAME, 'fileperms', [self::class, 'fakePerms']); // STAT
+        Intercept::register(self::NAME, 'filesize', [self::class, 'fakeSize']); // STAT
+        Intercept::register(self::NAME, 'filetype', [self::class, 'fakeType']); // STAT
+        Intercept::register(self::NAME, 'is_dir', [self::class, 'fakeIsDir']); // STAT
+        Intercept::register(self::NAME, 'is_executable', [self::class, 'fakeIsExecutable']); // STAT
+        Intercept::register(self::NAME, 'is_file', [self::class, 'fakeIsFile']); // STAT
+        Intercept::register(self::NAME, 'is_link', [self::class, 'fakeIsLink']); // STAT
+        Intercept::register(self::NAME, 'is_readable', [self::class, 'fakeIsReadable']); // STAT
+        Intercept::register(self::NAME, 'is_uploaded_file', [self::class, 'fakeIsUploaded']); // STAT
+        Intercept::register(self::NAME, 'is_writable', [self::class, 'fakeIsWritable']); // STAT
+        Intercept::register(self::NAME, 'is_writeable', [self::class, 'fakeIsWritable']); // alias ^
+        Intercept::register(self::NAME, 'linkinfo', [self::class, 'fakeLinkinfo']); // STAT
+        Intercept::register(self::NAME, 'realpath', [self::class, 'fakeRealpath']); // STAT
+        Intercept::register(self::NAME, 'readlink', [self::class, 'fakeReadlink']); // STAT
 
-        Takeover::register('move_uploaded_file', [self::class, 'fakeUmask']); // RENAME
+        Intercept::register(self::NAME, 'move_uploaded_file', [self::class, 'fakeUmask']); // RENAME
 
         // misc OS commands
-        Takeover::register('umask', [self::class, 'fakeUmask']);
-        Takeover::register('tempnam', [self::class, 'fakeTempnam']);
-        Takeover::register('clearstatcache', [self::class, 'fakeClearStatCache']);
-        Takeover::register('diskfreespace', [self::class, 'fakeFreeSpace']);
-        Takeover::register('disk_free_space', [self::class, 'fakeFreeSpace']); // alias ^
-        Takeover::register('disk_total_space', [self::class, 'fakeTotalSpace']);
-        Takeover::register('realpath_cache_get', [self::class, 'fakeRealpathCacheGet']);
-        Takeover::register('realpath_cache_size', [self::class, 'fakeRealpathCacheSize']);
-        Takeover::register('set_file_buffer', [self::class, 'fakeSetFileBuffer']);
+        Intercept::register(self::NAME, 'umask', [self::class, 'fakeUmask']);
+        Intercept::register(self::NAME, 'tempnam', [self::class, 'fakeTempnam']);
+        Intercept::register(self::NAME, 'clearstatcache', [self::class, 'fakeClearStatCache']);
+        Intercept::register(self::NAME, 'diskfreespace', [self::class, 'fakeFreeSpace']);
+        Intercept::register(self::NAME, 'disk_free_space', [self::class, 'fakeFreeSpace']); // alias ^
+        Intercept::register(self::NAME, 'disk_total_space', [self::class, 'fakeTotalSpace']);
+        Intercept::register(self::NAME, 'realpath_cache_get', [self::class, 'fakeRealpathCacheGet']);
+        Intercept::register(self::NAME, 'realpath_cache_size', [self::class, 'fakeRealpathCacheSize']);
+        Intercept::register(self::NAME, 'set_file_buffer', [self::class, 'fakeSetFileBuffer']);
         */
-        self::$takeover = $level;
+        self::$intercept = $level;
     }
 
     /**
@@ -282,28 +326,25 @@ class FilesHandler
      */
     public static function fakeFopen(string $filename, string $mode, bool $use_include_path = false, $context = null)
     {
-        [$protocol, $path, $allowed] = self::allowed(FileStreamHandler::OPEN, $filename);
+        [$protocol, $path, $ignored] = self::ignored(FileStreamHandler::OPEN, $filename);
 
-        if ($allowed || self::$takeover === Takeover::NONE) {
-            $result = fopen($filename, $mode, $use_include_path, $context);
-            // saving uri
-            if ($result !== false) {
-                self::$uris[(int) $result] = $filename;
-            }
-
-            return $result;
-        } elseif (self::$takeover === Takeover::LOG_OTHERS) {
+        $params = [$mode, $use_include_path, $context];
+        if ($ignored || self::$intercept === Intercept::SILENT || self::$intercept === Intercept::LOG_CALLS) {
             $start = microtime(true);
-            $result = fopen($filename, $mode, $use_include_path, $context);
+            if ($context !== null) {
+                $result = fopen($filename, $mode, $use_include_path, $context);
+            } else {
+                $result = fopen($filename, $mode, $use_include_path);
+            }
             // saving uri
             if ($result !== false) {
                 self::$uris[(int) $result] = $filename;
             }
-            self::log($protocol, $path, microtime(true) - $start, 'fopen', [$mode, $use_include_path, $context], $result);
+            self::redirectOrLog($protocol, StreamHandler::OPEN, $path, microtime(true) - $start, 'fopen', $params, $result, $ignored);
 
             return $result;
-        } elseif (self::$takeover === Takeover::PREVENT_OTHERS) {
-            self::log($protocol, $path, 0.0, 'fopen', [$mode, $use_include_path, $context], false);
+        } elseif (self::$intercept === Intercept::PREVENT_CALLS) {
+            self::redirectOrLog($protocol, StreamHandler::OPEN, $path, 0.0, 'fopen', $params, false);
 
             return false;
         } else {
@@ -317,31 +358,20 @@ class FilesHandler
      */
     public static function fakeSocketClient(
         string $address,
-        &$error_code = '',
-        &$error_message = '',
+        int &$error_code = 0,
+        string &$error_message = '',
         ?float $timeout = null,
         int $flags = STREAM_CLIENT_CONNECT,
         $context = null
     )
     {
-        [$protocol, $path, $allowed] = self::allowed(FileStreamHandler::OPEN, $address);
+        [$protocol, $path, $ignored] = self::ignored(FileStreamHandler::OPEN, $address);
 
-        if ($allowed || self::$takeover === Takeover::NONE) {
-            if ($context !== null) {
-                $result = stream_socket_client($address, $error_code, $error_message, $timeout, $flags, $context);
-            } else {
-                $result = stream_socket_client($address, $error_code, $error_message, $timeout, $flags);
-            }
-            // saving uri
-            if ($result !== false) {
-                self::$uris[(int) $result] = $address;
-            }
-
-            return $result;
-        } elseif (self::$takeover === Takeover::LOG_OTHERS) {
+        $params = [&$error_code, &$error_message, $timeout, $flags, $context];
+        if ($ignored || self::$intercept === Intercept::SILENT || self::$intercept === Intercept::LOG_CALLS) {
             $start = microtime(true);
             if ($context !== null) {
-                $result = stream_socket_client($address, $error_code, $error_message, $timeout, $flags, $context);
+                $result = stream_socket_client($address, ...$params);
             } else {
                 $result = stream_socket_client($address, $error_code, $error_message, $timeout, $flags);
             }
@@ -349,11 +379,11 @@ class FilesHandler
             if ($result !== false) {
                 self::$uris[(int) $result] = $address;
             }
-            self::log($protocol, $path, microtime(true) - $start, 'stream_socket_client', [$error_code, $error_message, $timeout, $flags, $context], $result);
+            self::redirectOrLog($protocol, StreamHandler::OPEN, $path, microtime(true) - $start, 'stream_socket_client', $params, $result, $ignored);
 
             return $result;
-        } elseif (self::$takeover === Takeover::PREVENT_OTHERS) {
-            self::log($protocol, $path, null, 'stream_socket_client', [$error_code, $error_message, $timeout, $flags, $context], false);
+        } elseif (self::$intercept === Intercept::PREVENT_CALLS) {
+            self::redirectOrLog($protocol, StreamHandler::OPEN, $path, null, 'stream_socket_client', $params, false);
 
             return false;
         } else {
@@ -372,7 +402,7 @@ class FilesHandler
     /**
      * @param resource $stream
      */
-    public static function fakeFlock($stream, int $operation, &$would_block): bool
+    public static function fakeFlock($stream, int $operation, int &$would_block = 0): bool
     {
         return self::handle(StreamHandler::LOCK, $stream, 'flock', [$stream, $operation, &$would_block], true);
     }

@@ -14,7 +14,6 @@ use Dogma\Time\Interval\DateTimeInterval;
 use Dogma\Time\Interval\NightInterval;
 use Dogma\Time\Interval\TimeInterval;
 use Dogma\Time\Time;
-use function fopen;
 
 require_once __DIR__ . '/../bootstrap.php';
 
@@ -116,18 +115,3 @@ Assert::dump($set, '<$set>: <Dogma><\><Time><\><Interval><\><DateIntervalSet><[>
    <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-04> - <2001-01-05><)>, <// #?id, 2 days>
    <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-07> - <2001-01-08><)>, <// #?id, 2 days>
 <]> <// #?id, 3 items>');
-
-
-stream:
-$file = fopen(__FILE__, 'r');
-Assert::dump($file, '<$file>: <stream resource><(> <#?id>
-   <$blocked> = <true>;
-   <$eof> = <false>;
-   <$mode> = <"r">;
-   <$seekable> = <true>;
-   <$stream_type> = <"STDIO">;
-   <$timed_out> = <false>;
-   <$unread_bytes> = <0>;
-   <$uri> = <"?pathDumperFormatters.phpt">; <// ?bytes B>
-   <$wrapper_type> = <"plainfile">; <// 9 B>
-<)>');

@@ -242,9 +242,9 @@ Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\>
 <}>');
 
 
-resources:
+stream:
 $file = tmpfile();
-Assert::dump($file, '<$file>: <stream resource><(> <#?id>
+Assert::dump($file, '<$file>: <resource (stream)> <{> <#?id>
    <$blocked> = <true>;
    <$eof> = <false>;
    <$mode> = <"r+b">;
@@ -252,6 +252,6 @@ Assert::dump($file, '<$file>: <stream resource><(> <#?id>
    <$stream_type> = <"STDIO">;
    <$timed_out> = <false>;
    <$unread_bytes> = <0>;
-   <$uri> = <"?path?file">; <// ?bytes B>
+   <$uri> = <"?path?file">; <// ?bytes B, ?path?file>
    <$wrapper_type> = <"plainfile">; <// 9 B>
-<)>');
+<}>');

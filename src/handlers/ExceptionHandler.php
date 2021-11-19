@@ -20,11 +20,13 @@ use function set_exception_handler;
 class ExceptionHandler
 {
 
+    public const NAME = 'exception';
+
     /** @var bool */
     public static $filterTrace = true;
 
     /** @var int Controlling other exception handlers */
-    private static $takeoverHandlers = Takeover::NONE;
+    private static $interceptHandlers = Intercept::NONE;
 
     /** @var bool */
     private static $enabled = false;
@@ -51,6 +53,10 @@ class ExceptionHandler
         Debugger::init();
 
         self::log($e);
+
+        Debugger::setTermination('exception');
+
+        exit(1);
     }
 
     public static function log(Throwable $e): void
@@ -76,28 +82,28 @@ class ExceptionHandler
         Debugger::send(Packet::EXCEPTION, $message, $trace);
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
     /**
      * Take control over set_exception_handler() and restore_exception_handler()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverHandlers(int $level): void
+    public static function interceptHandlers(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('exception', 'set_exception_handler', [self::class, 'fakeRegister']);
-        Takeover::register('exception', 'restore_exception_handler', [self::class, 'fakeRestore']);
-        self::$takeoverHandlers = $level;
+        Intercept::register(self::NAME, 'set_exception_handler', [self::class, 'fakeRegister']);
+        Intercept::register(self::NAME, 'restore_exception_handler', [self::class, 'fakeRestore']);
+        self::$interceptHandlers = $level;
     }
 
     public static function fakeRegister(?callable $callback): ?callable
     {
-        return Takeover::handle('exception', self::$takeoverHandlers, 'set_exception_handler', [$callback], null);
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'set_exception_handler', [$callback], null);
     }
 
     public static function fakeRestore(): bool
     {
-        return Takeover::handle('exception', self::$takeoverHandlers, 'restore_exception_handler', [], null);
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'restore_exception_handler', [], null);
     }
 
 }

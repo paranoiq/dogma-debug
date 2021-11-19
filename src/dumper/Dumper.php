@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use BackedEnum;
 use Closure;
 use Consistence\Enum\Enum;
 use Consistence\Enum\MultiEnum;
@@ -49,9 +50,12 @@ use LogicException;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
+use UnitEnum;
 use const PATH_SEPARATOR;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
+use function abs;
+use function array_filter;
 use function array_keys;
 use function array_map;
 use function array_reverse;
@@ -60,7 +64,9 @@ use function array_slice;
 use function array_unshift;
 use function bin2hex;
 use function count;
+use function decoct;
 use function explode;
+use function file;
 use function get_class;
 use function get_resource_type;
 use function gettype;
@@ -78,10 +84,12 @@ use function is_resource;
 use function is_string;
 use function ksort;
 use function md5;
+use function ob_get_clean;
 use function ob_start;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function range;
 use function spl_object_hash;
 use function str_replace;
 use function stripos;
@@ -90,6 +98,7 @@ use function strpos;
 use function strrpos;
 use function strtolower;
 use function substr;
+use function trim;
 use function uniqid;
 use function var_dump;
 
@@ -242,8 +251,8 @@ class Dumper
 
         'exceptions' => Ansi::LMAGENTA, // RECURSION, ... (max depth, not traversed)
 
-        'function' => Ansi::LGREEN, // stream wrapper function call
-        'time' => Ansi::LBLUE, // stream wrapper operation time
+        'function' => Ansi::LGREEN, // intercept or stream wrapper function call
+        'time' => Ansi::LBLUE, // operation time
     ];
 
     /** @var bool - turn on/of user formatters for dumps */
@@ -251,9 +260,17 @@ class Dumper
 
     /** @var array<class-string|string, callable> - formatters for user-formatted dumps */
     public static $formatters = [
+        // native
+        'resource (stream)' => [self::class, 'dumpStream'],
+        'resource (stream-context)' => [self::class, 'dumpStreamContext'],
+        BackedEnum::class => [self::class, 'dumpBackedEnum'],
+        UnitEnum::class => [self::class, 'dumpUnitEnum'],
+        DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
+
+        // Debug
         Callstack::class => [self::class, 'dumpCallstack'],
 
-        DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
+        // Dogma
         Date::class => [self::class, 'dumpDate'],
         Time::class => [self::class, 'dumpTime'],
 
@@ -273,9 +290,12 @@ class Dumper
         StringEnum::class => [self::class, 'dumpStringEnum'],
         IntSet::class => [self::class, 'dumpIntSet'],
         StringSet::class => [self::class, 'dumpStringSet'],
+
+        // Consistence
         MultiEnum::class => [self::class, 'dumpConsistenceMultiEnum'], // must precede Enum
         Enum::class => [self::class, 'dumpConsistenceEnum'],
 
+        // Dom & Dogma\Dom
         DOMDocument::class => [self::class, 'dumpDomDocument'],
         DOMDocumentFragment::class => [self::class, 'dumpDomDocumentFragment'],
         DOMDocumentType::class => [self::class, 'dumpDomDocumentType'],
@@ -288,8 +308,6 @@ class Dumper
         DOMAttr::class => [self::class, 'dumpDomAttr'],
         Element::class => [self::class, 'dumpDomElement'],
         NodeList::class => [self::class, 'dumpDomNodeList'],
-
-        'stream resource' => [self::class, 'dumpStream'],
     ];
 
     /** @var array<class-string|string, callable> - formatters for short dumps (single line) */
@@ -430,7 +448,7 @@ class Dumper
         } elseif (is_float($value)) {
             return self::dumpFloat($value, (string) $key);
         } elseif (is_string($value)) {
-            if (is_string($key) && Str::endsWith($key, '::class')) {
+            if ($depth === 0 && is_string($key) && Str::endsWith($key, '::class')) {
                 return self::dumpClass($value, $depth);
             } else {
                 return self::dumpString($value, $depth, (string) $key);
@@ -448,7 +466,10 @@ class Dumper
             } else {
                 return self::dumpObject($value, $depth);
             }
-        } elseif (is_resource($value) || gettype($value) === 'resource (closed)') {
+        } elseif (is_resource($value)
+            || gettype($value) === 'resource (closed)' // 7.4
+            || gettype($value) === 'unknown type' // 7.1
+        ) {
             return self::dumpResource($value, $depth);
         } else {
             throw new LogicException('Unknown type: ' . gettype($value));
@@ -847,7 +868,7 @@ class Dumper
             $lines = false;
         }
 
-        if ($lines !== false) {
+        if ($lines !== false && $lines !== []) {
             $lines = array_slice($lines, $ref->getStartLine() - 1, $ref->getEndLine() - $ref->getStartLine() + 1);
 
             $firstLine = array_shift($lines);
@@ -859,6 +880,9 @@ class Dumper
             $firstLine = preg_replace_callback('~function(\\s+)([a-zA-Z0-9_]+)(\\s*)\\(~', static function ($m): string {
                 return 'function' . $m[1] . self::name($m[2]) . $m[3] . '(';
             }, $firstLine);
+            if ($firstLine === null) {
+                throw new LogicException('Should not happen');
+            }
 
             array_unshift($lines, $firstLine);
             $lines = array_map(static function (string $line): string {
@@ -970,7 +994,7 @@ class Dumper
     public static function dumpResource($resource, int $depth = 0): string
     {
         $type = is_resource($resource) ? get_resource_type($resource) : 'closed';
-        $name = $type . ' resource';
+        $name = "resource ($type)";
 
         foreach (self::$formatters as $class => $handler) {
             if ($class === $name) {

@@ -15,37 +15,37 @@ namespace Dogma\Debug;
 class SyslogHandler
 {
 
-    /** @var int */
-    private static $takeover = Takeover::NONE;
+    public const NAME = 'syslog';
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /** @var int */
+    private static $intercept = Intercept::NONE;
 
     /**
      * Take control over openlog(), closelog(), syslog()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverIni(int $level): void
+    public static function interceptSyslog(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('syslog', 'openlog', [self::class, 'fakeOpenlog']);
-        Takeover::register('syslog', 'closelog', [self::class, 'fakeCloselog']);
-        Takeover::register('syslog', 'syslog', [self::class, 'fakeSyslog']);
-        self::$takeover = $level;
+        Intercept::register(self::NAME, 'openlog', [self::class, 'fakeOpenlog']);
+        Intercept::register(self::NAME, 'closelog', [self::class, 'fakeCloselog']);
+        Intercept::register(self::NAME, 'syslog', [self::class, 'fakeSyslog']);
+        self::$intercept = $level;
     }
 
     public static function fakeOpenlog(string $prefix, int $flags, int $facility): bool
     {
-        return Takeover::handle('syslog', self::$takeover, 'openlog', [$prefix, $flags, $facility], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'openlog', [$prefix, $flags, $facility], true);
     }
 
     public static function fakeCloselog(): bool
     {
-        return Takeover::handle('syslog', self::$takeover, 'closelog', [], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'closelog', [], true);
     }
 
     public static function fakeSyslog(int $priority, string $message): bool
     {
-        return Takeover::handle('syslog', self::$takeover, 'syslog', [$priority, $message], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'syslog', [$priority, $message], true);
     }
 
 }

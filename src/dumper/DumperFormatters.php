@@ -9,7 +9,9 @@
 
 namespace Dogma\Debug;
 
+use BackedEnum;
 use ReflectionObject;
+use UnitEnum;
 use function array_keys;
 use function array_map;
 use function array_pop;
@@ -17,6 +19,7 @@ use function array_values;
 use function basename;
 use function dirname;
 use function explode;
+use function get_class;
 use function implode;
 use function is_array;
 use function is_int;
@@ -28,6 +31,7 @@ use function property_exists;
 use function round;
 use function str_repeat;
 use function str_replace;
+use function stream_context_get_params;
 use function stream_get_meta_data;
 use function strlen;
 use function substr;
@@ -58,10 +62,40 @@ trait DumperFormatters
      */
     public static function dumpStream($resource, int $depth = 0): string
     {
-        return self::resource('stream resource') . self::bracket('(')
+        return self::resource('resource (stream)') . ' ' . self::bracket('{')
             . ' ' . self::info('#' . (int) $resource)
             . self::dumpVariables(stream_get_meta_data($resource), $depth)
-            . self::bracket(')');
+            . self::indent($depth) . self::bracket('}');
+    }
+
+    /**
+     * @param resource $resource
+     */
+    public static function dumpStreamContext($resource, int $depth = 0): string
+    {
+        $params = stream_context_get_params($resource);
+        if ($params !== ['options' => []]) {
+            $params = self::dumpVariables($params, $depth) . self::indent($depth);
+
+            return self::resource('resource (stream-context)') . ' ' . self::bracket('{')
+                . ' ' . self::info('#' . (int) $resource)
+                . $params . self::bracket('}');
+        } else {
+            return self::resource('resource (stream-context)') . ' ' . self::info('#' . (int) $resource);
+        }
+    }
+
+    public static function dumpUnitEnum(UnitEnum $enum): string
+    {
+        return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name);
+    }
+
+    public static function dumpBackedEnum(BackedEnum $enum): string
+    {
+        $value = is_int($enum->value) ? self::int((string) $enum->value) : self::string($enum->value);
+
+        return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name)
+            . self::bracket('(') . $value . self::bracket(')');
     }
 
     // component formatters --------------------------------------------------------------------------------------------
@@ -282,7 +316,7 @@ trait DumperFormatters
         if ($return === null) {
             $output = '';
             $end = ')';
-        } elseif (is_scalar($return)) {
+        } elseif (is_scalar($return) || is_resource($return)) {
             $output = ' ' . Dumper::dumpValue($return);
             $end = '):';
         } elseif (is_array($return)) {
@@ -296,8 +330,8 @@ trait DumperFormatters
             }
             $output = ' ' . implode(' ', $output);
             $end = '):';
-        } elseif (is_resource($return)) {
-            $output = ' resource ' . (int) $return;
+        } else {
+            $output = ' ' . Dumper::dumpValue($return);
             $end = '):';
         }
 

@@ -15,6 +15,7 @@ use ReflectionFunction;
 use ReflectionMethod;
 use Throwable;
 use const PHP_SAPI;
+use function array_unshift;
 use function count;
 use function debug_backtrace;
 use function in_array;
@@ -60,11 +61,17 @@ class Callstack
         $this->frames = $frames;
     }
 
+    /**
+     * @param string[] $filters
+     */
     public static function get(array $filters = [], bool $filter = true): self
     {
         return self::fromBacktrace(debug_backtrace(), $filters, $filter);
     }
 
+    /**
+     * @param string[] $filters
+     */
     public static function fromThrowable(Throwable $e, array $filters = [], bool $filter = true): self
     {
         $trace = $e->getTrace();
@@ -85,7 +92,7 @@ class Callstack
 
     /**
      * @param PhpBacktraceItem[] $trace
-     * @return self
+     * @param string[] $filters
      */
     public static function fromBacktrace(array $trace, array $filters = [], bool $filter = true): self
     {

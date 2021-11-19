@@ -16,7 +16,6 @@ class FileStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'file';
-    private const TIME_UNIT = 'μs';
+    public const PROTOCOL = 'file';
 
 }

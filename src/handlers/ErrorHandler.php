@@ -27,7 +27,7 @@ use const E_USER_NOTICE;
 use const E_USER_WARNING;
 use const E_WARNING;
 use function error_reporting;
-use function microtime;
+use function ksort;
 use function restore_error_handler;
 use function set_error_handler;
 
@@ -45,11 +45,13 @@ use function set_error_handler;
  * - in this case functionality regarding previously registered handler remains unchanged, but
  * - you can configure behaviour regarding handlers registered after this one, which should, under normal circumstances,
  *  take precedence and be called first (and maybe catching the errors and not passing them to other handlers)
- * - by setting $takeover property to one of TAKEOVER_* constants, you can enforce this handler to be always called,
+ * - by setting $intercept property to one of Intercept::* constants, you can enforce this handler to be always called,
  *  and if needed, change the order in which it is called or even suppress other error handlers entirely
  */
 class ErrorHandler
 {
+
+    public const NAME = 'error';
 
     /** @var bool Prevent error from bubbling to other error handlers (including the native handler) */
     public static $catch = false;
@@ -79,7 +81,7 @@ class ErrorHandler
     public static $filterTrace = true;
 
     /** @var array<array{string, string}> */
-    public static $takeoverExceptions = [
+    public static $interceptExceptions = [
         ['Nette\Utils\Callback', 'invokeSafe'],
         ['Symfony\Component\Process\Pipes\UnixPipes', 'readAndWrite'],
         ['PhpAmqpLib\Wire\IO\AbstractIO', 'set_error_handler'],
@@ -109,10 +111,10 @@ class ErrorHandler
     private static $enabled = false;
 
     /** @var int */
-    private static $takeoverHandlers = Takeover::NONE;
+    private static $interceptHandlers = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverDisplay = Takeover::NONE;
+    private static $interceptReporting = Intercept::NONE;
 
     public static function enable(int $types = E_ALL, bool $catch = false, int $printLimit = 0, bool $uniqueOnly = true): void
     {
@@ -280,55 +282,55 @@ class ErrorHandler
         return self::$messages;
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
     /**
      * Take control over set_error_handler() and restore_error_handler()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::ALWAYS_FIRST|Takeover::ALWAYS_LAST|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverHandlers(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptHandlers(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('error', 'set_error_handler', [self::class, 'fakeRegister']);
-        Takeover::register('error', 'restore_error_handler', [self::class, 'fakeRestore']);
-        self::$takeoverHandlers = $level;
+        Intercept::register(self::NAME, 'set_error_handler', [self::class, 'fakeRegister']);
+        Intercept::register(self::NAME, 'restore_error_handler', [self::class, 'fakeRestore']);
+        self::$interceptHandlers = $level;
     }
 
     /**
-     * Take control over error_reporting() and display_errors()
+     * Take control over error_reporting()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverDisplay(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptReporting(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('error', 'error_reporting', [self::class, 'fakeReporting']);
-        Takeover::register('error', 'display_errors', [self::class, 'fakeDisplay']);
-        self::$takeoverDisplay = $level;
-    }
-
-    public static function fakeReporting(?int $level = null): int
-    {
-        if ($level === null) {
-            return error_reporting();
-        } else {
-            return Takeover::handle('error', self::$takeoverHandlers, 'error_reporting', [$level], null, self::allowed());
-        }
+        Intercept::register(self::NAME, 'error_reporting', [self::class, 'fakeReporting']);
+        self::$interceptReporting = $level;
     }
 
     public static function fakeRegister(?callable $callback, int $levels = E_ALL | E_STRICT): ?callable
     {
-        return Takeover::handle('error', self::$takeoverHandlers, 'set_error_handler', [$callback, $levels], null, self::allowed());
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'set_error_handler', [$callback, $levels], null, self::ignored());
     }
 
     public static function fakeRestore(): bool
     {
-        return Takeover::handle('error', self::$takeoverHandlers, 'restore_error_handler', [], null, self::allowed());
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'restore_error_handler', [], true, self::ignored());
     }
 
-    private static function allowed(): bool
+    public static function fakeReporting(?int $level = null): int
+    {
+        $res = error_reporting();
+        if ($level === null) {
+            return error_reporting();
+        }
+
+        return Intercept::handle(self::NAME, self::$interceptReporting, 'error_reporting', [$level], $res, self::ignored());
+    }
+
+    private static function ignored(): bool
     {
         $frame = Callstack::get(Dumper::$traceFilters)->last();
-        foreach (self::$takeoverExceptions as $exception) {
+        foreach (self::$interceptExceptions as $exception) {
             if ($frame->is($exception)) {
                 return true;
             }

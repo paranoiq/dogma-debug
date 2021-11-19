@@ -41,16 +41,16 @@ function f(int $length, int $depth, array $lines): string
 
 formatCallstack:
 Assert::same(Assert::normalize(d(0, 0, [])), '');
-Assert::same(Assert::normalize(d(1, 0, [])), '<^--- in ><tests/php71/>DumperTraces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
-Assert::same(Assert::normalize(d(2, 0, [])), '<^--- in ><tests/php71/>DumperTraces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>');
-Assert::same(Assert::normalize(d(3, 0, [])), '<^--- in ><tests/php71/>DumperTraces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>');
-Assert::same(Assert::normalize(d(4, 0, [])), '<^--- in ><tests/php71/>DumperTraces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><50>');
+Assert::same(Assert::normalize(d(1, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
+Assert::same(Assert::normalize(d(2, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>');
+Assert::same(Assert::normalize(d(3, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>');
+Assert::same(Assert::normalize(d(4, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><50>');
 
 
 findExpression:
@@ -96,16 +96,16 @@ Assert::same(Dumper::getExpression("rd([\$foo, 'bar']);"), "[\$foo, 'bar']");
 // dump with trace
 Assert::same(Assert::normalize(a(0)), '<literal>: <true>');
 Assert::same(Assert::normalize(a(1)), '<literal>: <true>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>');
 Assert::same(Assert::normalize(a(2)), '<literal>: <true>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>');
 Assert::same(Assert::normalize(a(3)), '<literal>: <true>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>');
 Assert::same(Assert::normalize(a(4)), '<literal>: <true>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>
-<^--- in ><tests/php71/>DumperTraces.phpt<:><107>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><107>');

@@ -17,51 +17,51 @@ use function ini_get;
 class SettingsHandler
 {
 
-    /** @var int */
-    private static $takeoverIni = Takeover::NONE;
+    public const NAME = 'settings';
 
     /** @var int */
-    private static $takeoverEnv = Takeover::NONE;
+    private static $interceptIni = Intercept::NONE;
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /** @var int */
+    private static $interceptEnv = Intercept::NONE;
 
     /**
      * Take control over ini_set(), ini_alter(), ini_restore()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverIni(int $level): void
+    public static function interceptIni(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('settings', 'ini_set', [self::class, 'fakeIniSet']);
-        Takeover::register('settings', 'ini_alter', [self::class, 'fakeIniSet']);
-        Takeover::register('settings', 'ini_restore', [self::class, 'fakeIniRestore']);
-        self::$takeoverIni = $level;
+        Intercept::register(self::NAME, 'ini_set', [self::class, 'fakeIniSet']);
+        Intercept::register(self::NAME, 'ini_alter', [self::class, 'fakeIniSet']);
+        Intercept::register(self::NAME, 'ini_restore', [self::class, 'fakeIniRestore']);
+        self::$interceptIni = $level;
     }
 
     /**
      * Take control over putenv()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverEnv(int $level): void
+    public static function interceptEnv(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('settings', 'putenv', [self::class, 'fakePutenv']);
-        self::$takeoverEnv = $level;
+        Intercept::register(self::NAME, 'putenv', [self::class, 'fakePutenv']);
+        self::$interceptEnv = $level;
     }
 
     public static function fakeIniSet(string $name, string $value): void
     {
-        Takeover::handle('settings', self::$takeoverIni, 'ini_set', [$name, $value], ini_get($name));
+        Intercept::handle(self::NAME, self::$interceptIni, 'ini_set', [$name, $value], ini_get($name));
     }
 
     public static function fakeIniRestore(string $name): void
     {
-        Takeover::handle('settings', self::$takeoverIni, 'ini_restore', [$name], null);
+        Intercept::handle(self::NAME, self::$interceptIni, 'ini_restore', [$name], null);
     }
 
     public static function fakePutenv(string $assignment): bool
     {
-        return Takeover::handle('settings', self::$takeoverEnv, 'putenv', [$assignment], true);
+        return Intercept::handle(self::NAME, self::$interceptEnv, 'putenv', [$assignment], true);
     }
 
 }

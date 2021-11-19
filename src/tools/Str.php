@@ -10,8 +10,10 @@
 namespace Dogma\Debug;
 
 use const PREG_OFFSET_CAPTURE;
+use function array_keys;
 use function array_pop;
 use function array_values;
+use function count;
 use function function_exists;
 use function grapheme_strlen;
 use function grapheme_substr;

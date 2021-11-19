@@ -18,6 +18,8 @@ use function http_response_code;
 class RequestHandler
 {
 
+    public const NAME = 'request';
+
     /** @var bool Print request headers */
     public static $requestHeaders = false;
 
@@ -30,71 +32,72 @@ class RequestHandler
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var int */
-    private static $takeoverHeaders = Takeover::NONE;
+    private static $interceptHeaders = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverCookies = Takeover::NONE;
-
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    private static $interceptCookies = Intercept::NONE;
 
     /**
      * Take control over header(), header_remove(), ignore_user_abort()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverHeaders(int $level): void
+    public static function interceptHeaders(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('request', 'header', [self::class, 'fakeHeader']);
-        Takeover::register('request', 'header_remove', [self::class, 'fakeHeaderRemove']);
-        Takeover::register('request', 'header_register_callback', [self::class, 'fakeHeaderRegister']);
-        Takeover::register('request', 'http_response_code', [self::class, 'fakeResponseCode']);
-        self::$takeoverHeaders = $level;
+        Intercept::register(self::NAME, 'header', [self::class, 'fakeHeader']);
+        Intercept::register(self::NAME, 'header_remove', [self::class, 'fakeHeaderRemove']);
+        Intercept::register(self::NAME, 'header_register_callback', [self::class, 'fakeHeaderRegister']);
+        Intercept::register(self::NAME, 'http_response_code', [self::class, 'fakeResponseCode']);
+        self::$interceptHeaders = $level;
     }
 
     /**
      * Take control over setcookie() and setrawcookie()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverCookies(int $level): void
+    public static function interceptCookies(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('request', 'setcookie', [self::class, 'fakeCookie']);
-        Takeover::register('request', 'setrawcookie', [self::class, 'fakeRawCookie']);
-        self::$takeoverCookies = $level;
+        Intercept::register(self::NAME, 'setcookie', [self::class, 'fakeCookie']);
+        Intercept::register(self::NAME, 'setrawcookie', [self::class, 'fakeRawCookie']);
+        self::$interceptCookies = $level;
     }
 
     public static function fakeHeader(string $header, bool $replace = true, int $responseCode = 0): void
     {
-        Takeover::handle('request', self::$takeoverHeaders, 'header', [$header, $replace, $responseCode], null);
+        Intercept::handle(self::NAME, self::$interceptHeaders, 'header', [$header, $replace, $responseCode], null);
     }
 
     public static function fakeHeaderRemove(?string $header = null): void
     {
-        Takeover::handle('request', self::$takeoverHeaders, 'header_remove', [$header], null);
+        Intercept::handle(self::NAME, self::$interceptHeaders, 'header_remove', [$header], null);
     }
 
     public static function fakeHeaderRegister(callable $callable): bool
     {
-        return Takeover::handle('request', self::$takeoverHeaders, 'header_register_callback', [$callable], true);
+        return Intercept::handle(self::NAME, self::$interceptHeaders, 'header_register_callback', [$callable], true);
     }
 
-    public static function fakeResponseCode(?int $code = null): bool
+    /**
+     * @return bool|int
+     */
+    public static function fakeResponseCode(?int $code = null)
     {
         if ($code === null) {
             return http_response_code();
         }
 
-        return Takeover::handle('request', self::$takeoverHeaders, 'http_response_code', [$code], true);
+        return Intercept::handle(self::NAME, self::$interceptHeaders, 'http_response_code', [$code], true);
     }
 
     public static function fakeCookie(string $name, string $value = ''/* ... */): bool
     {
-        return Takeover::handle('request', self::$takeoverCookies, 'setcookie', func_get_args(), true);
+        return Intercept::handle(self::NAME, self::$interceptCookies, 'setcookie', func_get_args(), true);
     }
 
     public static function fakeRawCookie(string $name, string $value = ''/* ... */): bool
     {
-        return Takeover::handle('request', self::$takeoverCookies, 'setrawcookie', func_get_args(), true);
+        return Intercept::handle(self::NAME, self::$interceptCookies, 'setrawcookie', func_get_args(), true);
     }
 
 }

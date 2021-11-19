@@ -12,6 +12,7 @@ namespace Dogma\Debug;
 use LogicException;
 use const DNS_ANY;
 use function dns_get_mx;
+use function dns_get_record;
 
 /**
  * Tracks calls to dns related functions
@@ -19,28 +20,28 @@ use function dns_get_mx;
 class DnsHandler
 {
 
-    /** @var int */
-    private static $takeover = Takeover::NONE;
+    public const NAME = 'dns';
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /** @var int */
+    private static $intercept = Intercept::NONE;
 
     /**
-     * Take control over checkdnsrr(), dns_check_record(), dns_get_mx(), dns_get_record(), gethostbyaddr(), gethostbyname(), gethostbynamel(), gethostname(), getmxrr()
+     * Take control over DNS related functions
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverDns(int $level): void
+    public static function interceptDns(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('dns', 'gethostbyaddr', [self::class, 'fakeGetHostByAddr']);
-        Takeover::register('dns', 'gethostbyname', [self::class, 'fakeGetHostByName']);
-        Takeover::register('dns', 'gethostbynamel', [self::class, 'fakeGetHostByNamel']);
-        Takeover::register('dns', 'gethostname', [self::class, 'fakeHostname']);
-        Takeover::register('dns', 'dns_check_record', [self::class, 'fakeCheck']);
-        Takeover::register('dns', 'checkdnsrr', [self::class, 'fakeCheck']); // alias ^
-        Takeover::register('dns', 'dns_get_mx', [self::class, 'fakeGetMx']);
-        Takeover::register('dns', 'getmxrr', [self::class, 'fakeGetMx']); // alias ^
-        Takeover::register('dns', 'dns_get_record', [self::class, 'fakeGetRecord']);
-        self::$takeover = $level;
+        Intercept::register(self::NAME, 'gethostbyaddr', [self::class, 'fakeGetHostByAddr']);
+        Intercept::register(self::NAME, 'gethostbyname', [self::class, 'fakeGetHostByName']);
+        Intercept::register(self::NAME, 'gethostbynamel', [self::class, 'fakeGetHostByNamel']);
+        Intercept::register(self::NAME, 'gethostname', [self::class, 'fakeHostname']);
+        Intercept::register(self::NAME, 'dns_check_record', [self::class, 'fakeCheck']);
+        Intercept::register(self::NAME, 'checkdnsrr', [self::class, 'fakeCheck']); // alias ^
+        Intercept::register(self::NAME, 'dns_get_mx', [self::class, 'fakeGetMx']);
+        Intercept::register(self::NAME, 'getmxrr', [self::class, 'fakeGetMx']); // alias ^
+        Intercept::register(self::NAME, 'dns_get_record', [self::class, 'fakeGetRecord']);
+        self::$intercept = $level;
     }
 
     /**
@@ -48,12 +49,12 @@ class DnsHandler
      */
     public static function fakeGetHostByAddr(string $ip)
     {
-        return Takeover::handle('dns', self::$takeover, 'gethostbyaddr', [$ip], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'gethostbyaddr', [$ip], false);
     }
 
     public static function fakeGetHostByName(string $hostname): string
     {
-        return Takeover::handle('dns', self::$takeover, 'gethostbyname', [$hostname], $hostname);
+        return Intercept::handle(self::NAME, self::$intercept, 'gethostbyname', [$hostname], $hostname);
     }
 
     /**
@@ -61,7 +62,7 @@ class DnsHandler
      */
     public static function fakeGetHostByNamel(string $hostname)
     {
-        return Takeover::handle('dns', self::$takeover, 'gethostbynamel', [$hostname], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'gethostbynamel', [$hostname], false);
     }
 
     /**
@@ -69,25 +70,29 @@ class DnsHandler
      */
     public static function fakeHostname()
     {
-        return Takeover::handle('dns', self::$takeover, 'gethostname', [], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'gethostname', [], false);
     }
 
     public static function fakeCheck(string $hostname, string $type = 'MX'): bool
     {
-        return Takeover::handle('dns', self::$takeover, 'dns_check_record', [$hostname, $type], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'dns_check_record', [$hostname, $type], false);
     }
 
-    public static function fakeGetMx(string $hostname, &$hosts = [], &$weights = []): bool
+    /**
+     * @param string[] $hosts
+     * @param int[] $weights
+     */
+    public static function fakeGetMx(string $hostname, array &$hosts = [], array &$weights = []): bool
     {
-        if (self::$takeover === Takeover::NONE) {
+        if (self::$intercept === Intercept::SILENT) {
             return dns_get_mx($hostname, $hosts, $weights);
-        } elseif (self::$takeover === Takeover::LOG_OTHERS) {
+        } elseif (self::$intercept === Intercept::LOG_CALLS) {
             $result = dns_get_mx($hostname, $hosts, $weights);
-            Takeover::log('dns', self::$takeover, 'dns_get_mx', [$hostname, $hosts, $weights], $result);
+            Intercept::log(self::NAME, self::$intercept, 'dns_get_mx', [$hostname, $hosts, $weights], $result);
 
             return $result;
-        } elseif (self::$takeover === Takeover::PREVENT_OTHERS) {
-            Takeover::log('dns', self::$takeover, 'dns_get_mx', [$hostname, $hosts, $weights], false);
+        } elseif (self::$intercept === Intercept::PREVENT_CALLS) {
+            Intercept::log(self::NAME, self::$intercept, 'dns_get_mx', [$hostname, $hosts, $weights], false);
 
             return false;
         } else {
@@ -103,20 +108,20 @@ class DnsHandler
     public static function fakeGetRecord(
         string $hostname,
         int $type = DNS_ANY,
-        &$authoritative_name_servers = [],
-        &$additional_records = [],
+        array &$authoritative_name_servers = [],
+        array &$additional_records = [],
         bool $raw = false
     )
     {
-        if (self::$takeover === Takeover::NONE) {
+        if (self::$intercept === Intercept::SILENT) {
             return dns_get_record($hostname, $type, $authoritative_name_servers, $additional_records, $raw);
-        } elseif (self::$takeover === Takeover::LOG_OTHERS) {
+        } elseif (self::$intercept === Intercept::LOG_CALLS) {
             $result = dns_get_record($hostname, $type, $authoritative_name_servers, $additional_records, $raw);
-            Takeover::log('dns', self::$takeover, 'dns_get_record', [$hostname, $type, $authoritative_name_servers, $additional_records, $raw], $result);
+            Intercept::log(self::NAME, self::$intercept, 'dns_get_record', [$hostname, $type, $authoritative_name_servers, $additional_records, $raw], $result);
 
             return $result;
-        } elseif (self::$takeover === Takeover::PREVENT_OTHERS) {
-            Takeover::log('dns', self::$takeover, 'dns_get_record', [$hostname, $type, $authoritative_name_servers, $additional_records, $raw], false);
+        } elseif (self::$intercept === Intercept::PREVENT_CALLS) {
+            Intercept::log(self::NAME, self::$intercept, 'dns_get_record', [$hostname, $type, $authoritative_name_servers, $additional_records, $raw], false);
 
             return false;
         } else {

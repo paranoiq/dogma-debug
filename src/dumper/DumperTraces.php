@@ -9,18 +9,22 @@
 
 namespace Dogma\Debug;
 
+use function array_keys;
 use function array_slice;
 use function array_values;
 use function debug_backtrace;
 use function end;
+use function floor;
 use function implode;
 use function in_array;
 use function preg_match;
+use function preg_replace;
 use function str_replace;
 use function str_split;
 use function strlen;
 use function strpos;
 use function strrpos;
+use function strtolower;
 use function substr;
 use function trim;
 
@@ -181,8 +185,7 @@ trait DumperTraces
 
         $classMethod = '';
         if (self::$traceDetails && $frame->function !== null) {
-            $classMethod = ' ' . self::symbol('--') . ' '
-                . ($frame->class !== null ? self::nameDim($frame->class) . self::symbol('::') : '')
+            $classMethod = ($frame->class !== null ? self::nameDim($frame->class) . self::symbol('::') : '')
                 . self::nameDim($frame->function) . self::bracket('(') . $args . self::bracket(')');
         }
 
@@ -191,7 +194,12 @@ trait DumperTraces
             $fileLine = self::fileLine(self::normalizePath($frame->file), $frame->line);
         }
 
-        return self::info("^--- in ") . $fileLine . $classMethod;
+        $separator = '';
+        if ($fileLine && $classMethod) {
+            $separator = ' ' . self::symbol('--') . ' ';
+        }
+
+        return self::info("^--- in ") . $fileLine . $separator . $classMethod;
     }
 
     /**

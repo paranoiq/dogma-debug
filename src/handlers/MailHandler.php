@@ -17,20 +17,20 @@ use function func_get_args;
 class MailHandler
 {
 
-    /** @var int */
-    private static $takeover = Takeover::NONE;
+    public const NAME = 'mail';
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /** @var int */
+    private static $intercept = Intercept::NONE;
 
     /**
      * Take control over mail()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverMail(int $level): void
+    public static function interceptMail(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('mail', 'mail', [self::class, 'fakeMail']);
-        self::$takeover = $level;
+        Intercept::register(self::NAME, 'mail', [self::class, 'fakeMail']);
+        self::$intercept = $level;
     }
 
     public static function fakeMail(
@@ -41,7 +41,7 @@ class MailHandler
         //string $additional_params = ''
     ): bool
     {
-        return Takeover::handle('mail', self::$takeover, 'openlog', func_get_args(), true);
+        return Intercept::handle(self::NAME, self::$intercept, 'openlog', func_get_args(), true);
     }
 
 }

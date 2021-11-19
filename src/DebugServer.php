@@ -15,6 +15,7 @@ use Socket;
 use const AF_INET;
 use const SOCK_STREAM;
 use const SOL_TCP;
+use function count;
 use function explode;
 use function round;
 use function serialize;
@@ -151,16 +152,18 @@ class DebugServer
 
             // process id
             if (count($this->connections) > 1 && $request->type !== Packet::INTRO && $request->type !== Packet::OUTRO) {
-                echo Ansi::white(" #$request->pid ", Ansi::DYELLOW) . ' ';
+                echo "\n" . Ansi::white(" #$request->pid ", Ansi::DYELLOW) . ' ';
+            } else {
+                echo "\n";
             }
 
             // payload
-            echo "\n". $request->payload;
+            echo $request->payload;
 
             // duration
             if ($request->duration > 0.000000000001) {
                 $unit = $request->duration < 0.001 ? 'μs' : 'ms';
-                $multiplier =  $unit === 'ms' ? 1000 : 1000000;
+                $multiplier = $unit === 'ms' ? 1000 : 1000000;
                 echo ' ' . Ansi::dblue('(' . round($request->duration * $multiplier) . ' ' . $unit . ')');
             }
 

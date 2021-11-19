@@ -42,10 +42,11 @@ use const SIGVTALRM;
 use const SIGWINCH;
 use const SIGXCPU;
 use const SIGXFSZ;
-use function in_array;
+use function array_search;
 use function func_get_args;
 use function function_exists;
 use function ignore_user_abort;
+use function in_array;
 use function pcntl_async_signals;
 use function pcntl_signal;
 use function sapi_windows_set_ctrl_handler;
@@ -59,22 +60,22 @@ use function sapi_windows_set_ctrl_handler;
 class ShutdownHandler
 {
 
-    // internals -------------------------------------------------------------------------------------------------------
+    public const NAME = 'shutdown';
 
     /** @var bool */
     private static $enabled = false;
 
     /** @var int */
-    private static $takeoverSignals = Takeover::NONE;
+    private static $interceptSignals = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverExit = Takeover::NONE;
+    private static $interceptExit = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverShutdown = Takeover::NONE;
+    private static $interceptShutdown = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverAbort = Takeover::NONE;
+    private static $interceptAbort = Intercept::NONE;
 
     /** @var array<string, int> */
     private static $signals;
@@ -127,8 +128,13 @@ class ShutdownHandler
                 'system_call' => SIGSYS,      // ~31 Terminate*   Bad system call (SIGUNUSED)
             ];
             self::$nonTerminating = [
-                self::$signals['child'], self::$signals['stop'], self::$signals['term_stop'], self::$signals['term_input'],
-                self::$signals['term_output'], self::$signals['urgent'], self::$signals['window_change']
+                self::$signals['child'],
+                self::$signals['stop'],
+                self::$signals['term_stop'],
+                self::$signals['term_input'],
+                self::$signals['term_output'],
+                self::$signals['urgent'],
+                self::$signals['window_change'],
             ];
 
             // cannot set handler
@@ -181,7 +187,7 @@ class ShutdownHandler
      */
     public static function signal(int $signal, $info): void
     {
-        $name = array_search($signal, self::$signals) ?: $signal;
+        $name = array_search($signal, self::$signals, true) ?: $signal;
         Debugger::setTermination("signal ($name)");
 
         if (!in_array($signal, self::$nonTerminating, true)) {
@@ -206,53 +212,53 @@ class ShutdownHandler
         exit;
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
     /**
      * Take control over pcntl_signal(), pcntl_async_signals() and sapi_windows_set_ctrl_handler()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverSignals(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptSignals(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverSignals = $level;
-        Takeover::register('shutdown', 'pcntl_signal', [self::class, 'fakeSignal']);
-        Takeover::register('shutdown', 'pcntl_async_signals', [self::class, 'fakeAsyncSignals']);
-        Takeover::register('shutdown', 'sapi_windows_set_ctrl_handler', [self::class, 'fakeWinSignal']);
+        self::$interceptSignals = $level;
+        Intercept::register(self::NAME, 'pcntl_signal', [self::class, 'fakeSignal']);
+        Intercept::register(self::NAME, 'pcntl_async_signals', [self::class, 'fakeAsyncSignals']);
+        Intercept::register(self::NAME, 'sapi_windows_set_ctrl_handler', [self::class, 'fakeWinSignal']);
     }
 
     /**
      * Takes control over exit() and die()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverExit(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptExit(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverExit = $level;
-        Takeover::register('shutdown', 'exit', [self::class, 'fakeExit']);
-        Takeover::register('shutdown', 'die', [self::class, 'fakeExit']); // die() is just synonym of exit()
+        self::$interceptExit = $level;
+        Intercept::register(self::NAME, 'exit', [self::class, 'fakeExit']);
+        Intercept::register(self::NAME, 'die', [self::class, 'fakeExit']); // die() is just synonym of exit()
     }
 
     /**
      * Take control over ignore_user_abort()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverAbort(int $level): void
+    public static function interceptAbort(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('shutdown', 'ignore_user_abort', [self::class, 'fakeIgnore']);
-        self::$takeoverAbort = $level;
+        Intercept::register(self::NAME, 'ignore_user_abort', [self::class, 'fakeIgnore']);
+        self::$interceptAbort = $level;
     }
 
     /**
      * Takes control over register_shutdown_function()
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverShutdown(int $level = Takeover::LOG_OTHERS): void
+    public static function interceptShutdown(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverShutdown = $level;
-        Takeover::register('shutdown', 'register_shutdown_function', [self::class, 'fakeRegister']);
+        self::$interceptShutdown = $level;
+        Intercept::register(self::NAME, 'register_shutdown_function', [self::class, 'fakeRegister']);
     }
 
     /**
@@ -260,17 +266,17 @@ class ShutdownHandler
      */
     public static function fakeSignal(int $signal, $callable, bool $restartSysCalls = true): bool
     {
-        return Takeover::handle('shutdown', self::$takeoverSignals, 'pcntl_signal', [$signal, $callable, $restartSysCalls], true);
+        return Intercept::handle(self::NAME, self::$interceptSignals, 'pcntl_signal', [$signal, $callable, $restartSysCalls], true);
     }
 
     public static function fakeAsyncSignals(?bool $enable): bool
     {
-        return Takeover::handle('shutdown', self::$takeoverSignals, 'pcntl_async_signals', [$enable], true);
+        return Intercept::handle(self::NAME, self::$interceptSignals, 'pcntl_async_signals', [$enable], true);
     }
 
     public static function fakeWinSignal(callable $callable, bool $add): bool
     {
-        return Takeover::handle('shutdown', self::$takeoverSignals, 'sapi_windows_set_ctrl_handler', [$callable, $add], true);
+        return Intercept::handle(self::NAME, self::$interceptSignals, 'sapi_windows_set_ctrl_handler', [$callable, $add], true);
     }
 
     /**
@@ -280,10 +286,10 @@ class ShutdownHandler
     {
         Debugger::setTermination($status ? 'exit (' . $status . ')' : 'exit');
 
-        if (self::$takeoverExit === Takeover::NONE) {
+        if (self::$interceptExit === Intercept::SILENT) {
             exit($status);
-        } elseif (self::$takeoverExit === Takeover::LOG_OTHERS) {
-            Takeover::log('shutdown', self::$takeoverExit, 'exit', [$status], null);
+        } elseif (self::$interceptExit === Intercept::LOG_CALLS) {
+            Intercept::log(self::NAME, self::$interceptExit, 'exit', [$status], null);
             exit($status);
         } else {
             throw new LogicException('Not implemented.');
@@ -295,12 +301,12 @@ class ShutdownHandler
      */
     public static function fakeRegister(?callable $callback, ...$args): ?bool
     {
-        return Takeover::handle('shutdown', self::$takeoverShutdown, 'register_shutdown_function', func_get_args(), null);
+        return Intercept::handle(self::NAME, self::$interceptShutdown, 'register_shutdown_function', func_get_args(), null);
     }
 
     public static function fakeIgnore(?bool $ignore): int
     {
-        return Takeover::handle('shutdown', self::$takeoverAbort, 'ignore_user_abort', [$ignore], ignore_user_abort());
+        return Intercept::handle(self::NAME, self::$interceptAbort, 'ignore_user_abort', [$ignore], ignore_user_abort());
     }
 
 }

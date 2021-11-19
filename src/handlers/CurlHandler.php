@@ -20,38 +20,38 @@ use const CURLM_OK;
 class CurlHandler
 {
 
-    /** @var int */
-    private static $takeover = Takeover::NONE;
+    public const NAME = 'curl';
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    /** @var int */
+    private static $intercept = Intercept::NONE;
 
     /**
      * Take control over majority of curl_*() functions
      *
-     * @param int $level Takeover::NONE|Takeover::LOG_OTHERS|Takeover::PREVENT_OTHERS
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function takeoverCurl(int $level): void
+    public static function interceptCurl(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('curl', 'curl_init', [self::class, 'fakeInit']);
-        Takeover::register('curl', 'curl_close', [self::class, 'fakeClose']);
-        Takeover::register('curl', 'curl_exec', [self::class, 'fakeExec']);
-        Takeover::register('curl', 'curl_getinfo', [self::class, 'fakeInfo']);
-        Takeover::register('curl', 'curl_pause', [self::class, 'fakePause']);
-        Takeover::register('curl', 'curl_reset', [self::class, 'fakeReset']);
-        Takeover::register('curl', 'curl_setopt_array', [self::class, 'fakeSetoptArray']);
-        Takeover::register('curl', 'curl_setopt', [self::class, 'fakeSetopt']);
+        Intercept::register(self::NAME, 'curl_init', [self::class, 'fakeInit']);
+        Intercept::register(self::NAME, 'curl_close', [self::class, 'fakeClose']);
+        Intercept::register(self::NAME, 'curl_exec', [self::class, 'fakeExec']);
+        Intercept::register(self::NAME, 'curl_getinfo', [self::class, 'fakeInfo']);
+        Intercept::register(self::NAME, 'curl_pause', [self::class, 'fakePause']);
+        Intercept::register(self::NAME, 'curl_reset', [self::class, 'fakeReset']);
+        Intercept::register(self::NAME, 'curl_setopt_array', [self::class, 'fakeSetoptArray']);
+        Intercept::register(self::NAME, 'curl_setopt', [self::class, 'fakeSetopt']);
 
-        Takeover::register('curl', 'curl_multi_init', [self::class, 'fakeMultiInit']);
-        Takeover::register('curl', 'curl_multi_close', [self::class, 'fakeMultiClose']);
-        Takeover::register('curl', 'curl_multi_add_handle', [self::class, 'fakeMultiAdd']);
-        Takeover::register('curl', 'curl_multi_remove_handle', [self::class, 'fakeMultiRemove']);
-        Takeover::register('curl', 'curl_multi_exec', [self::class, 'fakeMultiExec']);
-        Takeover::register('curl', 'curl_multi_select', [self::class, 'fakeMultiSelect']);
-        Takeover::register('curl', 'curl_multi_getcontent', [self::class, 'fakeMultiContent']);
-        Takeover::register('curl', 'curl_multi_info_read', [self::class, 'fakeMultiInfo']);
-        Takeover::register('curl', 'curl_multi_setopt', [self::class, 'fakeMultiSetopt']);
+        Intercept::register(self::NAME, 'curl_multi_init', [self::class, 'fakeMultiInit']);
+        Intercept::register(self::NAME, 'curl_multi_close', [self::class, 'fakeMultiClose']);
+        Intercept::register(self::NAME, 'curl_multi_add_handle', [self::class, 'fakeMultiAdd']);
+        Intercept::register(self::NAME, 'curl_multi_remove_handle', [self::class, 'fakeMultiRemove']);
+        Intercept::register(self::NAME, 'curl_multi_exec', [self::class, 'fakeMultiExec']);
+        Intercept::register(self::NAME, 'curl_multi_select', [self::class, 'fakeMultiSelect']);
+        Intercept::register(self::NAME, 'curl_multi_getcontent', [self::class, 'fakeMultiContent']);
+        Intercept::register(self::NAME, 'curl_multi_info_read', [self::class, 'fakeMultiInfo']);
+        Intercept::register(self::NAME, 'curl_multi_setopt', [self::class, 'fakeMultiSetopt']);
 
-        self::$takeover = $level;
+        self::$intercept = $level;
     }
 
     /**
@@ -59,7 +59,7 @@ class CurlHandler
      */
     public static function fakeInit(?string $url = null)
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_init', [$url], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_init', [$url], false);
     }
 
     /**
@@ -67,7 +67,7 @@ class CurlHandler
      */
     public static function fakeClose($handle): void
     {
-        Takeover::handle('curl', self::$takeover, 'curl_close', [$handle], null);
+        Intercept::handle(self::NAME, self::$intercept, 'curl_close', [$handle], null);
     }
 
     /**
@@ -76,7 +76,7 @@ class CurlHandler
      */
     public static function fakeExec($handle)
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_exec', [$handle], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_exec', [$handle], false);
     }
 
     /**
@@ -85,7 +85,7 @@ class CurlHandler
      */
     public static function fakeGetInfo($handle, ?int $option = null)
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_getinfo', [$handle, $option], $option ? '' : []);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_getinfo', [$handle, $option], $option ? '' : []);
     }
 
     /**
@@ -93,7 +93,7 @@ class CurlHandler
      */
     public static function fakePause($handle, int $flags): int
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_pause', [$handle, $flags], CURLE_OK);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_pause', [$handle, $flags], CURLE_OK);
     }
 
     /**
@@ -101,7 +101,7 @@ class CurlHandler
      */
     public static function fakeReset($handle): void
     {
-        Takeover::handle('curl', self::$takeover, 'curl_reset', [$handle], null);
+        Intercept::handle(self::NAME, self::$intercept, 'curl_reset', [$handle], null);
     }
 
     /**
@@ -110,7 +110,7 @@ class CurlHandler
      */
     public static function fakeSetoptArray($handle, array $options): bool
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_setopt_array', [$handle, $options], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_setopt_array', [$handle, $options], true);
     }
 
     /**
@@ -119,7 +119,7 @@ class CurlHandler
      */
     public static function fakeSetopt($handle, int $option, $value): bool
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_setopt', [$handle, $option, $value], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_setopt', [$handle, $option, $value], true);
     }
 
     // multi -----------------------------------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ class CurlHandler
      */
     public static function fakeMultiInit()
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_init', [], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_init', [], false);
     }
 
     /**
@@ -137,7 +137,7 @@ class CurlHandler
      */
     public static function fakeMultiClose($multi_handle): void
     {
-        Takeover::handle('curl', self::$takeover, 'curl_multi_close', [$multi_handle], null);
+        Intercept::handle(self::NAME, self::$intercept, 'curl_multi_close', [$multi_handle], null);
     }
 
     /**
@@ -146,7 +146,7 @@ class CurlHandler
      */
     public static function fakeMultiAdd($multi_handle, $handle): int
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_add_handle', [$multi_handle, $handle], 0);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_add_handle', [$multi_handle, $handle], 0);
     }
 
     /**
@@ -156,7 +156,7 @@ class CurlHandler
      */
     public static function fakeMultiRemove($multi_handle, $handle)
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_remove_handle', [$multi_handle, $handle], CURLM_OK);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_remove_handle', [$multi_handle, $handle], CURLM_OK);
     }
 
     /**
@@ -164,7 +164,7 @@ class CurlHandler
      */
     public static function fakeMultiExec($multi_handle, int &$still_running): int
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_exec', [$multi_handle, &$still_running], CURLM_OK);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_exec', [$multi_handle, &$still_running], CURLM_OK);
     }
 
     /**
@@ -172,7 +172,7 @@ class CurlHandler
      */
     public static function fakeMultiSelect($multi_handle, float $timeout = 1.0): int
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_select', [$multi_handle, $timeout], -1);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_select', [$multi_handle, $timeout], -1);
     }
 
     /**
@@ -180,16 +180,16 @@ class CurlHandler
      */
     public static function fakeMultiContent($handle): ?string
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_getcontent', [$handle], null);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_getcontent', [$handle], null);
     }
 
     /**
      * @param resource|CurlMultiHandle $multi_handle
      * @return string[]|false
      */
-    public static function fakeMultiInfo($multi_handle, &$queued_messages)
+    public static function fakeMultiInfo($multi_handle, int &$queued_messages = 0)
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_info_read', [$multi_handle, &$queued_messages], false);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_info_read', [$multi_handle, &$queued_messages], false);
     }
 
     /**
@@ -198,7 +198,7 @@ class CurlHandler
      */
     public static function fakeMultiSetopt($multi_handle, int $option, $value): bool
     {
-        return Takeover::handle('curl', self::$takeover, 'curl_multi_setopt', [$multi_handle, $option, $value], true);
+        return Intercept::handle(self::NAME, self::$intercept, 'curl_multi_setopt', [$multi_handle, $option, $value], true);
     }
 
 }

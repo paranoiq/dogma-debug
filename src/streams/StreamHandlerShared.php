@@ -11,7 +11,6 @@
 
 namespace Dogma\Debug;
 
-use function user_error;
 use const E_USER_WARNING;
 use const SEEK_SET;
 use const STREAM_META_ACCESS;
@@ -35,7 +34,6 @@ use function func_get_args;
 use function getcwd;
 use function is_callable;
 use function microtime;
-use function round;
 use function str_replace;
 use function stream_wrapper_register;
 use function stream_wrapper_restore;
@@ -43,6 +41,7 @@ use function stream_wrapper_unregister;
 use function strlen;
 use function substr;
 use function time;
+use function user_error;
 
 /**
  * Common implementation for stream handlers (file, phar, http...)
@@ -55,7 +54,7 @@ trait StreamHandlerShared
 {
 
     /** @var int Types of events to log */
-    public static $log = self::ALL & ~self::INFO;
+    public static $logActions = self::ALL & ~self::INFO;
 
     /** @var bool Log io operations from include/require statements */
     public static $logIncludes = true;
@@ -107,12 +106,14 @@ trait StreamHandlerShared
     /** @var float */
     private $time;
 
-    public static function enable(?int $log = null, bool $logIncludes = true): void
+    public static function enable(?int $logActions = null, ?bool $logIncludes = null): void
     {
-        if ($log !== null) {
-            self::$log = $log;
+        if ($logActions !== null) {
+            self::$logActions = $logActions;
         }
-        self::$logIncludes = $logIncludes;
+        if ($logIncludes !== null) {
+            self::$logIncludes = $logIncludes;
+        }
 
         stream_wrapper_unregister(self::PROTOCOL);
         $result = stream_wrapper_register(self::PROTOCOL, self::class);
@@ -145,7 +146,7 @@ trait StreamHandlerShared
         // detect and log working directory change
         // todo: is this thread safe?
         $cwd = str_replace('\\', '/', (string) getcwd());
-        if ((self::$log & self::CHANGE_DIR) && $cwd !== self::$workingDirectory) {
+        if ((self::$logActions & self::CHANGE_DIR) && $cwd !== self::$workingDirectory) {
             $message = Dumper::call('chdir', [], (int) $this->handle);
             $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . Dumper::file($cwd) . ' ' . $message;
 
@@ -168,7 +169,7 @@ trait StreamHandlerShared
         }
 
         // events display filtering
-        if ((self::$log & $event) === 0) {
+        if ((self::$logActions & $event) === 0) {
             return;
         }
         if (!self::$logIncludes && $isInclude) {
@@ -206,7 +207,7 @@ trait StreamHandlerShared
         }
 
         $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
-        if ($this->handle && $isInclude && Takeover::enabled()) {
+        if ($this->handle && $isInclude && Intercept::enabled()) {
             $buffer = '';
             do {
                 // native phar handler does not return bigger chunks than 8192, hence the loop
@@ -215,7 +216,7 @@ trait StreamHandlerShared
             } while ($b !== false && $b !== '');
 
             if ($buffer) {
-                $this->readBuffer = Takeover::hack($buffer, $path);
+                $this->readBuffer = Intercept::hack($buffer, $path);
                 $this->bufferSize = strlen($this->readBuffer);
             }
         }
@@ -234,9 +235,14 @@ trait StreamHandlerShared
 
     public function stream_lock(int $operation): bool
     {
+        if ($operation === 0) {
+            // PHP asks if exclusive locks are supported this pretty stupid way :/
+            return true;
+        }
+
         $result = false;
         try {
-            $result = $this->previous('flock', $this->handle, $operation);
+             $result = $this->previous('flock', $this->handle, $operation);
         } finally {
             $this->log(self::LOCK, $this->time, $this->path, 'lock', [$operation], $result);
         }
@@ -369,7 +375,7 @@ trait StreamHandlerShared
             $this->log(self::STAT, $this->time, $this->path, 'stat', [], $this->formatStat($result));
         }
 
-        // file size is changed by Takeover magic
+        // file size is changed by Intercept magic
         if ($this->bufferSize !== null && $result !== false) {
             $result['size'] = $this->bufferSize;
         }

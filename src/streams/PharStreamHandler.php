@@ -16,7 +16,6 @@ class PharStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'phar';
-    private const TIME_UNIT = 'μs';
+    public const PROTOCOL = 'phar';
 
 }

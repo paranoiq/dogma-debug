@@ -11,6 +11,7 @@ namespace Dogma\Debug;
 
 use Exception;
 use function microtime;
+use function strlen;
 use function substr;
 
 class Packet
@@ -24,11 +25,12 @@ class Packet
     public const ERROR = 6;
     public const EXCEPTION = 7;
     public const TRACE = 8;
-    public const TAKEOVER = 9;
-    public const STD_IO = 10;
-    public const STREAM_IO = 11;
-    public const SQL = 12;
-    public const REDIS = 13;
+    public const INTERCEPT = 9;
+    public const INFO = 10;
+    public const STD_IO = 11;
+    public const STREAM_IO = 12;
+    public const SQL = 13;
+    public const REDIS = 14;
 
     public const OUTPUT_WIDTH = 100;
 

@@ -25,7 +25,7 @@ if (!function_exists('rd')) {
      */
     function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
-        echo Dumper::dump($value, $maxDepth, $traceLength) . "\n";
+        Debugger::print(Dumper::dump($value, $maxDepth, $traceLength));
 
         return $value;
     }

@@ -12,7 +12,9 @@ namespace Dogma\Debug;
 use LogicException;
 use function call_user_func_array;
 use function in_array;
+use function ini_get;
 use function preg_replace_callback;
+use function str_replace;
 use function strlen;
 use function substr;
 
@@ -23,7 +25,7 @@ use function substr;
  *
  * FileHandler (and PharHandler if you are debugging a packed application) must be enabled for this
  *
- * You can add a custom handler via Takeover::register() and overload any system function
+ * You can add a custom handler via Intercept::register() and overload any system function
  *
  * Supported handlers so far and what functions they overload:
  * - ErrorHandler:
@@ -38,6 +40,7 @@ use function substr;
  *      register_shutdown_function()
  * - ResourcesHandler:
  *      pcntl_alarm()
+ *      todo: register_tick_function(), unregister_tick_function()
  *      set_time_limit()
  *      sleep(), usleep(), time_nanosleep(), time_sleep_until()
  * - RequestHandler:
@@ -45,6 +48,8 @@ use function substr;
  *      setcookie(), setrawcookie()
  * - MemoryHandler:
  *      gc_disable(), gc_enable(), gc_collect_cycles(), gc_mem_caches()
+ * - todo: AutoloadingHandler:
+ *      spl_autoload_register(), spl_autoload_unregister()
  * - OutputHandler:
  *      todo: ob_*()
  * - SettingsHandler:
@@ -70,14 +75,15 @@ use function substr;
  *      stream_wrapper_register(), stream_wrapper_unregister(), stream_wrapper_restore()
  *      stream_filter_register(), stream_filter_remove(), stream_filter_append(), stream_filter_prepend()
  */
-class Takeover
+class Intercept
 {
 
-    public const NONE = 0; // allow other handlers to register
-    public const LOG_OTHERS = 1; // log other handler attempts to register
-    //public const ALWAYS_LAST = 2; // always process events after other/native handlers
-    //public const ALWAYS_FIRST = 3; // always process events before other/native handlers
-    public const PREVENT_OTHERS = 4; // do not pass events to other/native handlers
+    public const NONE = 0;
+    public const SILENT = 1; // allow calls to intercepted functions (but still can track some stats etc.)
+    public const LOG_CALLS = 2; // log calls to intercepted functions
+    //public const ALWAYS_LAST = 4; // for register_x_handler() - process own handling after other handlers
+    //public const ALWAYS_FIRST = 5; // for register_x_handler() - process own handling before other handlers
+    public const PREVENT_CALLS = 3; // prevent calls to intercepted functions
 
     /** @var bool Report files where code has been modified */
     public static $logReplacements = true;
@@ -96,6 +102,9 @@ class Takeover
     /** @var array<string, array{string, array{class-string, string}}> */
     private static $replacements = [];
 
+    /** @var int|null */
+    private static $ticks;
+
     /**
      * Register system function to be overloaded with a static call
      *
@@ -103,7 +112,42 @@ class Takeover
      */
     public static function register(string $handler, string $function, array $callable): void
     {
+        if (self::$replacements === [] && self::$ticks === null) {
+            self::startStreamHandlers();
+        }
+
         self::$replacements[$function] = [$handler, $callable];
+    }
+
+    public static function insertDeclareTicks(int $ticks): void
+    {
+        if (self::$replacements === [] && self::$ticks === null) {
+            self::startStreamHandlers();
+        }
+
+        self::$ticks = $ticks;
+    }
+
+    private static function startStreamHandlers(): void
+    {
+        if (!FileStreamHandler::enabled()) {
+            FileStreamHandler::enable();
+            Debugger::dependencyInfo('FileStreamHandler activated by Intercept::register() to allow code rewriting.');
+        }
+        if (!PharStreamHandler::enabled()) {
+            PharStreamHandler::enable();
+            Debugger::dependencyInfo('PharStreamHandler activated by Intercept::register() to allow code rewriting.');
+        }
+        if (ini_get('allow_url_include')) {
+            if (!HttpStreamHandler::enabled()) {
+                HttpStreamHandler::enable();
+                Debugger::dependencyInfo('HttpStreamHandler activated by Intercept::register() to allow code rewriting.');
+            }
+            if (!FtpStreamHandler::enabled()) {
+                FtpStreamHandler::enable();
+                Debugger::dependencyInfo('FtpStreamHandler activated by Intercept::register() to allow code rewriting.');
+            }
+        }
     }
 
     public static function clean(): void
@@ -113,11 +157,23 @@ class Takeover
 
     public static function enabled(): bool
     {
-        return self::$replacements !== [];
+        return self::$replacements !== [] || self::$ticks !== null;
     }
 
     public static function hack(string $code, string $file): string
     {
+        if (self::$ticks) {
+            $ticks = self::$ticks;
+            $result = str_replace('<?php', "<?php declare(ticks = $ticks);", $code);
+
+            /*if ($code !== $result) {
+                $message = Ansi::lmagenta("Inserted ticks in: ") . Dumper::file($file);
+                Debugger::send(Packet::INTERCEPT, $message);
+            }*/
+
+            $code = $result;
+        }
+
         $replaced = [];
         foreach (self::$replacements as $function => [$handler, $callable]) {
             // must not be preceded by: other name characters, namespace, `::`, `->`, `$` or `function `
@@ -155,7 +211,7 @@ class Takeover
                 $functions = Str::join($functions, ', ', ' and ');
                 $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler]) . ' '
                     . Ansi::lmagenta("Overloaded $functions in: ") . Dumper::file($file);
-                Debugger::send(Packet::TAKEOVER, $message);
+                Debugger::send(Packet::INTERCEPT, $message);
             }
         }
 
@@ -165,6 +221,7 @@ class Takeover
     /**
      * Default implementation of an overloaded function handler
      *
+     * @param callable-string $function
      * @param mixed[] $params
      * @param mixed $defaultReturn
      * @return mixed
@@ -172,25 +229,25 @@ class Takeover
     public static function handle(
         string $handler,
         int $level,
-        string $function,
+        callable $function,
         array $params,
         $defaultReturn,
         bool $allowed = false
     )
     {
-        if ($allowed || $level === self::NONE) {
+        if ($allowed || $level === self::NONE || $level === self::SILENT) {
             return call_user_func_array($function, $params);
-        } elseif ($level === self::LOG_OTHERS) {
+        } elseif ($level === self::LOG_CALLS) {
             $result = call_user_func_array($function, $params);
             self::log($handler, $level, $function, $params, $result);
 
             return $result;
-        } elseif ($level === self::PREVENT_OTHERS) {
+        } elseif ($level === self::PREVENT_CALLS) {
             self::log($handler, $level, $function, $params, $defaultReturn);
 
             return $defaultReturn;
         } else {
-            throw new LogicException('Not implemented.');
+            throw new LogicException('Not implemented: ' . $level);
         }
     }
 
@@ -204,14 +261,14 @@ class Takeover
             return;
         }
 
-        $message = ($level === self::PREVENT_OTHERS ? ' Prevented ' : ' Called ')
+        $message = ($level === self::PREVENT_CALLS ? ' Prevented ' : ' Called ')
             . Dumper::call($function, $params, $return);
 
         $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler]) . $message;
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, []);
 
-        Debugger::send(Packet::TAKEOVER, $message, $trace);
+        Debugger::send(Packet::INTERCEPT, $message, $trace);
     }
 
 }

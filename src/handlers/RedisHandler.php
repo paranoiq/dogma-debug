@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use function substr;
 use const COUNT_RECURSIVE;
 use function array_map;
 use function array_merge;
@@ -25,14 +24,20 @@ use function is_string;
 use function json_decode;
 use function preg_match;
 use function strlen;
+use function substr;
 use function trim;
 use function unserialize;
 
 /**
  * Tracks and displays communication with Redis
+ *
+ * @see https://redis.io/topics/protocol
+ * @see https://redis.io/commands
  */
 class RedisHandler
 {
+
+    public const NAME = 'redis';
 
     /** @var bool Turn logging on/off */
     public static $log = true;
@@ -53,6 +58,9 @@ class RedisHandler
     public static $traceFilters = [];
 
     // internals -------------------------------------------------------------------------------------------------------
+
+    /** @var bool */
+    private static $enabled = false;
 
     /** @var string */
     private static $lastCommand;
@@ -78,12 +86,21 @@ class RedisHandler
     /** @var RedisParser */
     private static $parser;
 
+    public static function enabled(): bool
+    {
+        return self::$enabled;
+    }
+
     /**
      * @param 'tcp'|'udp'|'unix' $protocol
-     * @param int $port
      */
     public static function enableForPredis(string $protocol = 'tcp', int $port = 6379): void
     {
+        if (!FilesHandler::enabled()) {
+            FilesHandler::interceptFileFunctions(Intercept::SILENT);
+            Debugger::dependencyInfo('FilesHandler activated by RedisHandler::enableForPredis() to track filesystem functions.');
+        }
+
         $re = "~:$port$~";
         FilesHandler::$redirect[$protocol]['fwrite'][$re] = [self::class, 'predisFwrite'];
         FilesHandler::$redirect[$protocol]['fread'][$re] = [self::class, 'predisFread'];
@@ -93,7 +110,10 @@ class RedisHandler
             '~^Predis\\\\Connection\\\\StreamConnection~',
             '~^Predis\\\\Connection\\\\AbstractConnection~',
             '~^Predis\\\\Client~',
+            '~^Predis\\\\Session\\\\Handler~',
         ];
+
+        self::$enabled = true;
     }
 
     // predis ----------------------------------------------------------------------------------------------------------
@@ -180,10 +200,10 @@ class RedisHandler
         }
 
         if ($key !== null) {
-            $message = Ansi::white(' redis: ', Ansi::DGREEN)
+            $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN)
                 . ' ' . Dumper::key($key) . Dumper::symbol(':') . ' ' . $response;
         } else {
-            $message = Ansi::white(' redis: ', Ansi::DGREEN) . ' ' . $response;
+            $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN) . ' ' . $response;
         }
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
@@ -192,6 +212,10 @@ class RedisHandler
         Debugger::send(Packet::REDIS, $message, $trace, $duration);
     }
 
+    /**
+     * @param mixed[] $params
+     * @param mixed $return
+     */
     public static function predisFgets(string $path, float $duration, array $params, $return): void
     {
         if (is_string($return) && ($return[0] === '*' || $return[0] === '$') && $return !== "$-1\r\n") {
@@ -204,8 +228,11 @@ class RedisHandler
     {
         $prefix = '';
         if (Str::startsWith($message, 'BZ')) {
-            $message = bzdecompress($message);
-            $prefix = Dumper::exceptions('zip:') . ' ';
+            $res = bzdecompress($message);
+            if (is_string($res)) {
+                $message = $res;
+                $prefix = Dumper::exceptions('zip:') . ' ';
+            }
         }
 
         if ($message[0] === '{') {
@@ -231,8 +258,11 @@ class RedisHandler
         $rows = 1;
         $prefix = '';
         if (Str::startsWith($message, 'BZ')) {
-            $message = bzdecompress($message);
-            $prefix = Dumper::exceptions('zip:') . ' ';
+            $res = bzdecompress($message);
+            if (is_string($res)) {
+                $message = $res;
+                $prefix = Dumper::exceptions('zip:') . ' ';
+            }
         }
 
         $c = $message[0];
@@ -273,6 +303,9 @@ class RedisHandler
 
     // stats -----------------------------------------------------------------------------------------------------------
 
+    /**
+     * @param string[] $args
+     */
     private static function logCommand(string $command, array $args, float $duration, int $data): void
     {
         // stats

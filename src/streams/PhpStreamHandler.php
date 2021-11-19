@@ -16,7 +16,6 @@ class PhpStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'php';
-    private const TIME_UNIT = 'ms';
+    public const PROTOCOL = 'php';
 
 }

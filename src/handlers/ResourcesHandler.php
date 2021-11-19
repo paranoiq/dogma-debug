@@ -9,20 +9,26 @@
 
 namespace Dogma\Debug;
 
+use const SIG_DFL;
+use const SIGALRM;
+use function func_get_args;
 use function function_exists;
 use function microtime;
+use function min;
 use function number_format;
 use function pcntl_alarm;
 use function pcntl_signal;
 use function rd;
-use const SIG_DFL;
-use const SIGALRM;
+use function register_tick_function;
+use function unregister_tick_function;
 
 /**
  * Monitors system resources (time, memory)
  */
 class ResourcesHandler
 {
+
+    public const NAME = 'resources';
 
     /** @var int Timeout between monitor events [seconds] */
     public static $monitorTimeout = 1;
@@ -36,11 +42,8 @@ class ResourcesHandler
     /** @var float Terminate when getting close to memory limit */
     //public static $terminateOnMemoryLimitUsed = 0.9;
 
-    /** @var bool Periodically report resources usage (memory, processor, time spent) */
-    public static $reportResourcesUsage = false;
-
-    /** @var int Report on each n-th monitor event */
-    public static $resourcesUsageReportRatio = 5;
+    /** @var int|null Timeout between resources usage report [seconds] */
+    public static $reportTimeout;
 
     // internals -------------------------------------------------------------------------------------------------------
 
@@ -48,13 +51,25 @@ class ResourcesHandler
     private static $enabled;
 
     /** @var int */
-    private static $takeoverAlarm = Takeover::NONE;
+    private static $interceptAlarm = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverTimeLimit = Takeover::NONE;
+    private static $interceptTicks = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverSleep = Takeover::NONE;
+    private static $interceptTimeLimit = Intercept::NONE;
+
+    /** @var int */
+    private static $interceptSleep = Intercept::NONE;
+
+    /** @var int */
+    private static $alarmCounter = 0;
+
+    /** @var int */
+    private static $tickCounter = 0;
+
+    /** @var float */
+    private static $lastReportTime;
 
     /** @var float */
     private static $extendedTime = 0.0;
@@ -65,27 +80,51 @@ class ResourcesHandler
     /** @var Resources */
     private static $resources;
 
-    public static function enable(?bool $report = null, int $ratio = 5): void
+    public static function enable(?int $reportTimeout = 5, int $ticks = 2000): void
     {
-        if (System::isWindows() || !function_exists('pcntl_alarm')) {
+        if (function_exists('pcntl_alarm')) {
+            self::enableAlarm($reportTimeout);
+        } else {
+            self::enableTicks($reportTimeout, $ticks);
+        }
+    }
+
+    public static function enableAlarm(?int $reportTimeout = 5): void
+    {
+        if (System::isWindows()) {
+            Debugger::dependencyInfo('Cannot use resources tracking via pcntl_alarm() on Windows, because pcntl extension is not available here.');
             return;
         }
-        if ($report !== null) {
-            self::$reportResourcesUsage = $report;
+        if (!function_exists('pcntl_alarm')) {
+            Debugger::dependencyInfo('Cannot enable resources tracking via pcntl_alarm(), because pcntl extension is not available.');
+            return;
         }
-        self::$resourcesUsageReportRatio = $ratio;
 
+        self::$reportTimeout = $reportTimeout;
         self::$resources = Resources::get();
+        self::$lastReportTime = Debugger::getStart();
 
         pcntl_alarm(self::$monitorTimeout);
-        pcntl_signal(SIGALRM, [self::class, 'monitor']);
+        pcntl_signal(SIGALRM, [self::class, 'alarm']);
 
         self::$enabled = true;
+    }
+
+    public static function enableTicks(?int $reportTimeout = 5, int $ticks = 2000): void
+    {
+        self::$reportTimeout = $reportTimeout;
+        self::$resources = Resources::get();
+        self::$lastReportTime = Debugger::getStart();
+
+        register_tick_function([self::class, 'tick']);
+
+        Intercept::insertDeclareTicks($ticks);
     }
 
     public static function disable(): void
     {
         self::$enabled = false;
+        unregister_tick_function([self::class, 'tick']);
     }
 
     public static function enabled(): bool
@@ -93,21 +132,51 @@ class ResourcesHandler
         return self::$enabled;
     }
 
-    public static function monitor(): void
+    /**
+     * @internal
+     */
+    public static function alarm(): void
     {
         if (!self::$enabled) {
             // deactivate after last signal
             pcntl_signal(SIGALRM, SIG_DFL);
         }
 
-        static $counter = 0;
+        self::$alarmCounter++;
+        self::checkTermination();
+        self::monitor();
 
-        if (Resources::timeRemaining() <= self::$monitorTimeout) { // last time before timeout
+        if (!self::$enabled) {
+            pcntl_alarm(self::$monitorTimeout);
+        }
+    }
+
+    /**
+     * @internal
+     */
+    public static function tick(): void
+    {
+        self::$tickCounter++;
+        self::checkTermination();
+        self::monitor();
+    }
+
+    private static function checkTermination(): void
+    {
+        if (Resources::timeLimit() > 0.0 && Resources::timeRemaining() <= self::$monitorTimeout) { // last time before timeout
             Debugger::setTermination('time limit (' . Resources::timeLimit() . ' s)');
         }
 
         if (Resources::memoryRemainingRatio() < 0.1) { // 90% used
             Debugger::setTermination('memory limit (' . Dumper::size(Resources::memoryLimit()) . ')');
+        }
+    }
+
+    private static function monitor(): void
+    {
+        $now = microtime(true);
+        if (self::$reportTimeout === null || (self::$lastReportTime + self::$reportTimeout > $now)) {
+            return;
         }
 
         // todo: proc
@@ -115,53 +184,89 @@ class ResourcesHandler
         rd($resources);
         $diff = $resources->diff(self::$resources);
         rd($diff);
+        self::$resources = $resources;
+        self::$lastReportTime = $now;
 
-        $counter++;
-        if ($counter >= self::$resourcesUsageReportRatio && self::$reportResourcesUsage) {
-            $counter = 0;
-            $timeFormatted = number_format($resources->time, 1);
-            $memFormatted = Dumper::size($resources->phpMemory);
-            Debugger::send(Packet::ERROR, Ansi::dyellow("Running $timeFormatted s, $memFormatted"));
-        }
-
-        pcntl_alarm(self::$monitorTimeout);
+        $timeFormatted = number_format($resources->time - Debugger::getStart(), 1);
+        $memFormatted = Dumper::size($resources->phpMemory);
+        Debugger::send(Packet::ERROR, Ansi::dyellow("Running $timeFormatted s, $memFormatted"));
     }
 
-    // takeover handlers -----------------------------------------------------------------------------------------------
+    // intercept handlers ----------------------------------------------------------------------------------------------
 
-    public static function takeoverAlarm(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Take control over pcntl_alarm()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptAlarm(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverAlarm = $level;
-        Takeover::register('resources', 'pcntl_alarm', [self::class, 'fakeAlarm']);
+        Intercept::register(self::NAME, 'pcntl_alarm', [self::class, 'fakeAlarm']);
+        self::$interceptAlarm = $level;
     }
 
-    public static function takeoverTimeLimit(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Take control over register_tick_function() and unregister_tick_function()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptTicks(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverTimeLimit = $level;
-        Takeover::register('resources', 'set_time_limit', [self::class, 'fakeTimeLimit']);
+        Intercept::register(self::NAME, 'register_tick_function', [self::class, 'fakeRegister']);
+        Intercept::register(self::NAME, 'unregister_tick_function', [self::class, 'fakeUnregister']);
+        self::$interceptTicks = $level;
     }
 
-    public static function takeoverSleep(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Take control over set_time_limit()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptTimeLimit(int $level = Intercept::LOG_CALLS): void
     {
-        self::$takeoverSleep = $level;
-        Takeover::register('resources', 'sleep', [self::class, 'fakeSleep']);
-        Takeover::register('resources', 'usleep', [self::class, 'fakeUsleep']);
-        Takeover::register('resources', 'time_nanosleep', [self::class, 'fakeNanosleep']);
-        Takeover::register('resources', 'time_sleep_until', [self::class, 'fakeSleepUntil']);
+        Intercept::register(self::NAME, 'set_time_limit', [self::class, 'fakeTimeLimit']);
+        self::$interceptTimeLimit = $level;
+    }
+
+    /**
+     * Take control over sleep(), usleep(), time_nanosleep() and time_sleep_until()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptSleep(int $level = Intercept::LOG_CALLS): void
+    {
+        Intercept::register(self::NAME, 'sleep', [self::class, 'fakeSleep']);
+        Intercept::register(self::NAME, 'usleep', [self::class, 'fakeUsleep']);
+        Intercept::register(self::NAME, 'time_nanosleep', [self::class, 'fakeNanosleep']);
+        Intercept::register(self::NAME, 'time_sleep_until', [self::class, 'fakeSleepUntil']);
+        self::$interceptSleep = $level;
     }
 
     public static function fakeAlarm(int $seconds): int
     {
-        return Takeover::handle('resources', self::$takeoverAlarm, 'pcntl_alarm', [$seconds], 0);
+        return Intercept::handle(self::NAME, self::$interceptAlarm, 'pcntl_alarm', [$seconds], 0);
+    }
+
+    /**
+     * @param mixed ...$args
+     */
+    public static function fakeRegister(callable $callback, ...$args): bool
+    {
+        return Intercept::handle(self::NAME, self::$interceptTicks, 'pcntl_alarm', func_get_args(), true);
+    }
+
+    public static function fakeUnregister(callable $callback): void
+    {
+        Intercept::handle(self::NAME, self::$interceptTicks, 'unregister_tick_function', [$callback], null);
     }
 
     public static function fakeTimeLimit(int $seconds): bool
     {
-        if (self::$takeoverTimeLimit !== Takeover::PREVENT_OTHERS) {
+        if (self::$interceptTimeLimit !== Intercept::PREVENT_CALLS) {
             self::$extendedTime += Resources::timeUsed();
         }
 
-        return Takeover::handle('resources', self::$takeoverTimeLimit, 'set_time_limit', [$seconds], true);
+        return Intercept::handle(self::NAME, self::$interceptTimeLimit, 'set_time_limit', [$seconds], true);
     }
 
     /**
@@ -169,20 +274,20 @@ class ResourcesHandler
      */
     public static function fakeSleep(int $seconds)
     {
-        if (self::$takeoverSleep !== Takeover::PREVENT_OTHERS) {
+        if (self::$interceptSleep !== Intercept::PREVENT_CALLS) {
             self::$sleptTime += $seconds;
         }
 
-        return Takeover::handle('resources', self::$takeoverSleep, 'sleep', [$seconds], 0);
+        return Intercept::handle(self::NAME, self::$interceptSleep, 'sleep', [$seconds], 0);
     }
 
     public static function fakeUsleep(int $microseconds): void
     {
-        if (self::$takeoverSleep !== Takeover::PREVENT_OTHERS) {
+        if (self::$interceptSleep !== Intercept::PREVENT_CALLS) {
             self::$sleptTime += ($microseconds / 1000000);
         }
 
-        Takeover::handle('resources', self::$takeoverSleep, 'usleep', [$microseconds], null);
+        Intercept::handle(self::NAME, self::$interceptSleep, 'usleep', [$microseconds], null);
     }
 
     /**
@@ -190,20 +295,20 @@ class ResourcesHandler
      */
     public static function fakeNanosleep(int $seconds, int $nanoseconds)
     {
-        if (self::$takeoverSleep !== Takeover::PREVENT_OTHERS) {
+        if (self::$interceptSleep !== Intercept::PREVENT_CALLS) {
             self::$sleptTime += $seconds + ($nanoseconds / 1000000000);
         }
 
-        return Takeover::handle('resources', self::$takeoverSleep, 'time_nanosleep', [$seconds, $nanoseconds], true);
+        return Intercept::handle(self::NAME, self::$interceptSleep, 'time_nanosleep', [$seconds, $nanoseconds], true);
     }
 
     public static function fakeSleepUntil(float $timestamp): bool
     {
-        if (self::$takeoverSleep !== Takeover::PREVENT_OTHERS) {
+        if (self::$interceptSleep !== Intercept::PREVENT_CALLS) {
             self::$sleptTime += min(0, $timestamp - microtime(true));
         }
 
-        return Takeover::handle('resources', self::$takeoverSleep, 'time_sleep_until', [$timestamp], true);
+        return Intercept::handle(self::NAME, self::$interceptSleep, 'time_sleep_until', [$timestamp], true);
     }
 
 }

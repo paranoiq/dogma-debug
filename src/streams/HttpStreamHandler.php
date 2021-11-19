@@ -16,7 +16,6 @@ class HttpStreamHandler extends StreamHandler
 {
     use StreamHandlerShared;
 
-    private const PROTOCOL = 'http';
-    private const TIME_UNIT = 'ms';
+    public const PROTOCOL = 'http';
 
 }

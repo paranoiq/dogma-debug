@@ -16,6 +16,8 @@ namespace Dogma\Debug;
 class StreamHandler
 {
 
+    public const NAME = 'stream';
+
     public const OPEN = 0x1;
     public const CLOSE = 0x2;
     public const LOCK = 0x4;
@@ -47,47 +49,57 @@ class StreamHandler
     protected const INCLUDE_FLAGS = 16512;
 
     /** @var int */
-    private static $takeoverHandlers = Takeover::NONE;
+    private static $interceptHandlers = Intercept::NONE;
 
     /** @var int */
-    private static $takeoverFilters = Takeover::NONE;
+    private static $interceptFilters = Intercept::NONE;
 
-    public static function takeoverHandlers(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Takes control over stream_wrapper_register(), stream_wrapper_unregister() and stream_wrapper_restore()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptHandlers(int $level = Intercept::LOG_CALLS): void
     {
-        Takeover::register('stream', 'stream_wrapper_register', [self::class, 'fakeRegister']);
-        Takeover::register('stream', 'stream_wrapper_unregister', [self::class, 'fakeUnregister']);
-        Takeover::register('stream', 'stream_wrapper_restore', [self::class, 'fakeRestore']);
-        self::$takeoverHandlers = $level;
+        Intercept::register(self::NAME, 'stream_wrapper_register', [self::class, 'fakeRegister']);
+        Intercept::register(self::NAME, 'stream_wrapper_unregister', [self::class, 'fakeUnregister']);
+        Intercept::register(self::NAME, 'stream_wrapper_restore', [self::class, 'fakeRestore']);
+        self::$interceptHandlers = $level;
     }
 
-    public static function takeoverFilters(int $level = Takeover::LOG_OTHERS): void
+    /**
+     * Takes control over stream_filter_register(), stream_filter_remove(), stream_filter_append() and stream_filter_prepend()
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptFilters(int $level = Intercept::LOG_CALLS): void
     {
         // @see https://www.php.net/manual/en/class.php-user-filter.php
-        Takeover::register('stream', 'stream_filter_register', [self::class, 'fakeFilterRegister']);
-        Takeover::register('stream', 'stream_filter_remove', [self::class, 'fakeFilterRemove']);
-        Takeover::register('stream', 'stream_filter_append', [self::class, 'fakeFilterAppend']);
-        Takeover::register('stream', 'stream_filter_prepend', [self::class, 'fakeFilterPrepend']);
-        self::$takeoverFilters = $level;
+        Intercept::register(self::NAME, 'stream_filter_register', [self::class, 'fakeFilterRegister']);
+        Intercept::register(self::NAME, 'stream_filter_remove', [self::class, 'fakeFilterRemove']);
+        Intercept::register(self::NAME, 'stream_filter_append', [self::class, 'fakeFilterAppend']);
+        Intercept::register(self::NAME, 'stream_filter_prepend', [self::class, 'fakeFilterPrepend']);
+        self::$interceptFilters = $level;
     }
 
-    public static function fakeRegister(string $protocol, string $class, int $flags): bool
+    public static function fakeRegister(string $protocol, string $class, int $flags = 0): bool
     {
-        return Takeover::handle('stream', self::$takeoverHandlers, 'stream_wrapper_register', [$protocol, $class, $flags], true);
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'stream_wrapper_register', [$protocol, $class, $flags], true);
     }
 
     public static function fakeUnregister(string $protocol): bool
     {
-        return Takeover::handle('stream', self::$takeoverHandlers, 'stream_wrapper_unregister', [$protocol], true);
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'stream_wrapper_unregister', [$protocol], true);
     }
 
     public static function fakeRestore(string $protocol): bool
     {
-        return Takeover::handle('stream', self::$takeoverHandlers, 'stream_wrapper_restore', [$protocol], true);
+        return Intercept::handle(self::NAME, self::$interceptHandlers, 'stream_wrapper_restore', [$protocol], true);
     }
 
     public static function fakeFilterRegister(string $filter_name, string $class): bool
     {
-        return Takeover::handle('stream', self::$takeoverFilters, 'stream_filter_register', [$filter_name, $class], true);
+        return Intercept::handle(self::NAME, self::$interceptFilters, 'stream_filter_register', [$filter_name, $class], true);
     }
 
     /**
@@ -95,7 +107,7 @@ class StreamHandler
      */
     public static function fakeFilterRemove($stream_filter): bool
     {
-        return Takeover::handle('stream', self::$takeoverFilters, 'stream_filter_remove', [$stream_filter], true);
+        return Intercept::handle(self::NAME, self::$interceptFilters, 'stream_filter_remove', [$stream_filter], true);
     }
 
     /**
@@ -105,7 +117,7 @@ class StreamHandler
      */
     public static function fakeFilterAppend($stream, string $filter_name, int $mode, $params)
     {
-        return Takeover::handle('stream', self::$takeoverFilters, 'stream_filter_append', [$stream, $filter_name, $mode, $params], false);
+        return Intercept::handle(self::NAME, self::$interceptFilters, 'stream_filter_append', [$stream, $filter_name, $mode, $params], false);
     }
 
     /**
@@ -113,9 +125,9 @@ class StreamHandler
      * @param mixed $params
      * @return resource|false
      */
-    public static function fakeFilterPrepend($stream, string $filter_name, int $mode, $params): bool
+    public static function fakeFilterPrepend($stream, string $filter_name, int $mode, $params)
     {
-        return Takeover::handle('stream', self::$takeoverFilters, 'stream_filter_prepend', [$stream, $filter_name, $mode, $params], null);
+        return Intercept::handle(self::NAME, self::$interceptFilters, 'stream_filter_prepend', [$stream, $filter_name, $mode, $params], null);
     }
 
 }
