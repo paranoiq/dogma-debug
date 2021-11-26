@@ -40,7 +40,7 @@ trait DumperTraces
 
         $end = strpos($dir, $string);
         if ($end) {
-            self::$trimPathPrefix = substr($dir, 0, $end);
+            self::$trimPathPrefix[] = substr($dir, 0, $end);
         }
     }
 
@@ -54,7 +54,7 @@ trait DumperTraces
         $end = strpos($dir, $string);
 
         if ($end) {
-            self::$trimPathPrefix = substr($dir, 0, $end + strlen($string) + 1);
+            self::$trimPathPrefix[] = substr($dir, 0, $end + strlen($string) + 1);
         }
     }
 

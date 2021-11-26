@@ -7,7 +7,6 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
-// spell-check-ignore: rl rb rf
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 

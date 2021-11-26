@@ -15,7 +15,6 @@ use function func_get_args;
 use function function_exists;
 use function microtime;
 use function min;
-use function number_format;
 use function pcntl_alarm;
 use function pcntl_signal;
 use function rd;
@@ -168,7 +167,7 @@ class ResourcesHandler
         }
 
         if (Resources::memoryRemainingRatio() < 0.1) { // 90% used
-            Debugger::setTermination('memory limit (' . Dumper::size(Resources::memoryLimit()) . ')');
+            Debugger::setTermination('memory limit (' . Units::size(Resources::memoryLimit()) . ')');
         }
     }
 
@@ -187,9 +186,9 @@ class ResourcesHandler
         self::$resources = $resources;
         self::$lastReportTime = $now;
 
-        $timeFormatted = number_format($resources->time - Debugger::getStart(), 1);
-        $memFormatted = Dumper::size($resources->phpMemory);
-        Debugger::send(Packet::ERROR, Ansi::dyellow("Running $timeFormatted s, $memFormatted"));
+        $time = Units::time($resources->time - Debugger::getStart());
+        $memory = Units::size($resources->phpMemory);
+        Debugger::send(Packet::ERROR, Ansi::dyellow("Running $time, $memory"));
     }
 
     // intercept handlers ----------------------------------------------------------------------------------------------

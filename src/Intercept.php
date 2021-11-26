@@ -40,7 +40,7 @@ use function substr;
  *      register_shutdown_function()
  * - ResourcesHandler:
  *      pcntl_alarm()
- *      todo: register_tick_function(), unregister_tick_function()
+ *      register_tick_function(), unregister_tick_function()
  *      set_time_limit()
  *      sleep(), usleep(), time_nanosleep(), time_sleep_until()
  * - RequestHandler:

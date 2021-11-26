@@ -12,12 +12,16 @@ namespace Dogma\Debug;
 use BackedEnum;
 use ReflectionObject;
 use UnitEnum;
+use function array_diff;
 use function array_keys;
 use function array_map;
 use function array_pop;
 use function array_values;
 use function basename;
+use function count;
+use function dechex;
 use function dirname;
+use function end;
 use function explode;
 use function get_class;
 use function implode;
@@ -25,19 +29,75 @@ use function is_array;
 use function is_int;
 use function is_resource;
 use function is_scalar;
+use function json_encode;
+use function key;
+use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
 use function property_exists;
-use function round;
+use function range;
 use function str_repeat;
-use function str_replace;
 use function stream_context_get_params;
 use function stream_get_meta_data;
 use function strlen;
+use function strpos;
 use function substr;
+use function trim;
 
 trait DumperFormatters
 {
+
+    /** @var string[] */
+    private static $phpEscapes = [
+        "\t" => '\t', // 09
+        "\n" => '\n', // 0a
+        "\v" => '\v', // 0b
+        "\f" => '\f', // 0c
+        "\r" => '\r', // 0d
+        "\e" => '\e', // 1b
+        '\\' => '\\\\',
+        '$' => '\$',
+        '"' => '\"',
+    ];
+
+    /** @var string[] */
+    private static $jsEscapes = [
+        "\x00" => '\0',
+        "\x08" => '\b', // 08
+        "\f" => '\f', // 0c
+        "\n" => '\n', // 0a
+        "\r" => '\r', // 0d
+        "\t" => '\t', // 09
+        "\v" => '\v', // 0b
+        '\\' => '\\\\',
+        '"' => '\"',
+    ];
+
+    /** @var string[] */
+    private static $jsonEscapes = [
+        "\x08" => '\b', // 08
+        "\f" => '\f', // 0c
+        "\n" => '\n', // 0a
+        "\r" => '\r', // 0d
+        "\t" => '\t', // 09
+        '\\' => '\\\\',
+        '"' => '\"',
+    ];
+
+    /** @var string[] */
+    private static $mysqlEscapes = [
+        "\x00" => '\0', // 00
+        "\x08" => '\b', // 08
+        "\n" => '\n', // 0a
+        "\r" => '\r', // 0d
+        "\t" => '\t', // 09
+        "\x1a" => '\Z', // 1a (legacy Win EOF)
+        '\\' => '\\\\',
+        '%' => '\%',
+        '_' => '\_',
+        "'" => "\'",
+        '"' => '\"',
+    ];
 
     /**
      * @param object $object
@@ -129,31 +189,6 @@ trait DumperFormatters
     {
         return Ansi::color($value, self::$colors['value2']);
     }
-
-    public static function string(string $string, string $quote = '"'): string
-    {
-        if (!self::$escapeStrings) {
-            return Ansi::color($quote . $string . $quote, self::$colors['string']);
-        }
-
-        $table = [
-            "\0" => '\0',
-            '\\' => '\\\\',
-            '"' => '\"',
-            "\r" => '\r',
-            "\n" => '\n',
-            "\t" => '\t',
-            "\e" => '\e',
-        ];
-
-        $escaped = preg_replace_callback('/([\0\\\\\\r\\n\\e"])/', static function (array $m) use ($table): string {
-            return Ansi::between($table[$m[1]] ?? $m[1], self::$colors['escape'], self::$colors['string']);
-        }, $string);
-
-        return Ansi::color($quote . $escaped . $quote, self::$colors['string']);
-    }
-
-    // escape
 
     public static function symbol(string $symbol): string
     {
@@ -261,12 +296,15 @@ trait DumperFormatters
 
     public static function file(string $file): string
     {
-        $dirName = str_replace('\\', '/', dirname($file));
+        $dirName = self::normalizePath(dirname($file));
         $fileName = basename($file);
         $separator = Str::contains($file, '://') ? '//' : '/';
 
-        if (self::$trimPathPrefix && substr($dirName, 0, strlen(self::$trimPathPrefix)) === self::$trimPathPrefix) {
-            $dirName = substr($dirName, strlen(self::$trimPathPrefix));
+        foreach (self::$trimPathPrefix as $prefix) {
+            if (Str::startsWith($dirName, $prefix)) {
+                $dirName = substr($dirName, strlen($prefix));
+                break;
+            }
         }
 
         return Ansi::color($dirName . $separator, self::$colors['path'])
@@ -275,11 +313,14 @@ trait DumperFormatters
 
     public static function fileLine(string $file, int $line): string
     {
-        $dirName = str_replace('\\', '/', dirname($file)) . '/';
+        $dirName = self::normalizePath(dirname($file)) . '/';
         $fileName = basename($file);
 
-        if (self::$trimPathPrefix && substr($dirName, 0, strlen(self::$trimPathPrefix)) === self::$trimPathPrefix) {
-            $dirName = substr($dirName, strlen(self::$trimPathPrefix));
+        foreach (self::$trimPathPrefix as $prefix) {
+            if (Str::startsWith($dirName, $prefix)) {
+                $dirName = substr($dirName, strlen($prefix));
+                break;
+            }
         }
 
         return Ansi::color($dirName, self::$colors['path'])
@@ -349,25 +390,174 @@ trait DumperFormatters
         }
     }
 
-    // helpers ---------------------------------------------------------------------------------------------------------
+    // string formatting -----------------------------------------------------------------------------------------------
 
-    public static function size(int $size): string
+    /**
+     * Escaping and formatting unicode strings and binary strings
+     * (null depth means "avoid chunking of binary data" or "keep it on single line")
+     *
+     * @param non-empty-string|null $splitBy
+     */
+    public static function string(string $string, ?int $depth = null, ?string $splitBy = null): string
     {
-        if ($size >= 2 ** 60) {
-            return round($size / 2 ** 60, 1) . ' ZB';
-        } elseif ($size >= 2 ** 50) {
-            return round($size / 2 ** 50, 1) . ' EB';
-        } elseif ($size >= 2 ** 40) {
-            return round($size / 2 ** 40, 1) . ' TB';
-        } elseif ($size >= 2 ** 30) {
-            return round($size / 2 ** 30, 1) . ' GB';
-        } elseif ($size >= 2 ** 20) {
-            return round($size / 2 ** 20, 1) . ' MB';
-        } elseif ($size >= 2 ** 10) {
-            return round($size / 2 ** 10, 1) . ' KB';
-        } else {
-            return $size . ' B';
+        $length = strlen($string);
+        $ellipsis = '';
+        if ($length > self::$maxLength) {
+            $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
+            $ellipsis = Ansi::between('...', self::$colors['exceptions'], self::$colors['string']);
         }
+
+        $binary = self::escapeAsBinary($string, array_keys(self::getTranslations(self::$stringsEscaping)));
+        $split = false;
+        if ($splitBy !== null) {
+            $pos = strpos($string, $splitBy);
+            if ($pos !== false && $pos !== strlen($string)) {
+                $split = true;
+            }
+        }
+
+        $escaping = $binary ? self::$binaryEscaping : self::$stringsEscaping;
+        $translations = self::getTranslations($escaping);
+        $pattern = self::createCharPattern(array_keys($translations));
+
+        if (!self::$escapeWhiteSpace) {
+            unset($translations["\n"], $translations["\r"], $translations["\t"]);
+        }
+
+        if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
+            // not chunked (one chunk)
+            return self::stringChunk($string, $escaping, $pattern, $translations, false, $ellipsis);
+        }
+
+        // chunked
+        if ($binary) {
+            $chunks = Str::chunksBin($string, self::$binaryChunkLength);
+        } else {
+            // split
+            $chunks = explode($splitBy, $string);
+            foreach ($chunks as $i => $chunk) {
+                $chunks[$i] = $chunk . $splitBy;
+            }
+            if (end($chunks) === $splitBy) {
+                unset($chunks[key($chunks)]);
+            }
+        }
+        foreach ($chunks as $i => $chunk) {
+            $e = $i === count($chunks) - 1 ? $ellipsis : '';
+            $chunks[$i] = self::stringChunk($chunk, $escaping, $pattern, $translations, $binary, $e);
+        }
+        $sep = "\n" . self::indent($depth) . ' ' . self::symbol('.') . ' ';
+        $prefix = $binary ? self::exceptions('binary:') . "\n" . self::indent($depth) . '   ' : '';
+
+        return $prefix . implode($sep, $chunks);
+    }
+
+    /**
+     * @param string[] $translations
+     */
+    private static function stringChunk(
+        string $string,
+        int $escaping,
+        string $pattern,
+        array $translations,
+        bool $binary,
+        string $ellipsis = ''
+    ): string
+    {
+        $quote = '"';
+
+        if ($escaping === self::ESCAPING_NONE) {
+            $formatted = Ansi::color($quote . $string . $ellipsis . $quote, self::$colors['string']);
+        } elseif ($escaping === self::ESCAPING_CP437) {
+            $formatted = Ansi::color($quote . Cp437::toUtf8Printable($string) . $ellipsis . $quote, self::$colors['string']);
+        } else {
+            $formatted = preg_replace_callback($pattern, static function (array $m) use ($escaping, $translations): string {
+                $ch = $m[0];
+                if (isset($translations[$ch])) {
+                    $ch = $translations[$ch];
+                } else {
+                    $ch = $escaping === self::ESCAPING_JSON
+                        ? '\u00' . Str::charToHex($ch)
+                        : '\x' . Str::charToHex($ch);
+                }
+
+                return Ansi::between($ch, self::$colors['escape'], self::$colors['string']);
+            }, $string);
+            if (self::$escapeAllNonAscii && $escaping !== self::ESCAPING_MYSQL) {
+                $formatted = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping): string {
+                    $ch = $m[0];
+                    if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
+                        /** @var string $code */
+                        $code = json_encode($ch);
+                        $ch = trim($code, '"');
+                    } else {
+                        $ch = '\u{' . dechex(Str::ord($ch)) . '}';
+                    }
+
+                    return Ansi::between($ch, self::$colors['escape'], self::$colors['string']);
+                }, $formatted);
+            }
+
+            $formatted = Ansi::color($quote . $formatted . $ellipsis . $quote, self::$colors['string']);
+        }
+
+        // hexadecimal
+        if ($binary && self::$binaryWithHexadecimal) {
+            $formatted .= ' ' . self::info('// ' . Str::strToHex($string));
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * @param string[] $allowedChars
+     */
+    private static function escapeAsBinary(string $string, array $allowedChars = []): bool
+    {
+        if ($allowedChars !== []) {
+            $chars = array_diff(range("\x00", "\x1f"), $allowedChars);
+            $pattern = self::createCharPattern($chars);
+        } else {
+            $pattern = '~[\x00-\x1f]~';
+        }
+
+        return preg_match($pattern, $string) === 1;
+    }
+
+    /**
+     * @param string[] $chars
+     */
+    private static function createCharPattern(array $chars): string
+    {
+        $chars = array_map(static function (string $ch): string {
+            return '\x' . Str::charToHex($ch);
+        }, $chars);
+
+        return '~[' . implode('', $chars) . ']~';
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function getTranslations(int $escaping): array
+    {
+        $translations = [];
+        switch ($escaping) {
+            case self::ESCAPING_PHP:
+                $translations = self::$phpEscapes;
+                break;
+            case self::ESCAPING_JS:
+                $translations = self::$jsEscapes;
+                break;
+            case self::ESCAPING_JSON:
+                $translations = self::$jsonEscapes;
+                break;
+            case self::ESCAPING_MYSQL:
+                $translations = self::$mysqlEscapes;
+                break;
+        }
+
+        return $translations;
     }
 
 }

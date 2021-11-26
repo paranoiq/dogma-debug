@@ -20,5 +20,6 @@ dictionaryDirectories:
     - vendor/spell-checker/dictionary-en
     - build
 
-localIgnores:
-    *: bd rdx prepend prepended Equalable
+checkLocalIgnores: true
+
+ignoreUrls: true

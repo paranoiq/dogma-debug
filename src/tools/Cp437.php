@@ -11,8 +11,10 @@
 
 namespace Dogma\Debug;
 
+use function array_combine;
+use function array_merge;
 use function range;
-use function str_replace;
+use function strlen;
 
 class Cp437
 {
@@ -26,7 +28,7 @@ class Cp437
         '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧',
         '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀',
         'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩',
-        '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ',
+        '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ', // todo: \xFF looks the same as space : /
     ];
 
     private const SPECIAL_PRINTABLE = [
@@ -40,14 +42,32 @@ class Cp437
      */
     public static function toUtf8Printable(string $string): string
     {
-        $string = self::toUtf8($string);
+        $keys = array_merge(range("\x00", "\x1f"), ["\x7F"], range("\x80", "\xff"));
+        $values = array_merge(self::SPECIAL_PRINTABLE, self::UPPER_HALF);
+        /** @var string[] $replace */
+        $replace = array_combine($keys, $values);
 
-        return str_replace(range("\x00", "\x1f") + ["\x7F"], self::SPECIAL_PRINTABLE, $string);
+        $res = '';
+        for ($i = 0; $i < strlen($string); $i++) {
+            $ch = $string[$i];
+            $res .= $replace[$ch] ?? $ch;
+        }
+
+        return $res;
     }
 
     public static function toUtf8(string $string): string
     {
-        return str_replace(range("\x80", "\xff"), self::UPPER_HALF, $string);
+        /** @var string[] $replace */
+        $replace = array_combine(range("\x80", "\xff"), self::UPPER_HALF);
+
+        $res = '';
+        for ($i = 0; $i < strlen($string); $i++) {
+            $ch = $string[$i];
+            $res .= $replace[$ch] ?? $ch;
+        }
+
+        return $res;
     }
 
 }

@@ -138,6 +138,7 @@ crlf
 eof
 nonblock
 wc
+ns
 
 # ~en
 libs
@@ -154,6 +155,9 @@ ok
 # en
 runtime
 prepend
+chunked
+chunking
+prepended
 breakpoint
 callstack
 backtrace

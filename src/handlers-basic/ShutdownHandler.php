@@ -54,6 +54,15 @@ use function sapi_windows_set_ctrl_handler;
 /**
  * Tracks signals, exit() and die() and tries to determine what lead to process termination
  *
+ * PHP request shutdown steps:
+ * - call all functions registered via register_shutdown_function()
+ * - call all* __destruct() methods
+ * - empty all output buffers
+ * - end all PHP extensions (e.g. sessions)
+ * - turn off output layer (send HTTP headers, terminate output handlers etc.)
+ *
+ * @see https://phpfashion.com/jak-probiha-shutdown-v-php-a-volani-destruktoru
+ *
  * @see https://man7.org/linux/man-pages/man7/signal.7.html
  * @see https://stackoverflow.com/questions/3333276/signal-handling-on-windows
  */

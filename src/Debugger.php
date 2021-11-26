@@ -61,6 +61,9 @@ class Debugger
     /** @var int Port on which is server.php running */
     public static $remotePort = 1729;
 
+    /** @var bool When set to false, all output is local. But remember, that parent process can eat all the output */
+    public static $remote = true;
+
     /** @var bool Show notice when a debugger component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) */
     public static $showDependenciesInfo = true;
 
@@ -78,6 +81,17 @@ class Debugger
 
     /** @var string Background color of request header, footer and process id label */
     public static $headerColor = Ansi::LYELLOW;
+
+    /** @var class-string[] Order of stream handler stats in request footer */
+    public static $footerStreamHandlers = [
+        FileStreamHandler::class,
+        PharStreamHandler::class,
+        HttpStreamHandler::class,
+        FtpStreamHandler::class,
+        DataStreamHandler::class,
+        PhpStreamHandler::class,
+        ZlibStreamHandler::class,
+    ];
 
     /** @var string[] Background colors of handler labels */
     public static $handlerColors = [
@@ -127,6 +141,12 @@ class Debugger
 
     /** @var resource|Socket */
     private static $socket;
+
+    /** @var DebugServer */
+    private static $server;
+
+    /** @var string */
+    private static $name;
 
     /** @var bool */
     private static $initDone = false;
@@ -270,9 +290,9 @@ class Debugger
             return;
         }
 
-        $time = number_format((microtime(true) - $start) * 1000, 3, '.', ' ');
+        $time = Units::time(microtime(true) - $start);
         $name = $name ? ucfirst($name) : 'Timer';
-        $message = Ansi::white(" $name: $time ms ", Ansi::DGREEN);
+        $message = Ansi::white(" $name: $time ", Ansi::DGREEN);
 
         self::send(Packet::TIMER, $message);
 
@@ -288,13 +308,19 @@ class Debugger
         ?float $duration = null
     ): void
     {
-        if (!self::$initDone) {
+        if ((self::$remote && self::$socket === null) || (!self::$remote && self::$server === null)) {
             self::init();
         }
 
         $message = str_replace(Packet::MARKER, "||||", $message);
+        $packet = new Packet($type, $message, $backtrace, $duration);
 
-        $packet = serialize(new Packet($type, $message, $backtrace, $duration)) . Packet::MARKER;
+        if (!self::$remote) {
+            self::$server->renderPacket($packet);
+            return;
+        }
+
+        $packet = serialize($packet) . Packet::MARKER;
         $result = @socket_write(self::$socket, $packet, strlen($packet));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
@@ -352,14 +378,27 @@ class Debugger
      */
     public static function init(): void
     {
-        if (self::$socket === null) {
+        if (self::$remote && self::$socket === null) {
             self::connect();
+        }
+
+        if (!self::$remote && self::$server === null) {
+            self::$server = new DebugServer(1729, '127.0.0.1');
         }
 
         if (!self::$initDone) {
             if (Packet::$count === 0) {
                 $header = self::createHeader();
-                $packet = serialize(new Packet(Packet::INTRO, $header)) . Packet::MARKER;
+                $packet = new Packet(Packet::INTRO, $header);
+
+                if (!self::$remote) {
+                    self::$server->renderPacket($packet);
+                    self::$initDone = true;
+
+                    return;
+                }
+
+                $packet = serialize($packet) . Packet::MARKER;
                 $result = @socket_write(self::$socket, $packet, strlen($packet));
                 if (!$result) {
                     return;
@@ -432,7 +471,8 @@ class Debugger
         if ($sapi === 'cli') {
             $args = $argv;
             $args[0] = Dumper::file($args[0]);
-            $header .= implode(' ', $args) . ' ';
+            self::$name = implode(' ', $args);
+            $header .= self::$name . ' ';
         } else {
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                 $header .= Ansi::white(' AJAX ', Http::$methodColors['ajax']) . ' ';
@@ -441,7 +481,10 @@ class Debugger
                 $header .= Ansi::white(' ' . $_SERVER['REQUEST_METHOD'] . ' ', Http::$methodColors[strtolower($_SERVER['REQUEST_METHOD'])]) . ' ';
             }
             if (!empty($_SERVER['SCRIPT_URI'])) {
-                $header .= Dumper::url($_SERVER['SCRIPT_URI']) . ' ';
+                self::$name = Dumper::url($_SERVER['SCRIPT_URI']);
+                $header .= self::$name . ' ';
+            } else {
+                self::$name = '';
             }
         }
 
@@ -495,62 +538,55 @@ class Debugger
             OutputHandler::terminateAllOutputBuffers();
         }
         $outputLength = OutputHandler::getTotalLength();
-        $output = $outputLength > 0 ? number_format($outputLength / 1024) . ' kB, ' : '';
+        $output = $outputLength > 0 ? Units::size($outputLength) . ', ' : '';
         $start = self::$timers['total'];
-        $time = number_format((microtime(true) - $start) * 1000, 0, '.', ' ');
-        $memory = number_format(memory_get_peak_usage(true) / 1024 ** 2, 0, '.', ' ');
+        $time = Units::time(microtime(true) - $start);
+        $memory = Units::size(memory_get_peak_usage(false));
         $id = System::getId();
-        $footer .= Ansi::white(" << #$id, {$output}$time ms, $memory MB ", self::$headerColor);
+        $footer .= Ansi::white(" << #$id, {$output}$time, $memory ", self::$headerColor);
 
-        // includes
-        $fileStats = FileStreamHandler::getStats();
-        $pharStats = PharStreamHandler::getStats();
-        $httpStats = HttpStreamHandler::getStats();
-        $includeCount = $fileStats['includeEvents']['open'] + $pharStats['includeEvents']['open'] + $httpStats['includeEvents']['open'];
-        $includeTime = $fileStats['includeTime']['total'] + $pharStats['includeTime']['total'] + $httpStats['includeTime']['total'];
-        if ($includeCount > 0) {
-            $includeTime = number_format($includeTime * 1000);
-            $footer .= Ansi::white("| inc: {$includeCount}× $includeTime ms ", self::$headerColor);
+        // includes io
+        $events = 0;
+        $time = 0.0;
+        foreach (self::$footerStreamHandlers as $handler) {
+            $stats = $handler::getStats(true);
+            $events += $stats['events']['total'];
+            $time += $stats['time']['total'];
+        }
+        if ($events > 0) {
+            $time = Units::time($time);
+            $footer .= Ansi::white("| inc: {$events}× $time ", self::$headerColor);
         }
 
-        // file io
-        if ($fileStats['userEvents']['open'] > 0) {
-            $userTime = number_format($fileStats['userTime']['total'] * 1000);
-            $footer .= Ansi::white("| file: {$fileStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
+        // stream handlers io
+        foreach (self::$footerStreamHandlers as $handler) {
+            $ioStats = $handler::getStats();
+            if ($ioStats['events']['open'] > 0) {
+                $ioTime = Units::time($ioStats['time']['total']);
+                $footer .= Ansi::white('| ' . $handler::NAME . ": {$ioStats['events']['open']}× $ioTime ", self::$headerColor);
+            }
         }
 
-        // phar io
-        if ($pharStats['userEvents']['open'] > 0) {
-            $userTime = number_format($pharStats['userTime']['total'] * 1000);
-            $footer .= Ansi::white("| phar: {$pharStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
-        }
-
-        // http io
-        if ($httpStats['userEvents']['open'] > 0) {
-            $userTime = number_format($httpStats['userTime']['total'] * 1000);
-            $footer .= Ansi::white("| http: {$httpStats['userEvents']['open']}× $userTime ms ", self::$headerColor);
-        }
-
-        // database
+        // database io
         $stats = SqlHandler::getStats();
         $conn = $stats['events']['connect'];
         if ($conn > 0) {
             $queries = $stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update']
                 + $stats['events']['delete'] + $stats['events']['query'];
-            $sqlTime = number_format($stats['time']['total'] * 1000);
+            $sqlTime = Units::time($stats['time']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| db: $conn con, $queries q, $sqlTime ms, $rows rows ", self::$headerColor);
+            $footer .= Ansi::white("| db: $conn con, $queries q, $sqlTime, $rows rows ", self::$headerColor);
         }
 
-        // redis
+        // redis io
         $stats = RedisHandler::getStats();
         $events = $stats['events']['total'];
         if ($events > 0) {
             $queries = $stats['events']['total'];
-            $redTime = number_format($stats['time']['total'] * 1000);
-            $data = Dumper::size((int) $stats['data']['total']);
+            $time = Units::time($stats['time']['total']);
+            $data = Units::size((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| redis: $queries q, $redTime ms, $data, $rows rows ", self::$headerColor);
+            $footer .= Ansi::white("| redis: $queries q, $time, $data, $rows rows ", self::$headerColor);
         }
 
         // termination reason
@@ -583,7 +619,7 @@ class Debugger
         if ($errors !== []) {
             $count = ErrorHandler::getCount();
             $list = ErrorHandler::$listErrors ? ':' : '';
-            $footer .= ' ' . Ansi::white($count > 1 ? " $count errors$list " : " 1 error$list ", Ansi::LRED);
+            $footer .= ' ' . Ansi::white($count > 1 ? " $count errors$list " : " 1 error$list ", Ansi::LRED) . ' ' . self::$name;
             if ($list) {
                 foreach ($errors as $error => $files) {
                     $file = $line = $count = null;
@@ -592,10 +628,13 @@ class Debugger
                     }
                     $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
                     if ($file !== '') {
-                        $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string) $file, (int) $line) . Dumper::info(' ' . $count . '×');
+                        $footer .= Dumper::info(' - eg in ') . Dumper::fileLine((string) $file, (int) $line)
+                            . Dumper::info(' ' . $count . '×');
                     }
                 }
             }
+        } else {
+            $footer .= ' ' . self::$name;
         }
 
         return $footer;
@@ -604,6 +643,12 @@ class Debugger
     public static function getOutputWidth(): int
     {
         if (self::$outputWidth !== null) {
+            return self::$outputWidth;
+        }
+
+        if (!self::$remote) {
+            self::$outputWidth = System::getTerminalWidth();
+
             return self::$outputWidth;
         }
 

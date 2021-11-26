@@ -71,14 +71,14 @@ class RedisHandler
     /** @var int[] */
     private static $events = [];
 
-    /** @var float[] */
-    private static $time = [];
-
     /** @var int[] */
     private static $data = [];
 
     /** @var int[] */
     private static $rows = [];
+
+    /** @var float[] */
+    private static $time = [];
 
     /** @var string */
     private static $readBuffer = '';
@@ -244,7 +244,7 @@ class RedisHandler
             $prefix .= Dumper::exceptions('serialized:') . ' ';
             $value = Dumper::dumpValue(unserialize($message, ['allowed_classes' => true]));
         } else {
-            $value = Dumper::string($message);
+            $value = Dumper::string($message, 0);
         }
 
         return $prefix . $value;
@@ -332,21 +332,21 @@ class RedisHandler
     }
 
     /**
-     * @return array<int[]|float[]>
+     * @return array{events: int[], data: int[], rows: int[], time: float[]}
      */
     public static function getStats(): array
     {
         $stats = [
             'events' => self::$events,
-            'time' => self::$time,
             'data' => self::$data,
             'rows' => self::$rows,
+            'time' => self::$time,
         ];
 
         $stats['events']['total'] = array_sum($stats['events']);
-        $stats['time']['total'] = array_sum($stats['time']);
         $stats['data']['total'] = array_sum($stats['data']);
         $stats['rows']['total'] = array_sum($stats['rows']);
+        $stats['time']['total'] = array_sum($stats['time']);
 
         return $stats;
     }

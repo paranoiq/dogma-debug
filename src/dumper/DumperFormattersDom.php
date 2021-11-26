@@ -186,7 +186,7 @@ trait DumperFormattersDom
 
     public static function dumpDomText(DOMText $text, int $depth = 0): string
     {
-        $value = self::string($text->wholeText);
+        $value = self::string($text->wholeText, $depth);
 
         return $depth !== 0
             ? $value

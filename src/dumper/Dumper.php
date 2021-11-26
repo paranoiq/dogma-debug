@@ -83,6 +83,7 @@ use function is_object;
 use function is_resource;
 use function is_string;
 use function ksort;
+use function ltrim;
 use function md5;
 use function ob_get_clean;
 use function ob_start;
@@ -110,20 +111,12 @@ class Dumper
     use DumperFormattersDogma;
     use DumperFormattersDom;
 
-    // todo: unicode escaping
-    public const UNICODE_ESCAPE_ONLY = 1;
-    public const UNICODE_ESCAPE_PHP = 2;
-    public const UNICODE_ESCAPE_JS = 3;
-    public const UNICODE_ESCAPE_SQL = 4;
-
-    // todo: binary escaping
-    public const BINARY_ESCAPE_ONLY = 1;
-    public const BINARY_ESCAPE_PHP = 2;
-    public const BINARY_ESCAPE_JS = 3;
-    public const BINARY_ESCAPE_SQL = 4;
-    public const BINARY_AS_CP437 = 5;
-    public const BINARY_AS_MOJIBAKE = 6;
-    public const BINARY_WITH_HEXADECIMAL = 1024;
+    public const ESCAPING_NONE = 0;
+    public const ESCAPING_PHP = 1;
+    public const ESCAPING_JS = 2;
+    public const ESCAPING_JSON = 3;
+    public const ESCAPING_MYSQL = 4;
+    public const ESCAPING_CP437 = 5;
 
     public const ORDER_ORIGINAL = 1;
     public const ORDER_ALPHABETIC = 2;
@@ -140,17 +133,26 @@ class Dumper
     /** @var int - max length of dumped strings */
     public static $maxLength = 10000;
 
-    /** @var bool - escape newlines as \n or print them */
-    public static $escapeStrings = true;
+    /** @var string - encoding of dumped strings (todo: output encoding should be always utf-8) */
+    public static $inputEncoding = 'utf-8';
 
-    /** @var string - encoding of dumped strings (output encoding is always utf-8) */
-    public static $stringsEncoding = 'utf-8';
+    /** @var int - string escaping for strings without control characters (allowed only \n, \r, \t etc.) */
+    public static $stringsEscaping = self::ESCAPING_PHP;
 
-    /** @var int - unicode strings escaping/formatting */
-    //public static $stringsOutput = self::UNICODE_ESCAPE_ONLY;
+    /** @var int - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
+    public static $binaryEscaping = self::ESCAPING_CP437;
 
-    /** @var int - binary strings escaping/formatting */
-    //public static $binaryOutput = self::BINARY_ESCAPE_ONLY;
+    /** @var bool - whether to escape \n, \r, \t or keep them as they are (not relevant for ESCAPING_CP437) */
+    public static $escapeWhiteSpace = true;
+
+    /** @var bool - escape all unicode characters outside ascii (not relevant for ESCAPING_SQL and ESCAPING_CP437) */
+    public static $escapeAllNonAscii = false;
+
+    /** @var bool - dump binary strings with hexadecimal representation along */
+    public static $binaryWithHexadecimal = true;
+
+    /** @var int|null - length of binary string chunks (rows) */
+    public static $binaryChunkLength = 16;
 
     // array and object settings ---------------------------------------------------------------------------------------
 
@@ -171,6 +173,9 @@ class Dumper
 
     /** @var string[] (regexp $long => replacement $short) - replacements of namespaces for shorter class names in dumps */
     public static $namespaceReplacements = [];
+
+    /** @var bool - dump static variables from methods when dumping static members of class (e.g. `rd(Foo::class)`) */
+    public static $dumpClassesWithStaticMethodVariables = false;
 
     // info settings ---------------------------------------------------------------------------------------------------
 
@@ -211,8 +216,8 @@ class Dumper
         '~^loadClass~',
     ];
 
-    /** @var string - common path prefix to remove from all paths */
-    public static $trimPathPrefix = '';
+    /** @var string[] - common path prefixes to remove from all paths */
+    public static $trimPathPrefix = [];
 
     // type formatter settings -----------------------------------------------------------------------------------------
 
@@ -249,7 +254,7 @@ class Dumper
         'indent' => Ansi::DGRAY, // |
         'info' => Ansi::DGRAY, // // 5 items
 
-        'exceptions' => Ansi::LMAGENTA, // RECURSION, ... (max depth, not traversed)
+        'exceptions' => Ansi::LMAGENTA, // RECURSION, *****, ... (max depth, max length, not traversed)
 
         'function' => Ansi::LGREEN, // intercept or stream wrapper function call
         'time' => Ansi::LBLUE, // operation time
@@ -388,7 +393,7 @@ class Dumper
             }, $dump);
         }
 
-        return $dump;
+        return trim($dump);
     }
 
     /**
@@ -492,7 +497,7 @@ class Dumper
                 $time = self::intToFormattedDate($int);
                 $info = ' ' . self::info('// ' . $time);
             } elseif (!$sign && $int > 1024 && preg_match('/size|bytes/', $key)) {
-                $info = ' ' . self::info('// ' . self::size($int));
+                $info = ' ' . self::info('// ' . Units::size($int));
             } elseif (!$sign && preg_match('/flags|options|headeropt|settings/', $key)) {
                 $info = ' ' . self::info('// ' . implode('|', array_reverse(self::binaryComponents($int))));
             } else {
@@ -539,17 +544,24 @@ class Dumper
             : '';
 
         $bytes = strlen($string);
-        $length = Str::length($string, self::$stringsEncoding);
+        $length = Str::length($string, self::$inputEncoding);
 
-        $hidden = '';
-        if (in_array($key, self::$hiddenFields, true)) {
-            $string = '*****';
-            $hidden = ', hidden';
+        if ($key !== null && self::$hiddenFields !== []) {
+            $key2 = ltrim($key, '$');
+            if (in_array($key, self::$hiddenFields, true) || in_array($key2, self::$hiddenFields, true)) {
+                $hidden = ', hidden';
+                $info = $bytes === $length
+                    ? ' ' . self::info("// $bytes B{$hidden}")
+                    : ' ' . self::info("// $bytes B, $length ch{$hidden}");
+                $quote = Ansi::color('"', self::$colors['string']);
+
+                return $quote . self::exceptions('*****') . $quote . $info;
+            }
         }
 
         $trimmed = '';
         if ($length > self::$maxLength) {
-            $string = Str::trim($string, self::$maxLength, self::$stringsEncoding) . '…';
+            $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
             $trimmed = ', trimmed';
         }
 
@@ -574,33 +586,20 @@ class Dumper
             // ^^^
         } elseif ($key !== null && Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
             $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
-        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$path && !$trimmed && !$hidden && !$callable) {
+        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$path && !$trimmed && !$callable) {
             $info = '';
         } elseif ($bytes === $length) {
-            $info = ' ' . self::info("// $bytes B{$path}{$trimmed}{$hidden}{$callable}");
+            $info = ' ' . self::info("// $bytes B{$path}{$trimmed}{$callable}");
         } else {
-            $info = ' ' . self::info("// $bytes B, $length ch{$path}{$trimmed}{$hidden}{$callable}");
+            $info = ' ' . self::info("// $bytes B, $length ch{$path}{$trimmed}{$callable}");
         }
 
         // explode path list on more lines
         if ($key !== null && preg_match('/path(?!ext)/i', $key) && Str::contains($string, PATH_SEPARATOR)) {
-            $infoBefore = self::$showInfo;
-            self::$showInfo = false;
-            $parts = explode(PATH_SEPARATOR, $string);
-            foreach ($parts as $i => $s) {
-                if ($s !== "") {
-                    $parts[$i] = self::dumpString($s . ($i + 1 === count($parts) ? '' : PATH_SEPARATOR));
-                } else {
-                    unset($parts[$i]);
-                }
-            }
-            $sep = "\n" . self::indent($depth) . ' ' . self::symbol('.') . ' ';
-            self::$showInfo = $infoBefore;
-
-            return implode($sep, $parts) . $info;
+            return self::string($string, $depth, PATH_SEPARATOR) . $info;
         }
 
-        return self::string($string) . $info;
+        return self::string($string, $depth) . $info;
     }
 
     /**
@@ -665,7 +664,7 @@ class Dumper
         $start = self::bracket('[');
         $end = self::bracket(']') . $info;
 
-        $length = Ansi::length(implode(', ', $items), self::$stringsEncoding);
+        $length = Ansi::length(implode(', ', $items), self::$inputEncoding);
 
         if ($isList && $length < self::$shortArrayMaxLength && !$hasInfo) {
             // simple values: "[1, 2, 3] // 3 items"

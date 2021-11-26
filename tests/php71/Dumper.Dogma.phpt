@@ -21,6 +21,8 @@ require_once __DIR__ . '/../bootstrap.php';
 Assert::$dump = true;
 
 
+ini_set('date.timezone', 'Europe/Prague');
+
 $timeZone = new DateTimeZone('Europe/Prague');
 
 

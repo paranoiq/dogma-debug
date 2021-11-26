@@ -17,7 +17,6 @@ use const SOCK_STREAM;
 use const SOL_TCP;
 use function count;
 use function explode;
-use function round;
 use function serialize;
 use function socket_accept;
 use function socket_bind;
@@ -118,77 +117,78 @@ class DebugServer
                 continue;
             }
 
-            /** @var Packet|false $request */
-            $request = unserialize($message, ['allowed_classes' => [Packet::class]]);
+            /** @var Packet|false $packet */
+            $packet = unserialize($message, ['allowed_classes' => [Packet::class]]);
             // broken serialization - probably too big packet split to chunks
-            if ($request === false) {
+            if ($packet === false) {
                 echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
                 continue;
             }
 
-            $this->ids[$i] = $request->pid;
-
             // handle server -> client communication
-            if ($request->type === Packet::OUTPUT_WIDTH) {
+            if ($packet->type === Packet::OUTPUT_WIDTH) {
                 $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
                 socket_write($this->connections[$i], $response . Packet::MARKER);
                 //stream_socket_sendto($this->sock, $response, 0, $connection);
                 continue;
             }
 
-            // delete previous backtrace to save space
-            if ($this->groupInfo
-                && $this->lastRequest
-                && $request->backtrace
-                && $this->lastRequest->backtrace === $request->backtrace
-                && $this->lastRequest->type === $request->type
-            ) {
-                echo Ansi::DELETE_ROW;
-                echo Ansi::UP;
-                $this->durationSum += $request->duration;
-            } else {
-                $this->durationSum = $request->duration;
-            }
+            $this->ids[$i] = $packet->pid;
 
-            // process id
-            if (count($this->connections) > 1 && $request->type !== Packet::INTRO && $request->type !== Packet::OUTRO) {
-                echo "\n" . Ansi::white(" #$request->pid ", Ansi::DYELLOW) . ' ';
-            } else {
-                echo "\n";
-            }
+            $this->renderPacket($packet);
 
-            // payload
-            echo $request->payload;
-
-            // duration
-            if ($request->duration > 0.000000000001) {
-                $unit = $request->duration < 0.001 ? 'μs' : 'ms';
-                $multiplier = $unit === 'ms' ? 1000 : 1000000;
-                echo ' ' . Ansi::dblue('(' . round($request->duration * $multiplier) . ' ' . $unit . ')');
-            }
-
-            // backtrace
-            if ($request->backtrace) {
-                echo "\n" . $request->backtrace;
-            }
-
-            // duration sum for similar request from same place
-            if ($request->backtrace && $this->durationSum !== $request->duration) {
-                if ($this->durationSum > 0.000000000001) {
-                    $unit = $this->durationSum < 0.001 ? 'μs' : 'ms';
-                    $multiplier = $unit === 'ms' ? 1000 : 1000000;
-                    echo ' ' . Ansi::dblue('(total ' . round($this->durationSum * $multiplier) . ' ' . $unit . ')');
-                }
-            }
-
-            $this->lastRequest = $request;
-
-            if ($request->type === Packet::OUTRO) {
+            if ($packet->type === Packet::OUTRO) {
                 $outro = true;
             }
         }
 
         return $outro;
+    }
+
+    public function renderPacket(Packet $packet): void
+    {
+        // delete previous backtrace to save space
+        if ($this->groupInfo
+            && $this->lastRequest
+            && $packet->backtrace
+            && $this->lastRequest->backtrace === $packet->backtrace
+            && $this->lastRequest->type === $packet->type
+        ) {
+            echo Ansi::DELETE_ROW;
+            echo Ansi::UP;
+            $this->durationSum += $packet->duration;
+        } else {
+            $this->durationSum = $packet->duration;
+        }
+
+        // process id
+        if (count($this->connections) > 1 && $packet->type !== Packet::INTRO && $packet->type !== Packet::OUTRO) {
+            echo "\n" . Ansi::white(" #$packet->pid ", Ansi::DYELLOW) . ' ';
+        } else {
+            echo "\n";
+        }
+
+        // payload
+        echo $packet->payload;
+
+        // duration
+        if ($packet->duration > 0.000000000001) {
+            echo ' ' . Ansi::dblue('(' . Units::time($packet->duration) . ')');
+        }
+
+        // backtrace
+        if ($packet->backtrace) {
+            echo "\n" . $packet->backtrace;
+        }
+
+        // duration sum for similar request from same place
+        if ($packet->backtrace && $this->durationSum !== $packet->duration) {
+            if ($this->durationSum > 0.000000000001) {
+                echo ' ' . Ansi::dblue('(total ' . Units::time($this->durationSum) . ')');
+            }
+        }
+
+        $this->lastRequest = $packet;
     }
 
     private function connect(): void

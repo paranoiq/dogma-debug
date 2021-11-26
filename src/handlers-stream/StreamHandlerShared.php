@@ -71,13 +71,19 @@ trait StreamHandlerShared
     private static $enabled = false;
 
     /** @var int[] */
-    private static $userEvents = [];
+    private static $events = [];
+
+    /** @var int[] */
+    private static $data = [];
 
     /** @var float[] */
-    private static $userTime = [];
+    private static $time = [];
 
     /** @var int[] */
     private static $includeEvents = [];
+
+    /** @var int[] */
+    private static $includeData = [];
 
     /** @var float[] */
     private static $includeTime = [];
@@ -104,7 +110,7 @@ trait StreamHandlerShared
     private $bufferSize;
 
     /** @var float */
-    private $time;
+    private $duration;
 
     public static function enable(?int $logActions = null, ?bool $logIncludes = null): void
     {
@@ -141,7 +147,15 @@ trait StreamHandlerShared
      * @param mixed[] $params
      * @param mixed $return
      */
-    private function log(int $event, float $duration, string $path, string $function, array $params = [], $return = null): void
+    private function log(
+        int $event,
+        float $duration,
+        int $data,
+        string $path,
+        string $function,
+        array $params = [],
+        $return = null
+    ): void
     {
         // detect and log working directory change
         // todo: is this thread safe?
@@ -162,10 +176,12 @@ trait StreamHandlerShared
         $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
         if ($isInclude) {
             self::$includeEvents[$event] = isset(self::$includeEvents[$event]) ? self::$includeEvents[$event] + 1 : 1;
+            self::$includeData[$event] = isset(self::$includeData[$event]) ? self::$includeData[$event] + $data : $data;
             self::$includeTime[$event] = isset(self::$includeTime[$event]) ? self::$includeTime[$event] + $duration : $duration;
         } else {
-            self::$userEvents[$event] = isset(self::$userEvents[$event]) ? self::$userEvents[$event] + 1 : 1;
-            self::$userTime[$event] = isset(self::$userTime[$event]) ? self::$userTime[$event] + $duration : $duration;
+            self::$events[$event] = isset(self::$events[$event]) ? self::$events[$event] + 1 : 1;
+            self::$data[$event] = isset(self::$data[$event]) ? self::$data[$event] + $data : $data;
+            self::$time[$event] = isset(self::$time[$event]) ? self::$time[$event] + $duration : $duration;
         }
 
         // events display filtering
@@ -203,7 +219,7 @@ trait StreamHandlerShared
                 ? $this->previous('fopen', $this->path, $mode, $usePath, $this->context)
                 : $this->previous('fopen', $this->path, $mode, $usePath);
         } finally {
-            $this->log(self::OPEN, $this->time, $this->path, 'open', [$mode, $options], (int) $this->handle);
+            $this->log(self::OPEN, $this->duration, 0, $this->path, 'open', [$mode, $options], (int) $this->handle);
         }
 
         $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
@@ -229,7 +245,7 @@ trait StreamHandlerShared
         try {
             $this->previous('fclose', $this->handle);
         } finally {
-            $this->log(self::CLOSE, $this->time, $this->path, 'close');
+            $this->log(self::CLOSE, $this->duration, 0, $this->path, 'close');
         }
     }
 
@@ -244,7 +260,7 @@ trait StreamHandlerShared
         try {
              $result = $this->previous('flock', $this->handle, $operation);
         } finally {
-            $this->log(self::LOCK, $this->time, $this->path, 'lock', [$operation], $result);
+            $this->log(self::LOCK, $this->duration, 0, $this->path, 'lock', [$operation], $result);
         }
 
         return $result;
@@ -259,8 +275,8 @@ trait StreamHandlerShared
             $result = substr($this->readBuffer, 0, $count);
             $this->readBuffer = substr($this->readBuffer, $count);
 
-            $return = strlen($result);
-            $this->log(self::READ, 0.0, $this->path, 'read', [$count, 'buffered'], $return);
+            $length = strlen($result);
+            $this->log(self::READ, 0.0, $length, $this->path, 'read', [$count, 'buffered'], $length);
 
             return $result;
         }
@@ -270,8 +286,8 @@ trait StreamHandlerShared
             $result = $this->previous('fread', $this->handle, $count);
         } finally {
             $params = $buffer ? [$count, 'buffering'] : [$count];
-            $return = $result === false ? false : strlen($result);
-            $this->log(self::READ, $this->time, $this->path, 'read', $params, $return);
+            $length = $result === false ? 0 : strlen($result);
+            $this->log(self::READ, $this->duration, $length, $this->path, 'read', $params, $length);
         }
 
         return $result;
@@ -286,7 +302,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('fwrite', $this->handle, $data);
         } finally {
-            $this->log(self::WRITE, $this->time, $this->path, 'write', [strlen($data)], $result);
+            $this->log(self::WRITE, $this->duration, $result, $this->path, 'write', [strlen($data)], $result);
         }
 
         return $result;
@@ -298,7 +314,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('ftruncate', $this->handle, $newSize);
         } finally {
-            $this->log(self::TRUNCATE, $this->time, $this->path, 'truncate', [$newSize], $result);
+            $this->log(self::TRUNCATE, $this->duration, 0, $this->path, 'truncate', [$newSize], $result);
         }
 
         return $result;
@@ -310,7 +326,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('fflush', $this->handle);
         } finally {
-            $this->log(self::FLUSH, $this->time, $this->path, 'flush', [], $result);
+            $this->log(self::FLUSH, $this->duration, 0, $this->path, 'flush', [], $result);
         }
 
         return $result;
@@ -322,7 +338,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('fseek', $this->handle, $offset, $whence) === 0;
         } finally {
-            $this->log(self::SEEK, $this->time, $this->path, 'seek', [$offset], $result);
+            $this->log(self::SEEK, $this->duration, 0, $this->path, 'seek', [$offset], $result);
         }
 
         return $result;
@@ -332,7 +348,7 @@ trait StreamHandlerShared
     {
         if ($this->readBuffer) {
             $result = false;
-            $this->log(self::INFO, 0.0, $this->path, 'eof', ['buffered'], $result);
+            $this->log(self::INFO, 0.0, 0, $this->path, 'eof', ['buffered'], $result);
 
             return $result;
         }
@@ -341,7 +357,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('feof', $this->handle);
         } finally {
-            $this->log(self::INFO, $this->time, $this->path, 'eof', [], $result);
+            $this->log(self::INFO, $this->duration, 0, $this->path, 'eof', [], $result);
         }
 
         return $result;
@@ -356,7 +372,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('ftell', $this->handle);
         } finally {
-            $this->log(self::INFO, $this->time, $this->path, 'tell', [], $result);
+            $this->log(self::INFO, $this->duration, 0, $this->path, 'tell', [], $result);
         }
 
         return $result;
@@ -372,7 +388,7 @@ trait StreamHandlerShared
             /** @var positive-int[]|false $result */
             $result = $this->previous('fstat', $this->handle);
         } finally {
-            $this->log(self::STAT, $this->time, $this->path, 'stat', [], $this->formatStat($result));
+            $this->log(self::STAT, $this->duration, 0, $this->path, 'stat', [], $this->formatStat($result));
         }
 
         // file size is changed by Intercept magic
@@ -396,7 +412,7 @@ trait StreamHandlerShared
                 try {
                     $result = $this->previous('touch', $path, $t1, $t2);
                 } finally {
-                    $this->log(self::META, $this->time, $path, 'touch', [$t1, $t2], $result);
+                    $this->log(self::META, $this->duration, 0, $path, 'touch', [$t1, $t2], $result);
                 }
 
                 return $result;
@@ -405,7 +421,7 @@ trait StreamHandlerShared
                 try {
                     $result = $this->previous('chown', $path, $value);
                 } finally {
-                    $this->log(self::META, $this->time, $path, 'chown', [$value], $result);
+                    $this->log(self::META, $this->duration, 0, $path, 'chown', [$value], $result);
                 }
 
                 return $result;
@@ -414,7 +430,7 @@ trait StreamHandlerShared
                 try {
                     $result = $this->previous('chgrp', $path, $value);
                 } finally {
-                    $this->log(self::META, $this->time, $path, 'chgrp', [$value], $result);
+                    $this->log(self::META, $this->duration, 0, $path, 'chgrp', [$value], $result);
                 }
 
                 return $result;
@@ -422,7 +438,7 @@ trait StreamHandlerShared
                 try {
                     $result = $this->previous('chmod', $path, $value);
                 } finally {
-                    $this->log(self::META, $this->time, $path, 'chmod', [$value], $result);
+                    $this->log(self::META, $this->duration, 0, $path, 'chmod', [$value], $result);
                 }
 
                 return $result;
@@ -439,28 +455,28 @@ trait StreamHandlerShared
                 try {
                     $result = $this->previous('stream_set_blocking', $this->handle, (bool) $arg1);
                 } finally {
-                    $this->log(self::SET, $this->time, $this->path, 'set_blocking', [$option, $arg1], $result);
+                    $this->log(self::SET, $this->duration, 0, $this->path, 'set_blocking', [$option, $arg1], $result);
                 }
                 return $result;
             case STREAM_OPTION_READ_BUFFER:
                 try {
                     $result = $this->previous('stream_set_read_buffer', $this->handle, $arg1);
                 } finally {
-                    $this->log(self::SET, $this->time, $this->path, 'set_read_buffer', [$option, $arg1], (bool) $result);
+                    $this->log(self::SET, $this->duration, 0, $this->path, 'set_read_buffer', [$option, $arg1], (bool) $result);
                 }
                 return (bool) $result;
             case STREAM_OPTION_WRITE_BUFFER:
                 try {
                     $result = $this->previous('stream_set_write_buffer', $this->handle, $arg1);
                 } finally {
-                    $this->log(self::SET, $this->time, $this->path, 'set_write_buffer', [$option, $arg1], (bool) $result);
+                    $this->log(self::SET, $this->duration, 0, $this->path, 'set_write_buffer', [$option, $arg1], (bool) $result);
                 }
                 return (bool) $result;
             case STREAM_OPTION_READ_TIMEOUT:
                 try {
                     $result = $this->previous('stream_set_timeout', $this->handle, $arg1, $arg2);
                 } finally {
-                    $this->log(self::SET, $this->time, $this->path, 'set_read_timeout', [$option, $arg1, $arg2], $result);
+                    $this->log(self::SET, $this->duration, 0, $this->path, 'set_read_timeout', [$option, $arg1, $arg2], $result);
                 }
                 return $result;
             default:
@@ -487,7 +503,7 @@ trait StreamHandlerShared
                 ? $this->previous('opendir', $this->path, $this->context)
                 : $this->previous('opendir', $this->path);
         } finally {
-            $this->log(self::OPEN_DIR, $this->time, $this->path, 'opendir', [], (int) $this->handle);
+            $this->log(self::OPEN_DIR, $this->duration, 0, $this->path, 'opendir', [], (int) $this->handle);
         }
 
         return (bool) $this->handle;
@@ -502,7 +518,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('readdir', $this->handle);
         } finally {
-            $this->log(self::READ_DIR, $this->time, $this->path, 'readdir', [], $result);
+            $this->log(self::READ_DIR, $this->duration, 0, $this->path, 'readdir', [], $result);
         }
 
         return $result;
@@ -513,7 +529,7 @@ trait StreamHandlerShared
         try {
             $this->previous('rewinddir', $this->handle);
         } finally {
-            $this->log(self::REWIND_DIR, $this->time, $this->path, 'rewinddir');
+            $this->log(self::REWIND_DIR, $this->duration, 0, $this->path, 'rewinddir');
         }
 
         return true;
@@ -524,7 +540,7 @@ trait StreamHandlerShared
         try {
             $this->previous('closedir', $this->handle);
         } finally {
-            $this->log(self::CLOSE_DIR, $this->time, $this->path, 'closedir');
+            $this->log(self::CLOSE_DIR, $this->duration, 0, $this->path, 'closedir');
         }
     }
 
@@ -543,7 +559,7 @@ trait StreamHandlerShared
             // todo: argument hints
             $hints = ['options' => [STREAM_MKDIR_RECURSIVE => 'STREAM_MKDIR_RECURSIVE', STREAM_REPORT_ERRORS => 'STREAM_REPORT_ERRORS']];
             $params = ['permissions' => $permissions, 'mkdir.options' => $options];
-            $this->log(self::MAKE_DIR, $this->time, $path, 'mkdir', $params, $result);
+            $this->log(self::MAKE_DIR, $this->duration, 0, $path, 'mkdir', $params, $result);
         }
 
         return $result;
@@ -557,7 +573,7 @@ trait StreamHandlerShared
                 ? $this->previous('rmdir', $path, $this->context)
                 : $this->previous('rmdir', $path);
         } finally {
-            $this->log(self::REMOVE_DIR, $this->time, $path, 'rmdir', [], $result);
+            $this->log(self::REMOVE_DIR, $this->duration, 0, $path, 'rmdir', [], $result);
         }
 
         return $result;
@@ -571,7 +587,7 @@ trait StreamHandlerShared
                 ? $this->previous('rename', $pathFrom, $pathTo, $this->context)
                 : $this->previous('rename', $pathFrom, $pathTo);
         } finally {
-            $this->log(self::RENAME, $this->time, $pathFrom, 'rename', [$pathTo], $result);
+            $this->log(self::RENAME, $this->duration, 0, $pathFrom, 'rename', [$pathTo], $result);
         }
 
         return $result;
@@ -583,7 +599,7 @@ trait StreamHandlerShared
         try {
             $result = $this->previous('unlink', $path);
         } finally {
-            $this->log(self::UNLINK, $this->time, $path, 'unlink', [], $result);
+            $this->log(self::UNLINK, $this->duration, 0, $path, 'unlink', [], $result);
         }
 
         return $result;
@@ -602,7 +618,7 @@ trait StreamHandlerShared
                 ? @$this->previous($func, $path)
                 : $this->previous($func, $path);
         } finally {
-            $this->log(self::STAT, $this->time, $path, $func, [$flags], $this->formatStat($result));
+            $this->log(self::STAT, $this->duration, 0, $path, $func, [$flags], $this->formatStat($result));
         }
 
         return $result;
@@ -620,7 +636,7 @@ trait StreamHandlerShared
         try {
             return $function(...array_slice(func_get_args(), 1));
         } finally {
-            $this->time = microtime(true) - $start;
+            $this->duration = microtime(true) - $start;
 
             stream_wrapper_unregister(self::PROTOCOL);
             stream_wrapper_register(self::PROTOCOL, self::class);
@@ -674,105 +690,86 @@ trait StreamHandlerShared
     }
 
     /**
-     * @return array<int[]|float[]>
+     * @return array{events: int[], data: int[], time: float[]}
      */
-    public static function getStats(): array
+    public static function getStats(bool $include = false): array
     {
+        $events = $include ? self::$includeEvents : self::$events;
+        $data = $include ? self::$includeData : self::$data;
+        $time = $include ? self::$includeTime : self::$time;
+
         $stats = [
-            'userEvents' => [
-                'open' => self::$userEvents[self::OPEN] ?? 0,
-                'close' => self::$userEvents[self::CLOSE] ?? 0,
-                'lock' => self::$userEvents[self::LOCK] ?? 0,
-                'read' => self::$userEvents[self::READ] ?? 0,
-                'write' => self::$userEvents[self::WRITE] ?? 0,
-                'truncate' => self::$userEvents[self::TRUNCATE] ?? 0,
-                'flush' => self::$userEvents[self::FLUSH] ?? 0,
-                'seek' => self::$userEvents[self::SEEK] ?? 0,
-                'unlink' => self::$userEvents[self::UNLINK] ?? 0,
-                'rename' => self::$userEvents[self::RENAME] ?? 0,
-                'set' => self::$userEvents[self::SET] ?? 0,
-                'stat' => self::$userEvents[self::STAT] ?? 0,
-                'info' => self::$userEvents[self::INFO] ?? 0,
-                'meta' => self::$userEvents[self::META] ?? 0,
-                'opendir' => self::$userEvents[self::OPEN_DIR] ?? 0,
-                'readdir' => self::$userEvents[self::READ_DIR] ?? 0,
-                'rewinddir' => self::$userEvents[self::REWIND_DIR] ?? 0,
-                'closedir' => self::$userEvents[self::CLOSE_DIR] ?? 0,
-                'mkdir' => self::$userEvents[self::MAKE_DIR] ?? 0,
-                'rmdir' => self::$userEvents[self::REMOVE_DIR] ?? 0,
+            'events' => [
+                'open' => $events[self::OPEN] ?? 0,
+                'close' => $events[self::CLOSE] ?? 0,
+                'lock' => $events[self::LOCK] ?? 0,
+                'read' => $events[self::READ] ?? 0,
+                'write' => $events[self::WRITE] ?? 0,
+                'truncate' => $events[self::TRUNCATE] ?? 0,
+                'flush' => $events[self::FLUSH] ?? 0,
+                'seek' => $events[self::SEEK] ?? 0,
+                'unlink' => $events[self::UNLINK] ?? 0,
+                'rename' => $events[self::RENAME] ?? 0,
+                'set' => $events[self::SET] ?? 0,
+                'stat' => $events[self::STAT] ?? 0,
+                'info' => $events[self::INFO] ?? 0,
+                'meta' => $events[self::META] ?? 0,
+                'opendir' => $events[self::OPEN_DIR] ?? 0,
+                'readdir' => $events[self::READ_DIR] ?? 0,
+                'rewinddir' => $events[self::REWIND_DIR] ?? 0,
+                'closedir' => $events[self::CLOSE_DIR] ?? 0,
+                'mkdir' => $events[self::MAKE_DIR] ?? 0,
+                'rmdir' => $events[self::REMOVE_DIR] ?? 0,
             ],
-            'userTime' => [
-                'open' => self::$userTime[self::OPEN] ?? 0.0,
-                'close' => self::$userTime[self::CLOSE] ?? 0.0,
-                'lock' => self::$userTime[self::LOCK] ?? 0.0,
-                'read' => self::$userTime[self::READ] ?? 0.0,
-                'write' => self::$userTime[self::WRITE] ?? 0.0,
-                'truncate' => self::$userTime[self::TRUNCATE] ?? 0.0,
-                'flush' => self::$userTime[self::FLUSH] ?? 0.0,
-                'seek' => self::$userTime[self::SEEK] ?? 0.0,
-                'unlink' => self::$userTime[self::UNLINK] ?? 0.0,
-                'rename' => self::$userTime[self::RENAME] ?? 0.0,
-                'set' => self::$userTime[self::SET] ?? 0.0,
-                'stat' => self::$userTime[self::STAT] ?? 0.0,
-                'info' => self::$userTime[self::INFO] ?? 0.0,
-                'meta' => self::$userTime[self::META] ?? 0.0,
-                'opendir' => self::$userTime[self::OPEN_DIR] ?? 0.0,
-                'readdir' => self::$userTime[self::READ_DIR] ?? 0.0,
-                'rewinddir' => self::$userTime[self::REWIND_DIR] ?? 0.0,
-                'closedir' => self::$userTime[self::CLOSE_DIR] ?? 0.0,
-                'mkdir' => self::$userTime[self::MAKE_DIR] ?? 0.0,
-                'rmdir' => self::$userTime[self::REMOVE_DIR] ?? 0.0,
+            'data' => [
+                'open' => $data[self::OPEN] ?? 0,
+                'close' => $data[self::CLOSE] ?? 0,
+                'lock' => $data[self::LOCK] ?? 0,
+                'read' => $data[self::READ] ?? 0,
+                'write' => $data[self::WRITE] ?? 0,
+                'truncate' => $data[self::TRUNCATE] ?? 0,
+                'flush' => $data[self::FLUSH] ?? 0,
+                'seek' => $data[self::SEEK] ?? 0,
+                'unlink' => $data[self::UNLINK] ?? 0,
+                'rename' => $data[self::RENAME] ?? 0,
+                'set' => $data[self::SET] ?? 0,
+                'stat' => $data[self::STAT] ?? 0,
+                'info' => $data[self::INFO] ?? 0,
+                'meta' => $data[self::META] ?? 0,
+                'opendir' => $data[self::OPEN_DIR] ?? 0,
+                'readdir' => $data[self::READ_DIR] ?? 0,
+                'rewinddir' => $data[self::REWIND_DIR] ?? 0,
+                'closedir' => $data[self::CLOSE_DIR] ?? 0,
+                'mkdir' => $data[self::MAKE_DIR] ?? 0,
+                'rmdir' => $data[self::REMOVE_DIR] ?? 0,
             ],
-            'includeEvents' => [
-                'open' => self::$includeEvents[self::OPEN] ?? 0,
-                'close' => self::$includeEvents[self::CLOSE] ?? 0,
-                'lock' => self::$includeEvents[self::LOCK] ?? 0,
-                'read' => self::$includeEvents[self::READ] ?? 0,
-                'write' => self::$includeEvents[self::WRITE] ?? 0,
-                'truncate' => self::$includeEvents[self::TRUNCATE] ?? 0,
-                'flush' => self::$includeEvents[self::FLUSH] ?? 0,
-                'seek' => self::$includeEvents[self::SEEK] ?? 0,
-                'unlink' => self::$includeEvents[self::UNLINK] ?? 0,
-                'rename' => self::$includeEvents[self::RENAME] ?? 0,
-                'set' => self::$includeEvents[self::SET] ?? 0,
-                'stat' => self::$includeEvents[self::STAT] ?? 0,
-                'info' => self::$includeEvents[self::INFO] ?? 0,
-                'meta' => self::$includeEvents[self::META] ?? 0,
-                'opendir' => self::$includeEvents[self::OPEN_DIR] ?? 0,
-                'readdir' => self::$includeEvents[self::READ_DIR] ?? 0,
-                'rewinddir' => self::$includeEvents[self::REWIND_DIR] ?? 0,
-                'closedir' => self::$includeEvents[self::CLOSE_DIR] ?? 0,
-                'mkdir' => self::$includeEvents[self::MAKE_DIR] ?? 0,
-                'rmdir' => self::$includeEvents[self::REMOVE_DIR] ?? 0,
-            ],
-            'includeTime' => [
-                'open' => self::$includeTime[self::OPEN] ?? 0.0,
-                'close' => self::$includeTime[self::CLOSE] ?? 0.0,
-                'lock' => self::$includeTime[self::LOCK] ?? 0.0,
-                'read' => self::$includeTime[self::READ] ?? 0.0,
-                'write' => self::$includeTime[self::WRITE] ?? 0.0,
-                'truncate' => self::$includeTime[self::TRUNCATE] ?? 0.0,
-                'flush' => self::$includeTime[self::FLUSH] ?? 0.0,
-                'seek' => self::$includeTime[self::SEEK] ?? 0.0,
-                'unlink' => self::$includeTime[self::UNLINK] ?? 0.0,
-                'rename' => self::$includeTime[self::RENAME] ?? 0.0,
-                'set' => self::$includeTime[self::SET] ?? 0.0,
-                'stat' => self::$includeTime[self::STAT] ?? 0.0,
-                'info' => self::$includeTime[self::INFO] ?? 0.0,
-                'meta' => self::$includeTime[self::META] ?? 0.0,
-                'opendir' => self::$includeTime[self::OPEN_DIR] ?? 0.0,
-                'readdir' => self::$includeTime[self::READ_DIR] ?? 0.0,
-                'rewinddir' => self::$includeTime[self::REWIND_DIR] ?? 0.0,
-                'closedir' => self::$includeTime[self::CLOSE_DIR] ?? 0.0,
-                'mkdir' => self::$includeTime[self::MAKE_DIR] ?? 0.0,
-                'rmdir' => self::$includeTime[self::REMOVE_DIR] ?? 0.0,
+            'time' => [
+                'open' => $time[self::OPEN] ?? 0.0,
+                'close' => $time[self::CLOSE] ?? 0.0,
+                'lock' => $time[self::LOCK] ?? 0.0,
+                'read' => $time[self::READ] ?? 0.0,
+                'write' => $time[self::WRITE] ?? 0.0,
+                'truncate' => $time[self::TRUNCATE] ?? 0.0,
+                'flush' => $time[self::FLUSH] ?? 0.0,
+                'seek' => $time[self::SEEK] ?? 0.0,
+                'unlink' => $time[self::UNLINK] ?? 0.0,
+                'rename' => $time[self::RENAME] ?? 0.0,
+                'set' => $time[self::SET] ?? 0.0,
+                'stat' => $time[self::STAT] ?? 0.0,
+                'info' => $time[self::INFO] ?? 0.0,
+                'meta' => $time[self::META] ?? 0.0,
+                'opendir' => $time[self::OPEN_DIR] ?? 0.0,
+                'readdir' => $time[self::READ_DIR] ?? 0.0,
+                'rewinddir' => $time[self::REWIND_DIR] ?? 0.0,
+                'closedir' => $time[self::CLOSE_DIR] ?? 0.0,
+                'mkdir' => $time[self::MAKE_DIR] ?? 0.0,
+                'rmdir' => $time[self::REMOVE_DIR] ?? 0.0,
             ],
         ];
 
-        $stats['userEvents']['total'] = array_sum($stats['userEvents']);
-        $stats['userTime']['total'] = array_sum($stats['userTime']);
-        $stats['includeEvents']['total'] = array_sum($stats['includeEvents']);
-        $stats['includeTime']['total'] = array_sum($stats['includeTime']);
+        $stats['events']['total'] = array_sum($stats['events']);
+        $stats['data']['total'] = array_sum($stats['data']);
+        $stats['time']['total'] = array_sum($stats['time']);
 
         return $stats;
     }

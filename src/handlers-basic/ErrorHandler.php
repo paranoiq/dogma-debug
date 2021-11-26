@@ -32,21 +32,7 @@ use function restore_error_handler;
 use function set_error_handler;
 
 /**
- * Tracks and displays error, warnings and notices
- *
- * Error handling flow:
- * There are two modes in which this error handler can operate:
- *
- * 1) normal "civilized" behavior (default)
- * - in this case error handler registers as usual and receives a previously defined handler (that may be the native error handler)
- * - after handling an error you may decide, whether to call the previously registered error handler via $catch property
- *
- * 2) taking control over the whole error handling queue (assisted by File/PharHandler rewriting loaded code)
- * - in this case functionality regarding previously registered handler remains unchanged, but
- * - you can configure behaviour regarding handlers registered after this one, which should, under normal circumstances,
- *  take precedence and be called first (and maybe catching the errors and not passing them to other handlers)
- * - by setting $intercept property to one of Intercept::* constants, you can enforce this handler to be always called,
- *  and if needed, change the order in which it is called or even suppress other error handlers entirely
+ * Tracks and displays errors, warnings and notices
  */
 class ErrorHandler
 {
