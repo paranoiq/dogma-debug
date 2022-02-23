@@ -23,16 +23,17 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/System.php';
     require_once __DIR__ . '/src/tools/Units.php';
     require_once __DIR__ . '/src/Packet.php';
+    require_once __DIR__ . '/src/DebugServer.php';
 }
-require_once __DIR__ . '/src/DebugServer.php';
 
 System::setProcessName('Dogma Debug Server (php-cli)');
 
 echo Ansi::lgreen("Dogma-Debug by @paranoiq") . " - Remote console dumper/debugger\n\n";
-echo "Usage: " . Ansi::dyellow("php server.php [port] [address]") . "\n\n";
+echo "Usage: " . Ansi::dyellow("php server.php [port] [address] [file]") . "\n\n";
 
-$address = $argv[2] ?? '127.0.0.1';
 $port = (int) ($argv[1] ?? 1729);
+$address = $argv[2] ?? '127.0.0.1';
+$file = $argv[3] ?? __DIR__ . '/debugger.log';
 
-$server = new DebugServer($port, $address);
+$server = new DebugServer($port, $address, $file);
 $server->run();

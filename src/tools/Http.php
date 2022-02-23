@@ -9,31 +9,14 @@
 
 namespace Dogma\Debug;
 
+use function array_map;
+use function explode;
+use function implode;
+use function strtolower;
+use function substr;
+
 class Http
 {
-
-    /** @var string[] */
-    public static $methodColors = [
-        'get' => Ansi::DCYAN,
-        'head' => Ansi::DCYAN,
-        'post' => Ansi::DMAGENTA,
-        'put' => Ansi::DMAGENTA,
-        'patch' => Ansi::DMAGENTA,
-        'delete' => Ansi::DMAGENTA,
-        'connect' => Ansi::DGREEN,
-        'options' => Ansi::DGREEN,
-        'trace' => Ansi::DGREEN,
-        'ajax' => Ansi::DRED,
-    ];
-
-    /** @var string[] */
-    public static $responseColors = [
-        1 => Ansi::DYELLOW,
-        2 => Ansi::DGREEN,
-        3 => Ansi::DYELLOW,
-        4 => Ansi::DMAGENTA,
-        5 => Ansi::DRED,
-    ];
 
     public const RESPONSE_MESSAGES = [
         100 => 'Continue',
@@ -109,5 +92,130 @@ class Http
         510 => 'Not extended',
         511 => 'Network authentication required',
     ];
+
+    public const HEADERS = [
+        // IETF
+        'Accept',
+        'Accept-Charset',
+        'Accept-Datetime',
+        'Accept-Encoding',
+        'Accept-Language',
+        'Accept-Patch',
+        'Accept-Ranges',
+        'Access-Control-Allow-Origin',
+        'Age',
+        'Allow',
+        'Alt-Svc',
+        'Authorization',
+        'Cache-Control',
+        'Connection',
+        'Cookie',
+        'Content-Disposition',
+        'Content-Encoding',
+        'Content-Language',
+        'Content-Length',
+        'Content-Location',
+        'Content-MD5',
+        'Content-Range',
+        'Content-Security-Policy',
+        'Content-Type',
+        'Date',
+        'DNT',
+        'Expect',
+        'ET',
+        'ETag',
+        'Expires',
+        'Forwarded',
+        'From',
+        'Host',
+        'If-Match',
+        'If-Modified-Since',
+        'If-None-Match',
+        'If-Range',
+        'If-Unmodified-Since',
+        'Last-Modified',
+        'Link',
+        'Location',
+        'Max-Forwards',
+        'Origin',
+        'P3P',
+        'Pragma',
+        'Proxy-Authenticate',
+        'Proxy-Authorization',
+        'Public-Key-Pins',
+        'Range',
+        'Referer',
+        'Refresh',
+        'Retry-After',
+        'Save-Data',
+        'Server',
+        'Set-Cookie',
+        'Status',
+        'Strict-Transport-Security',
+        'TE',
+        'Trailer',
+        'Transfer-Encoding',
+        'TSV',
+        'User-Agent',
+        'Upgrade',
+        'Vary',
+        'Via',
+        'Warning',
+        'WWW-Authenticate',
+        'X-Frame-Options',
+
+        // non-standard
+        'Content-Charset',
+        'Front-End-Https',
+        'Http-Version',
+        'Proxy-Connection',
+        'Upgrade-Insecure-Requests',
+        'X-ATT-DeviceId',
+        'X-Content-Duration',
+        'X-Content-Security-Policy',
+        'X-Content-Type-Options',
+        'X-Correlation-ID',
+        'X-Csrf-Token',
+        'X-Do-Not-Track',
+        'X-Forwarded-For',
+        'X-Forwarded-Host',
+        'X-Forwarded-Proto',
+        'X-Http-Method-Override',
+        'X-Powered-By',
+        'X-Request-ID',
+        'X-Requested-With',
+        'X-UA-Compatible',
+        'X-UIDH',
+        'X-XSS-Protection',
+        'X-Wap-Profile',
+        'X-WebKit-CSP',
+    ];
+
+    /** @var string[] */
+    private static $headerExceptions = [
+        'et' => 'ET',
+        'etag' => 'ETag',
+        'te' => 'TE',
+        'dnt' => 'DNT',
+        'tsv' => 'TSV',
+        'x-att-deviceid' => 'X-ATT-DeviceId',
+        'x-correlation-id' => 'X-Correlation-ID',
+        'x-request-id' => 'X-Request-ID',
+        'x-ua-compatible' => 'X-UA-Compatible',
+        'x-uidh' => 'X-UIDH',
+        'x-xss-protection' => 'X-XSS-Protection',
+        'x-webkit-csp' => 'X-WebKit-CSP',
+        'www-authenticate' => 'WWW-Authenticate',
+    ];
+
+    public static function normalizeHeaderName(string $name): string
+    {
+        if (Str::startsWith($name, 'HTTP_')) {
+            $name = substr($name, 5);
+        }
+        $name = str_replace('_', '-', strtolower($name));
+
+        return self::$headerExceptions[$name] ?? implode('-', array_map('ucfirst', explode('-', $name)));
+    }
 
 }

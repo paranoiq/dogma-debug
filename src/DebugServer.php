@@ -12,6 +12,14 @@
 namespace Dogma\Debug;
 
 use Socket;
+use function fclose;
+use function file_exists;
+use function filesize;
+use function fread;
+use function fseek;
+use function str_replace;
+use function strlen;
+use function var_dump;
 use const AF_INET;
 use const SOCK_STREAM;
 use const SOL_TCP;
@@ -42,6 +50,12 @@ class DebugServer
     /** @var resource|Socket */
     private $socket;
 
+    /** @var string */
+    private $file;
+
+    /** @var int */
+    private $position = 0;
+
     /** @var resource[]|Socket[] */
     private $connections = [];
 
@@ -57,10 +71,11 @@ class DebugServer
     /** @var float */
     private $durationSum = 0.0;
 
-    public function __construct(int $port, string $address)
+    public function __construct(int $port, string $address, string $file)
     {
         $this->port = $port;
         $this->address = $address;
+        $this->file = str_replace('\\', '/', $file);
     }
 
     /**
@@ -94,7 +109,7 @@ class DebugServer
                     continue;
                 }
 
-                $outro = $this->processRequest($content, $i);
+                $outro = $this->processRequests($content, $i);
                 if ($outro) {
                     socket_close($connection);
                     unset($this->connections[$i]);
@@ -105,11 +120,38 @@ class DebugServer
                 $this->processRequest($content, $peer);
             }*/
 
-            usleep(20);
+            usleep(1000000);
+
+            clearstatcache();
+            if (file_exists($this->file)) {
+                $size = filesize($this->file);
+                if ($size !== $this->position) {
+                    $file = fopen($this->file, 'r');
+                    if ($file === false) {
+                        // todo
+                        continue;
+                    }
+                    if ($size < $this->position) {
+                        $this->position = 0;
+                    } else {
+                        fseek($file, $this->position);
+                    }
+                    $content = fread($file, 10000000);
+                    if ($content === false) {
+                        // todo
+                        fclose($file);
+                        continue;
+                    } else {
+                        $this->processRequests($content, 0); // todo
+                        $this->position += strlen($content);
+                    }
+                    fclose($file);
+                }
+            }
         }
     }
 
-    private function processRequest(string $content, int $i): bool
+    private function processRequests(string $content, int $i): bool
     {
         $outro = false;
         foreach (explode(Packet::MARKER, $content) as $message) {
@@ -120,7 +162,7 @@ class DebugServer
             /** @var Packet|false $packet */
             $packet = unserialize($message, ['allowed_classes' => [Packet::class]]);
             // broken serialization - probably too big packet split to chunks
-            if ($packet === false) {
+            if (!$packet instanceof Packet) {
                 echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
                 continue;
             }
@@ -170,6 +212,9 @@ class DebugServer
 
         // payload
         echo $packet->payload;
+        if ($packet->bell) {
+            echo "\x07";
+        }
 
         // duration
         if ($packet->duration > 0.000000000001) {
@@ -216,7 +261,7 @@ class DebugServer
 
         System::switchTerminalToUtf8();
 
-        echo "Listening on port " . Ansi::white($this->port) . "\n";
+        echo "Listening on port " . Ansi::white($this->port) . " and watching " . Ansi::white($this->file) . "\n";
     }
 
 }

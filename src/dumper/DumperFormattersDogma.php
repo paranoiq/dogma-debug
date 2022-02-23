@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use DateTimeInterface;
 use Dogma\Enum\IntEnum;
 use Dogma\Enum\IntSet;
 use Dogma\Enum\StringEnum;
@@ -34,23 +33,6 @@ use function substr;
 
 trait DumperFormattersDogma
 {
-
-    public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
-    {
-        return self::name(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
-    }
-
-    public static function dumpDateTimeInterface(DateTimeInterface $dt): string
-    {
-        $value = str_replace('.000000', '', $dt->format('Y-m-d H:i:s.u'));
-        $timeZone = $dt->format('P') === $dt->getTimezone()->getName() ? '' : ' ' . self::value($dt->getTimezone()->getName());
-        $dst = $dt->format('I') ? ' ' . self::value2('DST') : '';
-        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($dt)) : '';
-
-        return self::name(get_class($dt)) . self::bracket('(')
-            . self::value($value) . self::value2($dt->format('P')) . $timeZone . $dst
-            . self::bracket(')') . $info;
-    }
 
     public static function dumpDate(Date $date): string
     {

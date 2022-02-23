@@ -178,6 +178,8 @@ class Resources
 
     public static function timeLimit(): float
     {
+        // todo: there is also 'hard_timeout' ini setting for limiting how long shutdown operations can take
+
         return (float) ini_get('max_execution_time');
     }
 

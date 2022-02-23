@@ -31,6 +31,7 @@ class Packet
     public const STREAM_IO = 12;
     public const SQL = 13;
     public const REDIS = 14;
+    public const AMQP = 15;
 
     public const OUTPUT_WIDTH = 100;
 
@@ -44,6 +45,9 @@ class Packet
 
     /** @var string|null */
     public $backtrace;
+
+    /** @var bool */
+    public $bell;
 
     /** @var int */
     public $counter = -1;
@@ -67,7 +71,8 @@ class Packet
         int $type,
         string $payload,
         ?string $backtrace = null,
-        ?float $duration = null
+        ?float $duration = null,
+        bool $bell = false
     )
     {
         // todo: temporary
@@ -82,6 +87,7 @@ class Packet
         $this->payload = $payload;
         $this->backtrace = $backtrace;
         $this->duration = $duration;
+        $this->bell = $bell;
 
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);

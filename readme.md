@@ -24,7 +24,7 @@ includes:
 ### requirements:
 
 - **PHP 7.1+**
-- **ext-sockets**
+- **ext-sockets** (also runs locally without sockets)
 
 
 ### installation:
@@ -105,14 +105,6 @@ output:
 - `array<string, string> Dumper::$colors` - definition of output coloring. see trait `DumperFormatters`
 
 
-ExceptionHandler
-----------------
-
-prints formatted unhandled exceptions with call stack
-
-activate by calling `ExceptionHandler::enable()`
-
-
 ErrorHandler
 ------------
 
@@ -128,30 +120,30 @@ activate by calling `ErrorHandler::enable($types)`
 - `bool ErorrHandler::$uniqueOnly` - display only errors of different type (default `true`)
 - `bool ErrorHandler::$listErrors` - list errors on end of request
 - `bool ErrorHandler::$showLastError` - show last error which could have been hidden by another error handler
+- `bool ErrorHandler::$countMutedErrors` - count errors muted with @ operator into statistics
+- `bool ErrorHandler::$showMutedErrors` - show errors muted with @ operator
+- `bool ErrorHandler::$filterTrace` - turn on/off callstack filtering (configured in Dumper)
 - `string[][] ErrorHandler::$ignore` - list of errors to ignore (keys are concatenated types and messages, items are concatenated file path suffixes and line)
   - eg `ErrorHandler::$ignore = ['Notice: Undefined index "x".' => ['some-file.php:17', 'other-file.php:29']]`
 
 
-ProcessHandler
---------------
+ExceptionHandler
+----------------
 
-reports process signals like SIGTERM etc. (not available on Windows)
+prints formatted unhandled exceptions with call stack
 
-activate by calling `ProcessHandler::enable()`
+activate by calling `ExceptionHandler::enable()`
 
+activate inspecting caught exceptions by calling `ExceptionHandler::inspectThrownExceptions(...)`
 
-RequestHandler
---------------
-
-reports request headers and body, response headers
-
-no activation needed
-
-### configuration
-
-- `bool IoHandler::$responseHeaders` - print response headers (default `false`)
-- `bool IoHandler::$requestHeaders` - print request headers (default `false`)
-- `bool IoHandler::$requestBody` - print request body (default `false`)
+### configuration:
+- `int ExceptionHandler::$traceLength` - how many callstack frames to show (default `1000`)
+- `int ExceptionHandler::$traceArgsDepth` - max depth to traverse for arguments of functions/methods called (default `1`)
+- `int ExceptionHandler::$traceCodeLines` - lines of code to shown in dumped callstack frames (default `5`)
+- `int ExceptionHandler::$traceCodeDepth` - for how many callstack frames to show code (default `5`)
+- `class-string[] ExceptionHandler::$logExceptions` - exceptions to log when inspecting caught exceptions
+- `class-string[] ExceptionHandler::$notLogExceptions` - exceptions to not log when inspecting caught exceptions
+- `bool ExceptionHandler::$filterTrace` - turn on/off callstack filtering (configured in Dumper)
 
 
 OutputHandler
@@ -161,23 +153,10 @@ reports output operations (echo) and output start
 
 activate by calling `OutputHandler::enable()`
 
-### configuration
+### configuration:
 
 - `bool OutputHandler::$printOutput` - Print output samples (default `false`)
 - `int OutputHandler::$maxLength` - max length of printed output samples (default `100`)
-
-
-SqlHandler
-----------
-
-reports SQL database queries and events
-
-for now only Dibi abstraction layer is supported directly, but you can register your own logging function
-
-activate by registering a callback to `SqlHandler::log()` in your DB layer
-
-### configurations
-- `int SqlHandler::$logEvent` - Types of events to log (default `SqlHandler::ALL`)
 
 
 RedisHandler:
@@ -189,62 +168,102 @@ for now only Predis connected via io streams is supported
 
 activate by calling `RedisHandler::enableForPredis()`
 
-### configurations
+### configuration:
 - `bool RedisHandler::$log` - Turn logging on/off (default `true`)
-- `int $maxLength` - Max length of logged message (default `2000`)
+- `int RedisHandler::$maxLength` - Max length of logged message (default `2000`)
+- `bool RedisHandler::$filterTrace` - turn on/off callstack filtering (configured in Dumper)
+- `string[] RedisHandler::$traceFilters` - additional callstack filters specific for this handler
 
 
-Stream handlers
+RequestHandler
+--------------
+
+reports request inputs and outputs
+
+no activation needed. this handler only holds configuration for debugger headers and footer
+
+### configuration:
+- `bool RequestHandler::$showIndex` - show index file name in debugger header (default `true`)
+- `bool RequestHandler::$requestHeaders` - print request headers (default `false`)
+- `bool RequestHandler::$requestCookies` - print request cookies (default `false`)
+- `bool RequestHandler::$requestBody` - print request body (default `false`)
+- `bool RequestHandler::$stdinData` - show data received via STDIN (default `false`)
+- `bool RequestHandler::$responseHeaders` - print response headers (default `false`)
+- `bool RequestHandler::$responseCookies` - print response cookies (default `false`)
+- `string[] RequestHandler::$methodColors` - configuration of HTTP method label colors for debugger header
+- `string[] RequestHandler::$responseColors` - configuration of HTTP response status label colors for debugger footer
+
+
+ShutdownHandler
 ---------------
 
-reports io operations on PHP streams (`fopen()`, `fwrite()` etc.) by registering stream handlers on them
+reports process signals like `SIGTERM` etc. on Linux/Unix and `Ctrl-C`  signal on Windows.
+together with `ResourcesHandler` and `Debugger` tries to determine what caused termination of the process
 
-also enables interception capable handlers to do their thing by rewriting source code of included files and "decorating" native PHP functions and constructs
+activate by calling `ShutdownHandler::enable()`
 
-handlers:
-- `FileStreamHandler` - io operations on `file://` or just file names without schema prefix
-- `PharStreamHandler` - io operations on `phar://`
-- `HttpStreamHandler` - io operations on `http://` and `https://`
-- `FtpStreamHandler` - io operations on `ftp://` and `ftps://`
-- `DataStreamHandler` - io operations on `data://`
-- `PhpStreamHandler` - io operations on `php://`
-- `ZlibStreamHandler` - io operations on `zlib://` and `zip://`
 
-activate by calling e.g. `FileStreamHandler::enable()`
+SqlHandler
+----------
 
-### configuration
+reports SQL database queries and events
 
-- `int FileStreamHandler::$log` - types of io operations to log (default `FileStreamWrapper::ALL & ~FileStreamWrapper::INFO`)
-- `bool FileStreamHandler::$logIncludes` - switch to log io operations from PHP include and require (default `true`)
-- `callable FileStreamHandler::$logFilter` - custom filter for logging io operations
+for now only Dibi abstraction layer is supported directly, but you can register your own logging function
+
+activate by registering a callback to `SqlHandler::log()` in your DB layer
+
+### configuration:
+- `int SqlHandler::$logEvent` - Types of events to log (default `SqlHandler::ALL`)
+- `bool SqlHandler::$filterTrace` - turn on/off callstack filtering (configured in Dumper)
+
+
+Stream wrappers
+---------------
+
+wrapper report io operations on PHP streams (`fopen()`, `fwrite()` etc.) by registering stream handlers on them
+
+also enables interceptors to do their thing by rewriting source code of included files and "decorating" native PHP functions and constructs
+
+wrappers:
+- `FileStreamWrapper` - io operations on `file://` or just file names without schema prefix
+- `PharStreamWrapper` - io operations on `phar://`
+- `HttpStreamWrapper` - io operations on `http://` and `https://`
+- `FtpStreamWrapper` - io operations on `ftp://` and `ftps://`
+- `DataStreamWrapper` - io operations on `data://`
+- `PhpStreamWrapper` - io operations on `php://`
+- `ZlibStreamWrapper` - io operations on `zlib://` and `zip://`
+
+activate by calling e.g. `FileStreamWrapper::enable()`
+
+### configuration:
+
+- `int FileStreamWrapper::$log` - types of io operations to log (default `StreamWrapper::ALL & ~StreamWrapper::INFO`)
+- `bool FileStreamWrapper::$logIncludes` - switch to log io operations from PHP include and require (default `true`)
+- `callable FileStreamWrapper::$logFilter` - custom filter for logging io operations
 
 (similarly for all other stream handlers)
 
 
-Interception capable handlers
------------------------------
+Interceptors
+------------
 
-by using source code rewriting witchcraft implemented in stream handlers, many of debug handlers can track or even disable usage of system functions and constructs (`exit` and `die`)
+by using source code rewriting witchcraft implemented in stream wrappers, we can track or even disable usage of system functions and constructs (`exit` and `die`)
 
-for some handlers it is all of their functionality. these include:
-- `CurlHandler` - tracks usage of Curl extension functions
-- `DnsHandler` - tracks usage of DNS related native functions
-- `MailHandler` - tracks usage of `mail()` function
-- `SessionHandler` - tracks usage of native session functions
-- `SettingsHandler` - tracks usage of native function that change PHP configuration or environment configuration
-- `SyslogHandler` - tracks usage of native syslog functions
-- `StreamHandler` - tracks usage of native stream wrapper and stream filter functions
-- `FilesHandler` - tracks usage of native file system related functions. useful on stream transport that do not support wrappers (tcp, udp, unix, udg, ssl, tls)
-
-other handlers (already listed before) do their own things, but also allow intercepting some native functions, so they can track or prevent other debug or testing tools from interfering with their business. For example block other debugger from registering as first error handler in line.
-these include:
-- `ErrorHandler`
-- `ExceptionHandler`
-- `MemoryHandler`
-- `OutputHandler`
-- `RequestHandler`
-- `ResourcesHandler`
-- `ShutdownHandler`
+implemented interceptors for now:
+- `AutoloadInterceptor` - tracks usage of autoloading functions
+- `CurlInterceptor` - tracks usage of Curl extension functions
+- `DnsInterceptor` - tracks usage of DNS related functions
+- `ErrorInterceptor` - track usage of error/exception related functions
+- `FilesystemInterceptor` - tracks usage of file system related functions. useful on stream transport that do not support wrappers (`tcp`, `udp`, `unix`, `udg`, `ssl`, `tls`)
+- `HeadersInterceptor` - tracks usage of functions handling HTTP headers
+- `Mailinterceptor` - tracks usage of `mail()` function
+- `MysqliInterceptor` - tracks usage of mysqli functions and logs SQL queries
+- `ProcessInterceptor` - tracks usage of functions related to process termination and signals
+- `Resourcesinterceptor` - tracks usage of functions related to resources (time, memory)
+- `SessionInterceptor` - tracks usage of session functions
+- `SettingsInterceptor` - tracks usage of function that change PHP configuration or environment configuration
+- `StreamInterceptor` - tracks usage of stream wrapper and stream filter functions
+- `SyslogInterceptor` - tracks usage of syslog functions
 
 see `Intercept.php` for more complete list of intercepted native functions
 
@@ -254,7 +273,9 @@ without the need for some logging support in that library and without having to 
 
 it is pretty simple to write other handlers like this to track any native php functions that are not covered yet
 
-you can activate interception for groups of functions by calling `*Handler::intercept...()` methods
+you can activate interception for groups of functions by calling `*Interceptor::intercept...()` methods
+
+you might want to clear opcode caches when changing interception configuration, because PHP code is rewritten on-the-fly and PHP does not know which files should be reloaded (with new changes). you can run e.g. `service apache2 restart` to do this when using apache
 
 
 

@@ -3,11 +3,11 @@
 namespace Dogma\Tests\Debug;
 
 use Dogma\Debug\Assert;
-use Dogma\Debug\FileStreamHandler;
+use Dogma\Debug\FileStreamWrapper;
 
 require_once __DIR__ . '/../bootstrap.php';
 
-FileStreamHandler::enable();
+FileStreamWrapper::enable();
 
 
 require __DIR__ . '/../data/test1.php';

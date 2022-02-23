@@ -58,7 +58,10 @@ trait DumperTraces
         }
     }
 
-    public static function findExpression(Callstack $callstack): ?string
+    /**
+     * @return non-empty-string|true|null
+     */
+    public static function findExpression(Callstack $callstack)
     {
         $callstack = $callstack->filter(self::$traceFilters);
         foreach ($callstack->frames as $frame) {
@@ -75,9 +78,9 @@ trait DumperTraces
 
     /**
      * @param non-empty-string $line
-     * @return non-empty-string|null
+     * @return non-empty-string|true|null
      */
-    public static function getExpression(string $line): ?string
+    public static function getExpression(string $line)
     {
         $start = strpos($line, '(');
         if ($start === false) {
@@ -87,7 +90,7 @@ trait DumperTraces
 
         if ($line[0] === '"' || $line[0] === "'" || $line[0] === '-' || preg_match('/^[0-9]/', $line)) {
             // literal
-            return null;
+            return true;
         }
 
         $chars = str_split($line);
@@ -117,7 +120,7 @@ trait DumperTraces
 
         $expression = implode('', array_slice($chars, 0, $i));
         if (in_array(strtolower($expression), ['true', 'false', 'null', 'nan', 'inf'], true)) {
-            return null;
+            return true;
         }
 
         if ($expression === '') {
@@ -132,10 +135,13 @@ trait DumperTraces
         return $expression;
     }
 
-    /**
-     * @param int[] $codeLines
-     */
-    public static function formatCallstack(Callstack $callstack, ?int $length = null, ?int $argsDepth = null, ?array $codeLines = null): string
+    public static function formatCallstack(
+        Callstack $callstack,
+        ?int $length = null,
+        ?int $argsDepth = null,
+        ?int $codeLines = null,
+        ?int $codeDepth = null
+    ): string
     {
         $length = $length ?? self::$traceLength;
         if ($length === 0) {
@@ -146,14 +152,18 @@ trait DumperTraces
         self::$maxDepth = ($argsDepth ?? self::$traceArgsDepth);
 
         $codeLines = $codeLines ?? self::$traceCodeLines;
+        $codeDepth = $codeDepth ?? self::$traceCodeDepth;
 
         $results = [];
         $n = 0;
         foreach ($callstack->frames as $frame) {
             $result = self::formatFrame($frame);
+            if ($frame === null) {
+                continue;
+            }
 
-            if (isset($codeLines[$n]) && $frame->file !== null) {
-                $lines = (int) floor($codeLines[$n] / 2);
+            if ($n < $codeDepth && $frame->file !== null) {
+                $lines = (int) floor($codeLines / 2);
                 $lines = $frame->getLinesAround($lines, $lines);
                 foreach ($lines as $i => $line) {
                     $lines[$i] = Ansi::lgray($i . ':') . ' ' . ($i === $frame->line ? Ansi::white($line) : Ansi::dyellow($line));
@@ -173,7 +183,7 @@ trait DumperTraces
         return implode("\n", $results);
     }
 
-    private static function formatFrame(CallstackFrame $frame): string
+    private static function formatFrame(CallstackFrame $frame): ?string
     {
         $args = '';
         if ($frame->args !== []) {
@@ -197,6 +207,10 @@ trait DumperTraces
         $separator = '';
         if ($fileLine && $classMethod) {
             $separator = ' ' . self::symbol('--') . ' ';
+        }
+
+        if ($fileLine === '' && $classMethod === '') {
+            return null;
         }
 
         return self::info("^--- in ") . $fileLine . $separator . $classMethod;

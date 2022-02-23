@@ -10,9 +10,12 @@
 namespace Dogma\Debug;
 
 use BackedEnum;
+use DateTimeInterface;
+use mysqli;
 use ReflectionObject;
 use UnitEnum;
 use function array_diff;
+use function array_filter;
 use function array_keys;
 use function array_map;
 use function array_pop;
@@ -37,6 +40,7 @@ use function preg_replace_callback;
 use function property_exists;
 use function range;
 use function str_repeat;
+use function str_replace;
 use function stream_context_get_params;
 use function stream_get_meta_data;
 use function strlen;
@@ -122,7 +126,7 @@ trait DumperFormatters
      */
     public static function dumpStream($resource, int $depth = 0): string
     {
-        return self::resource('resource (stream)') . ' ' . self::bracket('{')
+        return self::resource('(stream)') . ' ' . self::bracket('{')
             . ' ' . self::info('#' . (int) $resource)
             . self::dumpVariables(stream_get_meta_data($resource), $depth)
             . self::indent($depth) . self::bracket('}');
@@ -137,11 +141,11 @@ trait DumperFormatters
         if ($params !== ['options' => []]) {
             $params = self::dumpVariables($params, $depth) . self::indent($depth);
 
-            return self::resource('resource (stream-context)') . ' ' . self::bracket('{')
+            return self::resource('(stream-context)') . ' ' . self::bracket('{')
                 . ' ' . self::info('#' . (int) $resource)
                 . $params . self::bracket('}');
         } else {
-            return self::resource('resource (stream-context)') . ' ' . self::info('#' . (int) $resource);
+            return self::resource('(stream-context)') . ' ' . self::info('#' . (int) $resource);
         }
     }
 
@@ -156,6 +160,52 @@ trait DumperFormatters
 
         return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name)
             . self::bracket('(') . $value . self::bracket(')');
+    }
+
+    public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
+    {
+        return self::name(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
+    }
+
+    public static function dumpDateTimeInterface(DateTimeInterface $dt): string
+    {
+        $value = str_replace('.000000', '', $dt->format('Y-m-d H:i:s.u'));
+        $timeZone = $dt->format('P') === $dt->getTimezone()->getName() ? '' : ' ' . self::value($dt->getTimezone()->getName());
+        $dst = $dt->format('I') ? ' ' . self::value2('DST') : '';
+        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($dt)) : '';
+
+        return self::name(get_class($dt)) . self::bracket('(')
+            . self::value($value) . self::value2($dt->format('P')) . $timeZone . $dst
+            . self::bracket(')') . $info;
+    }
+
+    public static function dumpMysqli(mysqli $mysqli, int $depth = 0): string
+    {
+        $properties = [];
+        // filter unnecessary info (cannot cast native class to array :E)
+        $ref = new ReflectionObject($mysqli);
+        foreach ($ref->getProperties() as $property) {
+            $name = $property->getName();
+            $value = @$property->getValue($mysqli); // "Property access is not allowed yet" bullshit
+            if ($value === null) {
+                continue;
+            } elseif ($name === 'client_version' || $name === 'server_version') {
+                continue;
+            } elseif ($value === 0 && in_array($name, ['connect_errno', 'errno', 'warning_count', 'field_count', 'insert_id'])) {
+                continue;
+            } elseif ($value === '' && $name === 'error') {
+                continue;
+            } elseif ($value === [] && $name === 'error_list') {
+                continue;
+            } elseif ($value === '00000' && $name === 'sqlstate'){
+                continue;
+            }
+            $properties[$name] = $value;
+        }
+        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($mysqli)) : '';
+
+        return self::name(get_class($mysqli)) . ' ' . self::bracket('{')
+            . self::dumpVariables($properties, $depth + 1) . self::bracket('}') . $info;
     }
 
     // component formatters --------------------------------------------------------------------------------------------
@@ -298,7 +348,7 @@ trait DumperFormatters
     {
         $dirName = self::normalizePath(dirname($file));
         $fileName = basename($file);
-        $separator = Str::contains($file, '://') ? '//' : '/';
+        $separator = $dirName ? (Str::contains($file, '://') ? '//' : '/') : '';
 
         foreach (self::$trimPathPrefix as $prefix) {
             if (Str::startsWith($dirName, $prefix)) {

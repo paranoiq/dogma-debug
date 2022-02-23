@@ -10,7 +10,7 @@ require_once __DIR__ . '/../bootstrap.php';
 Intercept::$logReplacements = false;
 
 
-Intercept::register('foo', 'bar', ['Foo', 'bar']);
+Intercept::registerFunction('foo', 'bar', ['Foo', 'bar']);
 
 Assert::same(Intercept::hack('echo bar();', 'f'), 'echo \Foo::bar();');
 Assert::same(Intercept::hack('echo \bar();', 'f'), 'echo \Foo::bar();');
@@ -34,7 +34,7 @@ Assert::same(Intercept::hack('echo $foo->bar();', 'f'), 'echo $foo->bar();');
 Assert::same(Intercept::hack('function foo();', 'f'), 'function foo();');
 
 
-Intercept::register('foo', 'exit', ['Foo', 'bar']);
+Intercept::registerFunction('foo', 'exit', ['Foo', 'bar']);
 
 Assert::same(Intercept::hack('exit();', 'f'), '\Foo::bar();');
 Assert::same(Intercept::hack('exit(1);', 'f'), '\Foo::bar(1);');

@@ -47,10 +47,13 @@ use DOMNodeList;
 use DOMText;
 use InvalidArgumentException;
 use LogicException;
+use mysqli;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
+use function function_exists;
+use function spl_object_id;
 use const PATH_SEPARATOR;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
@@ -202,8 +205,11 @@ class Dumper
     /** @var int - depth of dumped arguments of called function in backtrace */
     public static $traceArgsDepth = 0;
 
-    /** @var int[] - count of lines of code shown for each filtered frame. [5] means 5 lines for first, 0 for others... */
-    public static $traceCodeLines = [5];
+    /** @var int - count of lines of code shown for each filtered stack frame */
+    public static $traceCodeLines = 5;
+
+    /** @var int - count of stack frames for which code should be shown */
+    public static $traceCodeDepth = 1;
 
     /** @var string[] - functions, classes and methods skipped from backtrace */
     public static $traceFilters = [
@@ -214,6 +220,7 @@ class Dumper
         '~^(trigger|user)_error$~', // error proxies
         '~^Composer\\\\Autoload\\\\~', // composer loaders
         '~^loadClass~',
+        '~^preg_match$~', // thrown from inside
     ];
 
     /** @var string[] - common path prefixes to remove from all paths */
@@ -265,11 +272,14 @@ class Dumper
 
     /** @var array<class-string|string, callable> - formatters for user-formatted dumps */
     public static $formatters = [
-        // native
-        'resource (stream)' => [self::class, 'dumpStream'],
-        'resource (stream-context)' => [self::class, 'dumpStreamContext'],
+        // resources
+        '(stream)' => [self::class, 'dumpStream'],
+        '(stream-context)' => [self::class, 'dumpStreamContext'],
+
+        // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
         UnitEnum::class => [self::class, 'dumpUnitEnum'],
+        mysqli::class => [self::class, 'dumpMysqli'],
         DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
 
         // Debug
@@ -421,11 +431,20 @@ class Dumper
 
             // mark ordinary arrays as literals
             if ($expression !== null && $expression[0] === '[' && !is_callable($value)) {
-                $expression = null;
+                $expression = true;
             }
-            $expression = self::$dumpExpressions ? self::key($expression ?? 'literal') . self::symbol(':') . ' ' : '';
+            $exp = '';
+            if (self::$dumpExpressions) {
+                if ($expression === true) {
+                    $exp = self::key('literal') . self::symbol(':') . ' ';
+                } elseif ($expression === null) {
+                    $exp = self::key('unknown') . self::symbol(':') . ' ';
+                } else {
+                    $exp = self::key($expression) . self::symbol(':') . ' ';
+                }
+            }
 
-            return $expression . $result . ($trace ? "\n" : '') . $trace;
+            return $exp . $result . ($trace ? "\n" : '') . $trace;
         } finally {
             self::$traceLength = $traceLengthBefore;
             self::$maxDepth = $maxDepthBefore;
@@ -756,6 +775,14 @@ class Dumper
             return $handlerResult;
         }
 
+        $properties = self::dumpProperties((array) $object, $depth, $class);
+
+        return self::name($class) . ' ' . self::bracket('{') . $info
+            . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
+    }
+
+    public static function dumpProperties(array $properties, int $depth, string $class): string
+    {
         $indent = self::indent($depth + 1);
         $equal = ' ' . self::symbol('=') . ' ';
         $semi = self::symbol(';');
@@ -763,8 +790,6 @@ class Dumper
 
         $n = 0;
         $items = [];
-        //$properties = (new ReflectionObject($object))->getProperties();
-        $properties = (array) $object;
         foreach ($properties as $name => $value) {
             $parts = explode("\0", $name);
             if (count($parts) === 3) {
@@ -799,8 +824,7 @@ class Dumper
 
         ksort($items);
 
-        return self::name($class) . ' ' . self::bracket('{') . $info
-            . "\n" . implode("\n", $items) . "\n" . self::indent($depth) . self::bracket('}');
+        return implode("\n", $items);
     }
 
     /**
@@ -841,12 +865,28 @@ class Dumper
             $items[$k] = $item;
             $n++;
         }
-
         ksort($items);
+        $items = implode("\n", $items) . "\n";
 
-        $start = self::name($class) . self::symbol('::') . self::name('class') . ' ' . self::bracket('{');
+        $methods = '';
+        if (self::$dumpClassesWithStaticMethodVariables) {
+            $methods = [];
+            foreach ($ref->getMethods() as $method) {
+                $variables = $method->getStaticVariables();
+                if ($variables !== []) {
+                    $name = $method->getName();
+                    $access = $method->isProtected() ? 'protected' : ($method->isPublic() ? 'public' : 'private');
+                    $variables = self::dumpVariables($variables, $depth + 1, true);
+                    $methods[$name] = $indent . self::access($access . ($method->isStatic() ? ' static' : '') . ' function ')
+                        . self::name($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
+                }
+            }
+            ksort($methods);
+            $methods = implode("\n", $methods) . "\n";
+        }
 
-        return $start . "\n" . implode("\n", $items) . "\n" . self::bracket('}');
+        return self::name($class) . self::symbol('::') . self::name('class') . ' '
+            . self::bracket('{') . "\n" . $items . $methods . self::bracket('}');
     }
 
     public static function dumpClosure(Closure $closure, int $depth = 0): string
@@ -993,7 +1033,8 @@ class Dumper
     public static function dumpResource($resource, int $depth = 0): string
     {
         $type = is_resource($resource) ? get_resource_type($resource) : 'closed';
-        $name = "resource ($type)";
+        $id = (int) $resource;
+        $name = "($type $id)";
 
         foreach (self::$formatters as $class => $handler) {
             if ($class === $name) {
@@ -1015,6 +1056,27 @@ class Dumper
     public static function objectHash($object): string
     {
         return substr(md5(spl_object_hash($object)), 0, 4);
+    }
+
+    /**
+     * @param object|resource $object
+     * @return int
+     */
+    public static function objectId($object): int
+    {
+        if (is_object($object)) {
+            // PHP >= 7.2
+            if (function_exists('spl_object_id')) {
+                return spl_object_id($object);
+            } else {
+                $hash = spl_object_hash($object);
+                $hash = substr($hash, 8, 8) . substr($hash, 24, 8);
+
+                return (int) hexdec($hash);
+            }
+        } else {
+            return (int) $object;
+        }
     }
 
     public static function binaryUuidInfo(string $uuid): ?string

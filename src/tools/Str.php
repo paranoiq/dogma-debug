@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use function strrpos;
 use const PREG_OFFSET_CAPTURE;
 use function array_keys;
 use function array_pop;
@@ -79,6 +80,19 @@ class Str
     public static function endsWith(string $string, string $find): bool
     {
         return $find === '' || substr($string, -strlen($find)) === $find;
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function splitByLast(string $string, string $search): array
+    {
+        $pos = strrpos($string, $search);
+        if ($pos === false) {
+            return [$string, ''];
+        }
+
+        return [substr($string, 0, $pos), substr($string, $pos + 1)];
     }
 
     /**

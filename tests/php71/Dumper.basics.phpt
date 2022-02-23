@@ -142,11 +142,8 @@ Assert::dump('áčř', '<literal>: <"<\u00e1<<\u010d<<\u0159<"> <// 6 B, 3 ch>')
 Assert::dump('🙈', '<literal>: <"<\ud83d\ude48<"> <// 4 B, 1 ch>');
 
 // binary
-$bin = '';
-for ($n = 0; $n < 256; $n++) {
-    $bin .= chr($n);
-}
-// spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö aa ae af ba bb bc bd cb cd ce da de df eb ec ee ef fb fc fd fe Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ
+$bin = implode('', range("\x00", "\xff"));
+// spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ aa ae af ba bb bc bd cb cd ce da de df eb ec ee ef fb fc fd fe
 Assert::dump($bin, '<$bin>: <binary:>
    <"¤☺☻♥♦♣♠•◘○◙♂♀♪♫☼"> <// 00 01 02 03  04 05 06 07  08 09 0a 0b  0c 0d 0e 0f>
  . <"►◄↕‼¶§▬↨↑↓→←∟↔▲▼"> <// 10 11 12 13  14 15 16 17  18 19 1a 1b  1c 1d 1e 1f>
@@ -234,10 +231,19 @@ Assert::dump($foo, '<$foo>: <Dogma><\><Tests><\><Debug><\><Foo> <{> <// #?id>
 <}>');
 
 
-static_properties:
+classes:
 Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
    <private static> <$a> = <1>;
    <protected static> <$b> = <"bar">;
+<}>');
+
+Dumper::$dumpClassesWithStaticMethodVariables = true;
+Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
+   <private static> <$a> = <1>;
+   <protected static> <$b> = <"bar">;
+   <public static function ><bar><()> <{>
+   <|>  <static> <$x> = <42>;
+   <}>
 <}>');
 
 
@@ -281,7 +287,7 @@ Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\>
 
 stream:
 $file = tmpfile();
-Assert::dump($file, '<$file>: <resource (stream)> <{> <#?id>
+Assert::dump($file, '<$file>: <(stream)> <{> <#?id>
    <$blocked> = <true>;
    <$eof> = <false>;
    <$mode> = <"r+b">;

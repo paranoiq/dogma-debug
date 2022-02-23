@@ -13,8 +13,6 @@
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Dumper;
 
-require_once __DIR__ . '/client.php';
-
 if (!function_exists('rd')) {
     /**
      * Local dump
@@ -25,6 +23,19 @@ if (!function_exists('rd')) {
     function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
         Debugger::print(Dumper::dump($value, $maxDepth, $traceLength));
+
+        return $value;
+    }
+
+    /**
+     * Remote dump implemented with native var_dump() + some colors
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    function lvd($value, bool $colors = true)
+    {
+        Debugger::print(Dumper::varDump($value, $colors));
 
         return $value;
     }
@@ -97,6 +108,10 @@ if (!function_exists('rd')) {
     {
         Debugger::timer($name);
     }
+}
+
+if (!require_once(__DIR__ . '/client.php')) {
+    return;
 }
 
 ?>

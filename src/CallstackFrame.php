@@ -73,6 +73,9 @@ class CallstackFrame
         if ($class !== null && $type === null) {
             throw new LogicException('When $class is set, then $type must also be set.');
         }
+        if ($file === '-') {
+            $file = null;
+        }
 
         $this->file = $file;
         $this->line = $line;
