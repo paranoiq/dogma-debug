@@ -90,9 +90,13 @@ class Request
     public static function getCommand(): string
     {
         global $argv;
-        // todo: normalize path separator to /
 
-        return implode(' ', $argv ?? []);
+        $args = $argv;
+        if (isset($args[0])) {
+            $args[0] = str_replace('\\', '/', $args[0]);
+        }
+
+        return implode(' ', $args ?? []);
     }
 
     public static function commandMatches(string $pattern): bool
@@ -191,8 +195,10 @@ class Request
      */
     public static function autodetectApps(): void
     {
-        if (self::commandMatches('~dogma-debug\\tests\\.*\.phpt~')) {
+        if (self::commandMatches('~dogma-debug/tests/.*\.phpt~')) {
             self::$application = 'self-tests';
+        } elseif (self::commandMatches('~tests/.*\.phpt~')) {
+            self::$application = 'nette-tests';
         } elseif (self::commandMatchesAny(['~composer[^/]*.phar~', '~update --dry-run~', '~validate --no-check-publish~', '~show --format=json -a --name-only~'])) {
             self::$application = 'composer';
         } elseif (self::commandMatches('~composer-require-checker~')) {

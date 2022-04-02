@@ -317,6 +317,9 @@ class FilesystemInterceptor
         Intercept::register(self::NAME, 'realpath_cache_size', self::class);
         Intercept::register(self::NAME, 'set_file_buffer', self::class);
         */
+
+        // sys_get_tmp_dir() - todo: are there any others?
+
         self::$intercept = $level;
     }
 
