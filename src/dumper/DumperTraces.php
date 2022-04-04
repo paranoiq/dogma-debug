@@ -162,7 +162,7 @@ trait DumperTraces
                 continue;
             }
 
-            if ($n < $codeDepth && $frame->file !== null) {
+            if ($codeLines > 0 && $n < $codeDepth && $frame->file !== null) {
                 $lines = (int) floor($codeLines / 2);
                 $lines = $frame->getLinesAround($lines, $lines);
                 foreach ($lines as $i => $line) {

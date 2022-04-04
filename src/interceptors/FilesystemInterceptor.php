@@ -154,7 +154,7 @@ class FilesystemInterceptor
             . ' ' . Dumper::file($path) . ' ' . Dumper::call($function, $params, $return);
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::INTERCEPT, $message, $trace, $duration);
     }

@@ -152,7 +152,7 @@ class RedisHandler
         $message = Ansi::white(' redis: ', Ansi::DGREEN) . ' ' . $query;
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::REDIS, $message, $trace, $duration);
     }
@@ -167,7 +167,7 @@ class RedisHandler
             self::$parser = new RedisParser();
         }
 
-        $key = null;
+        $key = '';
         if ($return === false) {
             $response = Dumper::exceptions('ERROR');
         } else {
@@ -207,7 +207,7 @@ class RedisHandler
         }
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::REDIS, $message, $trace, $duration);
     }
@@ -253,7 +253,7 @@ class RedisHandler
     /**
      * @return array{string, int}
      */
-    private static function formatResponse(string $message, ?string $key): array
+    private static function formatResponse(string $message, string $key): array
     {
         $rows = 1;
         $prefix = '';

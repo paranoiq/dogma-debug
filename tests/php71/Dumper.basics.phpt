@@ -113,7 +113,7 @@ Assert::dump('áčř', '<literal>: <"áčř"> <// 6 B, 3 ch>');
 // hidden
 Dumper::$hiddenFields = ['secret'];
 $secret = 'foo';
-Assert::dump($secret, '<$secret>: <"><*****><"> <// 3 B, hidden>');
+Assert::dump($secret, '<$secret>: <"><*****><"> <// hidden>');
 
 // color codes
 Assert::dump('orange', '<literal>: <"orange"> <// <<     <>');
@@ -122,7 +122,8 @@ $color = '00FF7F';
 Assert::dump($color, '<$color>: <"00FF7F"> <// <<     <>');
 
 // callables
-Assert::dump('strlen', '<literal>: <"strlen"> <// 6 B, callable>');
+Assert::dump('strlen', '<literal>: <"strlen"> <// 6 B, callable from ext-core>');
+// todo: Assert::dump('rd', '<literal>: <"rd"> <// callable defined in ...>');
 
 // limit
 Dumper::$maxLength = 10;
@@ -184,9 +185,7 @@ Assert::dump(range(100000001, 100000010), '<range(100000001, 100000010)>: <[>
 <]> <// 10 items>');
 
 // nested
-Assert::dump(
-    [1, 2, 3, [4, 5, 6, 'long line long line long line long line long line long line long line long line long line']],
-    '<literal>: <[>
+Assert::dump([1, 2, 3, [4, 5, 6, 'long line long line long line long line long line long line long line long line long line']], '<literal>: <[>
    <1>,
    <2>,
    <3>,
@@ -200,9 +199,7 @@ Assert::dump(
 );
 
 // keys
-Assert::dump(
-    [1 => 1, 2, 3, ['long line long line long line long line long line long line long line long line', 'foo' => 4, 'bar' => 5, 'baz' => 6]],
-    '<literal>: <[>
+Assert::dump([1 => 1, 2, 3, ['long line long line long line long line long line long line long line long line', 'foo' => 4, 'bar' => 5, 'baz' => 6]], '<literal>: <[>
    <1> => <1>,
    <2> => <2>,
    <3> => <3>,
@@ -287,7 +284,7 @@ Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\>
 
 stream:
 $file = tmpfile();
-Assert::dump($file, '<$file>: <(stream)> <{> <#?id>
+Assert::dump($file, '<$file>: <(stream ?id)> <{>
    <$blocked> = <true>;
    <$eof> = <false>;
    <$mode> = <"r+b">;

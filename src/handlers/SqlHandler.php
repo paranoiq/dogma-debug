@@ -104,7 +104,7 @@ class SqlHandler
             . ' ' . $message . $countFormatted;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $backtrace = Dumper::formatCallstack($callstack, 10, 0, []);
+        $backtrace = Dumper::formatCallstack($callstack, 10, 0, 0);
 
         Debugger::send(Packet::SQL, $message, $backtrace, $duration);
     }

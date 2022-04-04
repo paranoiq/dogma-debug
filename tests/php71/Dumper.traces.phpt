@@ -23,31 +23,31 @@ function c(int $length): string
     return Dumper::dump(true, 1, $length);
 }
 
-function d(int $length, int $depth, array $lines): string
+function d(int $length, int $depth, int $lines): string
 {
     return e($length, $depth, $lines);
 }
 
-function e(int $length, int $depth, array $lines): string
+function e(int $length, int $depth, int $lines): string
 {
     return f($length, $depth, $lines);
 }
 
-function f(int $length, int $depth, array $lines): string
+function f(int $length, int $depth, int $lines): string
 {
     return Dumper::formatCallstack(Callstack::get(), $length, $depth, $lines);
 }
 
 
 formatCallstack:
-Assert::same(Assert::normalize(d(0, 0, [])), '');
-Assert::same(Assert::normalize(d(1, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
-Assert::same(Assert::normalize(d(2, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+Assert::same(Assert::normalize(d(0, 0, 0)), '');
+Assert::same(Assert::normalize(d(1, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
+Assert::same(Assert::normalize(d(2, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>');
-Assert::same(Assert::normalize(d(3, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+Assert::same(Assert::normalize(d(3, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>');
-Assert::same(Assert::normalize(d(4, 0, [])), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+Assert::same(Assert::normalize(d(4, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><50>');
@@ -55,17 +55,17 @@ Assert::same(Assert::normalize(d(4, 0, [])), '<^--- in ><tests/php71/>Dumper.tra
 
 findExpression:
 // simple literals
-Assert::same(Dumper::getExpression("rd(null);"), null);
-Assert::same(Dumper::getExpression("rd(false);"), null);
-Assert::same(Dumper::getExpression("rd(true);"), null);
-Assert::same(Dumper::getExpression("rd(123);"), null);
-Assert::same(Dumper::getExpression("rd(-12);"), null);
-Assert::same(Dumper::getExpression("rd(1.2);"), null);
-Assert::same(Dumper::getExpression("rd(NAN);"), null);
-Assert::same(Dumper::getExpression("rd(INF);"), null);
-Assert::same(Dumper::getExpression("rd(-INF);"), null);
-Assert::same(Dumper::getExpression('rd("foo");'), null);
-Assert::same(Dumper::getExpression("rd('foo');"), null);
+Assert::same(Dumper::getExpression("rd(null);"), true);
+Assert::same(Dumper::getExpression("rd(false);"), true);
+Assert::same(Dumper::getExpression("rd(true);"), true);
+Assert::same(Dumper::getExpression("rd(123);"), true);
+Assert::same(Dumper::getExpression("rd(-12);"), true);
+Assert::same(Dumper::getExpression("rd(1.2);"), true);
+Assert::same(Dumper::getExpression("rd(NAN);"), true);
+Assert::same(Dumper::getExpression("rd(INF);"), true);
+Assert::same(Dumper::getExpression("rd(-INF);"), true);
+Assert::same(Dumper::getExpression('rd("foo");'), true);
+Assert::same(Dumper::getExpression("rd('foo');"), true);
 
 // expressions
 Assert::same(Dumper::getExpression("rd(\$last !== false ? \$last->patch : null)"), '$last !== false ? $last->patch : null');

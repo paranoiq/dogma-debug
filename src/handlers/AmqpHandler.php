@@ -145,7 +145,7 @@ class AmqpHandler
         $message = Ansi::white(' rabbit: ', Ansi::DGREEN) . ' ' . $query;
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::AMQP, $message, $trace, $duration);
     }
@@ -196,7 +196,7 @@ class AmqpHandler
         }
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::AMQP, $message, $trace, $duration);
     }
@@ -242,7 +242,7 @@ class AmqpHandler
     /**
      * @return array{string, int}
      */
-    private static function formatResponse(string $message, ?string $key): array
+    private static function formatResponse(string $message, string $key): array
     {
         $rows = 1;
         $prefix = '';

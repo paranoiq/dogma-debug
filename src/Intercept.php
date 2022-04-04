@@ -455,7 +455,7 @@ class Intercept
 
         $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::INTERCEPT, $message, $trace);
     }

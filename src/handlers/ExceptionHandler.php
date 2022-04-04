@@ -156,7 +156,7 @@ class ExceptionHandler
             if (self::$filterTrace) {
                 $callstack = $callstack->filter(Dumper::$traceFilters);
             }
-            $trace = Dumper::formatCallstack($callstack, 1000, 1, [5, 5, 5, 5, 5]);
+            $trace = Dumper::formatCallstack($callstack, 1000, 1, 5, 5);
         } catch (Throwable $e) {
             Debugger::dump($e);
 

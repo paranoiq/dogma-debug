@@ -205,7 +205,7 @@ class ErrorHandler
         $message = Ansi::white(' ' . self::typeDescription($type) . ': ', Ansi::LRED) . ' ' . Ansi::lyellow($message);
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $backtrace = Dumper::formatCallstack($callstack, 1000, null, [5]);
+        $backtrace = Dumper::formatCallstack($callstack, 1000, null, 5, 1);
 
         Debugger::send(Packet::ERROR, $message, $backtrace);
     }

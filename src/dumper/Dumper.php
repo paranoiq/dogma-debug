@@ -13,7 +13,6 @@ use BackedEnum;
 use Closure;
 use Consistence\Enum\Enum;
 use Consistence\Enum\MultiEnum;
-use DateTime;
 use DateTimeInterface;
 use DateTimeZone;
 use Dogma\Dom\Element;
@@ -52,31 +51,22 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
-use function function_exists;
-use function spl_object_id;
-use const PATH_SEPARATOR;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
-use function abs;
 use function array_filter;
 use function array_keys;
 use function array_map;
-use function array_reverse;
 use function array_shift;
 use function array_slice;
 use function array_unshift;
-use function bin2hex;
 use function count;
-use function decoct;
 use function explode;
 use function file;
 use function get_class;
 use function get_resource_type;
 use function gettype;
-use function hexdec;
 use function implode;
 use function in_array;
-use function ini_get;
 use function is_a;
 use function is_array;
 use function is_callable;
@@ -86,8 +76,6 @@ use function is_object;
 use function is_resource;
 use function is_string;
 use function ksort;
-use function ltrim;
-use function md5;
 use function ob_get_clean;
 use function ob_start;
 use function preg_match;
@@ -96,11 +84,9 @@ use function preg_replace_callback;
 use function range;
 use function spl_object_hash;
 use function str_replace;
-use function stripos;
 use function strlen;
 use function strpos;
 use function strrpos;
-use function strtolower;
 use function substr;
 use function trim;
 use function uniqid;
@@ -186,7 +172,7 @@ class Dumper
     public static $showInfo = true;
 
     /** @var int - show length of strings from n characters */
-    public static $lengthInfoMin = 5;
+    public static $lengthInfoMin = 6;
 
     /** @var DateTimeZone|string|null - timezone used to format timestamps to readable date/time (php.ini timezone by default) */
     public static $infoTimeZone;
@@ -270,12 +256,38 @@ class Dumper
     /** @var bool - turn on/of user formatters for dumps */
     public static $useFormatters = true;
 
-    /** @var array<class-string|string, callable> - formatters for user-formatted dumps */
-    public static $formatters = [
-        // resources
+    /** @var array<string, callable> - user formatters for int values */
+    public static $intFormatters = [
+        '~filemode|permissions~i' => [self::class, 'dumpPermissions'],
+        '~time|\\Wts~i' => [self::class, 'dumpTimestamp'],
+        '~size|bytes~i' => [self::class, 'dumpSize'],
+        '~flags|options|headeropt|settings~i' => [self::class, 'dumpFlags'],
+        [self::class, 'dumpPowersOfTwo'],
+    ];
+
+    /** @var array<string, callable> - user formatters for float values */
+    public static $floatFormatters = [
+        '~time~i' => [self::class, 'dumpFloatTimestamp'],
+    ];
+
+    /** @var array<string, callable> - user formatters for string values */
+    public static $stringFormatters = [
+        [self::class, 'dumpHiddenString'], // must be first!
+        '/path(?!ext)/i' => [self::class, 'dumpPathList'],
+        [self::class, 'dumpPath'],
+        [self::class, 'dumpUuid'],
+        [self::class, 'dumpColor'],
+        [self::class, 'dumpCallableString'],
+    ];
+
+    /** @var array<string, callable> - user formatters for resources */
+    public static $resourceFormatters = [
         '(stream)' => [self::class, 'dumpStream'],
         '(stream-context)' => [self::class, 'dumpStreamContext'],
+    ];
 
+    /** @var array<class-string, callable> - user formatters for dumping objects and resources */
+    public static $objectFormatters = [
         // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
         UnitEnum::class => [self::class, 'dumpUnitEnum'],
@@ -325,8 +337,8 @@ class Dumper
         NodeList::class => [self::class, 'dumpDomNodeList'],
     ];
 
-    /** @var array<class-string|string, callable> - formatters for short dumps (single line) */
-    public static $shortFormatters = [
+    /** @var array<class-string|string, callable> - user formatters for dumping objects and resources in single-line mode */
+    public static $shortObjectFormatters = [
         '' => [self::class, 'dumpEntityId'],
     ];
 
@@ -427,10 +439,10 @@ class Dumper
 
             $result = self::dumpValue($value, 0, $expression);
 
-            $trace = self::formatCallstack($callstack, $traceLength, 0, []);
+            $trace = self::formatCallstack($callstack, $traceLength, 0, 0);
 
             // mark ordinary arrays as literals
-            if ($expression !== null && $expression[0] === '[' && !is_callable($value)) {
+            if ($expression !== null && $expression !== true && $expression[0] === '[' && !is_callable($value)) {
                 $expression = true;
             }
             $exp = '';
@@ -502,123 +514,69 @@ class Dumper
 
     public static function dumpInt(int $int, string $key = ''): string
     {
-        $sign = $int < 0 ? '-' : '';
-        $int = abs($int);
-        $key = str_replace('_', '', strtolower($key));
-
-        $info = '';
         if (self::$showInfo) {
             if ($int === PHP_INT_MAX) {
-                $info = ' ' . self::info('// PHP_INT_MAX');
+                return self::int((string) $int) . ' ' . self::info('// PHP_INT_MAX');
             } elseif ($int === PHP_INT_MIN) {
-                $info = ' ' . self::info('// PHP_INT_MIN');
-            } elseif (!$sign && $int > 10000000 && preg_match('/time|\\Wts/', $key)) {
-                $time = self::intToFormattedDate($int);
-                $info = ' ' . self::info('// ' . $time);
-            } elseif (!$sign && $int > 1024 && preg_match('/size|bytes/', $key)) {
-                $info = ' ' . self::info('// ' . Units::size($int));
-            } elseif (!$sign && preg_match('/flags|options|headeropt|settings/', $key)) {
-                $info = ' ' . self::info('// ' . implode('|', array_reverse(self::binaryComponents($int))));
-            } else {
-                $exp = null;
-                for ($n = 9; $n < 63; $n++) {
-                    if ($int === 2 ** $n) {
-                        $exp = $n;
-                    } elseif ($int + 1 === 2 ** $n) {
-                        $exp = $n . '-1';
+                return self::int((string) $int) . ' ' . self::info('// PHP_INT_MIN');
+            }
+
+            foreach (self::$intFormatters as $pattern => $formatter) {
+                if (is_int($pattern) || preg_match($pattern, $key)) {
+                    $res = $formatter($int);
+                    if ($res !== null) {
+                        return $res;
                     }
-                }
-                if ($exp !== null) {
-                    $info = ' ' . self::info("// 2^$exp");
                 }
             }
         }
 
-        if (!$sign && $int <= 0777 && preg_match('/filemode|permissions/', $key)) {
-            return self::int('0' . decoct($int)) . $info;
-        } else {
-            return self::int($sign . $int) . $info;
-        }
+        return self::int((string) $int);
     }
 
     public static function dumpFloat(float $float, string $key = ''): string
     {
         $decimal = (float) (int) $float === $float ? '.0' : '';
 
-        $info = '';
-        if (self::$showInfo && $float > 1000000 && stripos($key, 'time') !== false) {
-            /** @var DateTime $time */
-            $time = DateTime::createFromFormat('U.uP', $float . $decimal . 'Z');
-            $time = $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s.uP');
-            $info = ' ' . self::info('// ' . $time);
-        }
-
-        return self::float($float . $decimal) . $info;
-    }
-
-    public static function dumpString(string $string, int $depth = 0, ?string $key = null): string
-    {
-        $callable = is_callable($string)
-            ? ', callable'
-            : '';
-
-        $bytes = strlen($string);
-        $length = Str::length($string, self::$inputEncoding);
-
-        if ($key !== null && self::$hiddenFields !== []) {
-            $key2 = ltrim($key, '$');
-            if (in_array($key, self::$hiddenFields, true) || in_array($key2, self::$hiddenFields, true)) {
-                $hidden = ', hidden';
-                $info = $bytes === $length
-                    ? ' ' . self::info("// $bytes B{$hidden}")
-                    : ' ' . self::info("// $bytes B, $length ch{$hidden}");
-                $quote = Ansi::color('"', self::$colors['string']);
-
-                return $quote . self::exceptions('*****') . $quote . $info;
+        if (self::$showInfo) {
+            foreach (self::$floatFormatters as $pattern => $formatter) {
+                if (is_int($pattern) || preg_match($pattern, $key)) {
+                    $res = $formatter($float);
+                    if ($res !== null) {
+                        return $res;
+                    }
+                }
             }
         }
 
+        return self::float($float . $decimal);
+    }
+
+    public static function dumpString(string $string, int $depth = 0, string $key = ''): string
+    {
+        $size = strlen($string);
+        $length = Str::length($string, self::$inputEncoding);
+        $bytes = $size !== $length || $size >= self::$lengthInfoMin ? "$size B" : '';
+        $chars = $size !== $length ? ", $length ch" : '';
         $trimmed = '';
         if ($length > self::$maxLength) {
             $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
-            $trimmed = ', trimmed';
+            $trimmed = $bytes || $chars ? ', trimmed' : 'trimmed';
+        }
+        $info = $bytes . $chars . $trimmed;
+
+        if (self::$showInfo) {
+            foreach (self::$stringFormatters as $pattern => $formatter) {
+                if (is_int($pattern) || preg_match($pattern, $key)) {
+                    $res = $formatter($string, $info, $key, $depth);
+                    if ($res !== null) {
+                        return $res;
+                    }
+                }
+            }
         }
 
-        $path = '';
-        if (($key !== null && preg_match('~file|path~', $key))
-            || preg_match('~^[a-z]:[/\\\\]~i', $string)
-            || ($string !== '' && $string[0] === '/')
-            || Str::contains($string, '/../')
-        ) {
-            $path = self::normalizePath($string);
-            $path = ($path !== $string) ? ', ' . $path : '';
-        }
-
-        // phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedElseif
-        // phpcs:disable SlevomatCodingStandard.ControlStructures.AssignmentInCondition.AssignmentInCondition
-        static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{12})}?~';
-        if (!self::$showInfo) {
-            $info = '';
-        } elseif (preg_match($uuidRe, $string, $m) && $info = self::uuidInfo($m)) {
-            // ^^^
-        } elseif ($key !== null && $bytes === 32 && Str::contains($key, 'id') && $info = self::binaryUuidInfo($string)) {
-            // ^^^
-        } elseif ($key !== null && Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
-            $info = ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
-        } elseif ($bytes === $length && $bytes <= self::$lengthInfoMin && !$path && !$trimmed && !$callable) {
-            $info = '';
-        } elseif ($bytes === $length) {
-            $info = ' ' . self::info("// $bytes B{$path}{$trimmed}{$callable}");
-        } else {
-            $info = ' ' . self::info("// $bytes B, $length ch{$path}{$trimmed}{$callable}");
-        }
-
-        // explode path list on more lines
-        if ($key !== null && preg_match('/path(?!ext)/i', $key) && Str::contains($string, PATH_SEPARATOR)) {
-            return self::string($string, $depth, PATH_SEPARATOR) . $info;
-        }
-
-        return self::string($string, $depth) . $info;
+        return self::string($string, $depth) . ($info ? ' ' . self::info('// ' . $info) : '');
     }
 
     /**
@@ -739,12 +697,12 @@ class Dumper
         $handlerResult = '';
         if (self::$useFormatters && $depth < self::$maxDepth + 1) {
             $class = get_class($object);
-            $handler = self::$formatters[$class] ?? null;
+            $handler = self::$objectFormatters[$class] ?? null;
             if ($handler !== null) {
                 $handlerResult = $handler($object);
             }
 
-            foreach (self::$formatters as $cl => $handler) {
+            foreach (self::$objectFormatters as $cl => $handler) {
                 if (is_a($object, $cl)) {
                     $handlerResult = $handler($object, $depth);
                     break;
@@ -758,13 +716,13 @@ class Dumper
             }
 
             $short = '';
-            foreach (self::$shortFormatters as $cl => $handler) {
-                if ($cl !== '' && is_a($object, $cl)) {
+            foreach (self::$shortObjectFormatters as $cl => $handler) {
+                if (is_int($cl) || is_a($object, $cl)) {
                     $short = $handler($object);
+                    if ($short) {
+                        break;
+                    }
                 }
-            }
-            if ($short === '' && isset(self::$shortFormatters[''])) {
-                $short = (self::$shortFormatters[''])($object);
             }
 
             return self::name($class) . ' ' . self::bracket('{') . ' ' . $short . ($short ? ' ' : '')
@@ -1034,121 +992,17 @@ class Dumper
     {
         $type = is_resource($resource) ? get_resource_type($resource) : 'closed';
         $id = (int) $resource;
-        $name = "($type $id)";
+        $name = "($type)";
 
-        foreach (self::$formatters as $class => $handler) {
+        foreach (self::$resourceFormatters as $class => $handler) {
             if ($class === $name) {
                 return $handler($resource, $depth);
             }
         }
 
-        $info = self::$showInfo ? ' ' . self::info('#' . (int) $resource) : '';
+        $name = "($type $id)";
 
-        return self::resource($name) . $info;
-    }
-
-    // helpers ---------------------------------------------------------------------------------------------------------
-
-    /**
-     * @param object $object
-     * @return string
-     */
-    public static function objectHash($object): string
-    {
-        return substr(md5(spl_object_hash($object)), 0, 4);
-    }
-
-    /**
-     * @param object|resource $object
-     * @return int
-     */
-    public static function objectId($object): int
-    {
-        if (is_object($object)) {
-            // PHP >= 7.2
-            if (function_exists('spl_object_id')) {
-                return spl_object_id($object);
-            } else {
-                $hash = spl_object_hash($object);
-                $hash = substr($hash, 8, 8) . substr($hash, 24, 8);
-
-                return (int) hexdec($hash);
-            }
-        } else {
-            return (int) $object;
-        }
-    }
-
-    public static function binaryUuidInfo(string $uuid): ?string
-    {
-        $uuid = bin2hex($uuid);
-        $formatted = substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-'
-            . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12);
-
-        $info = self::uuidInfo(explode('-', $formatted));
-
-        return $info ? $info . ', ' . $formatted : null;
-    }
-
-    /**
-     * @param string[] $parts
-     * @return string|null
-     */
-    public static function uuidInfo(array $parts): ?string
-    {
-        [$timeLow, $timeMid, $timeHigh, $sequence] = $parts;
-        $version = hexdec($timeHigh[0]) + (hexdec($sequence[0]) & 0b1110) * 16;
-
-        if ($version === 1) {
-            /** @var positive-int $time */
-            $time = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
-
-            return 'UUID v' . $version . ', ' . self::intToFormattedDate($time);
-        } elseif ($version < 6) {
-            return 'UUID v' . $version;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @param positive-int $int
-     * @return string
-     */
-    public static function intToFormattedDate(int $int): string
-    {
-        /** @var DateTime $time */
-        $time = DateTime::createFromFormat('UP', $int . 'Z');
-
-        return $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:sP');
-    }
-
-    public static function getTimeZone(): DateTimeZone
-    {
-        if (self::$infoTimeZone instanceof DateTimeZone) {
-            return self::$infoTimeZone;
-        } elseif (is_string(self::$infoTimeZone)) {
-            return new DateTimeZone(self::$infoTimeZone);
-        } else {
-            return self::$infoTimeZone = new DateTimeZone(ini_get('date.timezone') ?: 'Z');
-        }
-    }
-
-    /**
-     * @return int[]
-     */
-    public static function binaryComponents(int $number): array
-    {
-        $components = [];
-        $e = 0;
-        do {
-            $c = 1 << $e;
-            if (($number & $c) !== 0) {
-                $components[] = $c;
-            }
-        } while ($e++ < 64);
-
-        return $components;
+        return self::resource($name);
     }
 
 }

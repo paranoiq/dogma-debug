@@ -405,7 +405,7 @@ class Debugger
     {
         if (self::$showDependenciesInfo) {
             $callstack = Callstack::get(Dumper::$traceFilters);
-            self::send(Packet::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, []));
+            self::send(Packet::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
         }
     }
 

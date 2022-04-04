@@ -106,7 +106,7 @@ class OutputHandler
         Dumper::$maxLength = $oldMaxLength;
 
         $callstack = $callstack ?? Callstack::get(Dumper::$traceFilters);
-        $backtrace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Packet::STD_IO, $message, $backtrace);
 

@@ -200,7 +200,7 @@ trait StreamWrapperMixin
             $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . Dumper::file($cwd) . ' ' . $message;
 
             $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-            $backtrace = Dumper::formatCallstack($callstack, 1, 0, []);
+            $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
             self::runNativeIfNeeded(static function () use ($message, $backtrace) {
                 Debugger::send(Packet::STREAM_IO, $message, $backtrace);
@@ -238,7 +238,7 @@ trait StreamWrapperMixin
         $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $backtrace = Dumper::formatCallstack($callstack, 1, 0, []);
+        $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         self::runNativeIfNeeded(static function () use ($message, $backtrace, $duration): void {
             Debugger::send(Packet::STREAM_IO, $message, $backtrace, $duration);

@@ -49,6 +49,8 @@ class Assert extends DogmaAssert
         $string = preg_replace('~"[^"]+\\.tmp">~', '"?path?file">', $string);
         $string = preg_replace('~<// [0-9]+ B, [</:A-Za-z0-9]+?\\.tmp>~', '<// ?bytes B, ?path?file>', $string);
 
+        $string = preg_replace('~\\(stream ([0-9]+)\\)~', '(stream ?id)', $string);
+
         return $string;
     }
 
