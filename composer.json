@@ -64,12 +64,12 @@
 
         "lint:run": "php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
         "lint:all": [
-            "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
-            "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
-            "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
-            "php73 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
-            "php72 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
-            "php71 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php"
+            "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php73 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php72 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php71 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php"
         ],
 
         "phpcs:run": [
