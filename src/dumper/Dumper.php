@@ -737,6 +737,7 @@ class Dumper
                 return $handlerResult;
             }
 
+            /** @var int|class-string $cl */
             foreach (self::$shortObjectFormatters as $cl => $handler) {
                 if (is_int($cl) || is_a($object, $cl)) {
                     $short = $handler($object);

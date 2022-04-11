@@ -106,7 +106,7 @@ class Debugger
     public static $headerColor = Ansi::LYELLOW;
 
     /** @var class-string[] Order of stream handler stats in request footer */
-    public static $footerStreamHandlers = [
+    public static $footerStreamWrappers = [
         FileStreamWrapper::class,
         PharStreamWrapper::class,
         HttpStreamWrapper::class,
@@ -674,8 +674,8 @@ class Debugger
         // includes io
         $events = 0;
         $time = 0.0;
-        foreach (self::$footerStreamHandlers as $handler) {
-            $stats = $handler::getStats(true);
+        foreach (self::$footerStreamWrappers as $wrapper) {
+            $stats = $wrapper::getStats(true);
             $events += $stats['events']['total'];
             $time += $stats['time']['total'];
         }
@@ -684,12 +684,12 @@ class Debugger
             $footer .= Ansi::white("| inc: {$events}× $time ", self::$headerColor);
         }
 
-        // stream handlers io
-        foreach (self::$footerStreamHandlers as $handler) {
-            $ioStats = $handler::getStats();
+        // stream wrappers io
+        foreach (self::$footerStreamWrappers as $wrapper) {
+            $ioStats = $wrapper::getStats();
             if ($ioStats['events']['fopen'] > 0) {
                 $ioTime = Units::time($ioStats['time']['total']);
-                $footer .= Ansi::white('| ' . $handler::NAME . ": {$ioStats['events']['fopen']}× $ioTime ", self::$headerColor);
+                $footer .= Ansi::white('| ' . $wrapper::NAME . ": {$ioStats['events']['fopen']}× $ioTime ", self::$headerColor);
             }
         }
 
