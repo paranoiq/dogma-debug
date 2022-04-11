@@ -737,18 +737,14 @@ class Dumper
                 return $handlerResult;
             }
 
-            $short = '';
             foreach (self::$shortObjectFormatters as $cl => $handler) {
                 if (is_int($cl) || is_a($object, $cl)) {
                     $short = $handler($object);
                     if ($short) {
-                        break;
+                        return $short;
                     }
                 }
             }
-
-            return self::name($class) . ' ' . self::bracket('{') . ' ' . $short . ($short ? ' ' : '')
-                . self::exceptions('...') . ' ' . self::bracket('}') . $info;
         }
 
         if ($handlerResult !== '') {

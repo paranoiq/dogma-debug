@@ -131,18 +131,23 @@ trait DumperFormatters
     /**
      * @param object $object
      */
-    public static function dumpEntityId($object): string
+    public static function dumpEntityId($object): ?string
     {
-        $id = '';
-        if (property_exists($object, 'id')) {
-            $ref = new ReflectionObject($object);
-            $prop = $ref->getProperty('id');
-            $prop->setAccessible(true);
-            $value = $prop->getValue($object);
-            $id = self::dumpValue($value);
+        if (!property_exists($object, 'id')) {
+            return null;
         }
 
-        return $id;
+        $ref = new ReflectionObject($object);
+        $property = $ref->getProperty('id');
+        $property->setAccessible(true);
+
+        $id = self::dumpValue($property->getValue($object));
+        $access = $property->isPrivate() ? 'private' : ($property->isProtected() ? 'protected' : 'public');
+        $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($object)) : '';
+
+        return Dumper::name(get_class($object)) . self::bracket('(')
+            . self::access($access) . ' ' . self::property('id') . ' ' . self::symbol('=') . ' ' . self::value($id)
+            . ' ' . self::exceptions('...') . ' ' . self::bracket(')') . $info;
     }
 
     /**
