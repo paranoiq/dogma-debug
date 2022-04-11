@@ -154,13 +154,15 @@ trait DumperTraces
         $codeLines = $codeLines ?? self::$traceCodeLines;
         $codeDepth = $codeDepth ?? self::$traceCodeDepth;
 
+        $prevArgs = '';
         $results = [];
         $n = 0;
         foreach ($callstack->frames as $frame) {
-            $result = self::formatFrame($frame);
+            [$result, $args] = self::formatFrame($frame, $prevArgs);
             if ($frame === null) {
                 continue;
             }
+            $prevArgs = $args;
 
             if ($codeLines > 0 && $n < $codeDepth && $frame->file !== null) {
                 $lines = (int) floor($codeLines / 2);
@@ -183,15 +185,25 @@ trait DumperTraces
         return implode("\n", $results);
     }
 
-    private static function formatFrame(CallstackFrame $frame): ?string
+    /**
+     * @return array{string|null, string}
+     */
+    private static function formatFrame(CallstackFrame $frame, string $prevArgs): array
     {
-        $args = '';
-        if ($frame->args !== []) {
+        $skipArgs = ' ' . self::exceptions('...') . ' ';
+        $currentArgs = '';
+        if ($frame->args !== [] && self::$maxDepth === 0) {
+            $currentArgs = $skipArgs;
+        } elseif ($frame->args !== []) {
             $in = self::bracket('[');
             $out = self::bracket(']');
-            $args = self::dumpArray($frame->getNamedArgs());
-            $args = substr($args, strlen($in), strrpos($args, $out) - strlen($out));
+            $currentArgs = self::dumpArray($frame->getNamedArgs());
+            $currentArgs = substr($currentArgs, strlen($in), strrpos($currentArgs, $out) - strlen($out));
         }
+
+        $args = $currentArgs === $prevArgs && $currentArgs !== $skipArgs && $currentArgs !== ''
+            ? ' ' . self::exceptions('^ same') . ' '
+            : $currentArgs;
 
         $classMethod = '';
         if (self::$traceDetails && $frame->function !== null) {
@@ -210,10 +222,10 @@ trait DumperTraces
         }
 
         if ($fileLine === '' && $classMethod === '') {
-            return null;
+            return [null, $currentArgs];
         }
 
-        return self::info("^--- in ") . $fileLine . $separator . $classMethod;
+        return [self::info("^--- in ") . $fileLine . $separator . $classMethod, $currentArgs];
     }
 
     /**

@@ -23,34 +23,86 @@ function c(int $length): string
     return Dumper::dump(true, 1, $length);
 }
 
-function d(int $length, int $depth, int $lines): string
+function d($a, $b, ...$c): string
 {
-    return e($length, $depth, $lines);
+    return e($a, $b, ...$c);
 }
 
-function e(int $length, int $depth, int $lines): string
+function e($a, $b, ...$c): string
 {
-    return f($length, $depth, $lines);
+    return f($a, $b, ...$c);
 }
 
-function f(int $length, int $depth, int $lines): string
+function f($a, $b, ...$c): string
 {
-    return Dumper::formatCallstack(Callstack::get(), $length, $depth, $lines);
+    return Dumper::formatCallstack(Callstack::get());
 }
 
 
 formatCallstack:
+Dumper::$traceLength = 0;
+Dumper::$traceArgsDepth = 0;
+Dumper::$traceCodeLines = 0;
+Dumper::$traceCodeDepth = 0;
+
+// no params
 Assert::same(Assert::normalize(d(0, 0, 0)), '');
-Assert::same(Assert::normalize(d(1, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
-Assert::same(Assert::normalize(d(2, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+
+Dumper::$traceLength = 1;
+Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
+Dumper::$traceLength = 2;
+Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>');
-Assert::same(Assert::normalize(d(3, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+Dumper::$traceLength = 3;
+Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>');
-Assert::same(Assert::normalize(d(4, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
+Dumper::$traceLength = 4;
+Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>
-<^--- in ><tests/php71/>Dumper.traces.phpt<:><50>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><61>');
+
+// 1 level params with repeating
+Dumper::$traceArgsDepth = 1;
+Dumper::$traceLength = 1;
+Assert::same(Assert::normalize(d(0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
+   <$a> => <0>,
+   <$b> => <0>,
+<)>');
+Dumper::$traceLength = 2;
+Assert::same(Assert::normalize(d(0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
+   <$a> => <0>,
+   <$b> => <0>,
+<)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>');
+Dumper::$traceLength = 3;
+Assert::same(Assert::normalize(d(0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
+   <$a> => <0>,
+   <$b> => <0>,
+<)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>');
+Dumper::$traceLength = 4;
+Assert::same(Assert::normalize(d(0, 0)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
+   <$a> => <0>,
+   <$b> => <0>,
+<)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><87>');
+
+// variadic params
+Assert::same(Assert::normalize(d(0, 0, 1, 2, 3)), '<^--- in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
+   <$a> => <0>,
+   <$b> => <0>,
+   <...$c> => <[><1>, <2>, <3><]>, <// 3 items>
+<)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><96>');
+
+// todo: trace code
 
 
 findExpression:
@@ -108,4 +160,4 @@ Assert::same(Assert::normalize(a(4)), '<literal>: <true>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
 <^--- in ><tests/php71/>Dumper.traces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>
-<^--- in ><tests/php71/>Dumper.traces.phpt<:><107>');
+<^--- in ><tests/php71/>Dumper.traces.phpt<:><159>');

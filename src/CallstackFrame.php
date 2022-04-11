@@ -17,7 +17,9 @@ use ReflectionMethod;
 use ReflectionObject;
 use RuntimeException;
 use const FILE_IGNORE_NEW_LINES;
+use function array_key_exists;
 use function array_slice;
+use function array_values;
 use function error_clear_last;
 use function error_get_last;
 use function file;
@@ -26,7 +28,7 @@ use function implode;
 use function in_array;
 use function is_array;
 use function is_file;
-use function is_int;
+use function strpos;
 
 class CallstackFrame
 {
@@ -148,18 +150,39 @@ class CallstackFrame
             return $this->args;
         }
 
-        $params = [];
+        $names = [];
         foreach ($reflection->getParameters() as $param) {
-            $params[] = '$' . $param->getName();
+            if ($param->isVariadic()) {
+                $names[] = '...$' . $param->getName();
+            } else {
+                $names[] = '$' . $param->getName();
+            }
         }
 
-        $args = [];
-        foreach ($this->args as $n => $arg) {
-            $key = is_int($n) ? ($params[$n] ?? $n) : $n;
-            $args[$key] = $arg;
+        // todo: how will this cope with PHP 'named arguments'?
+        $args = $this->args;
+        $named = [];
+        foreach ($names as $n => $param) {
+            if ($args === []) {
+                // all used
+                return $named;
+            } elseif (strpos($param, '.') !== false) {
+                // ... variadic
+                $named[$param] = array_values($args);
+
+                return $named;
+            } elseif (array_key_exists($n, $args)) {
+                // named
+                $named[$param] = $args[$n];
+                unset($args[$n]);
+            }
+        }
+        // other
+        foreach ($args as $n => $value) {
+            $named[$n] = $value;
         }
 
-        return $args;
+        return $named;
     }
 
     // reflection ------------------------------------------------------------------------------------------------------

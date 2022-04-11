@@ -563,7 +563,7 @@ class Dumper
             $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
             $trimmed = $bytes || $chars ? ', trimmed' : 'trimmed';
         }
-        $info = $bytes . $chars . $trimmed;
+        $info = self::$showInfo ? $bytes . $chars . $trimmed : '';
 
         if (self::$showInfo) {
             foreach (self::$stringFormatters as $pattern => $formatter) {
@@ -600,75 +600,96 @@ class Dumper
             return self::bracket('[') . ' ' . self::exceptions('RECURSION') . ' ' . self::bracket(']') . $info;
         }
 
-        if ($depth >= self::$maxDepth) {
+        // try to speculatively format the array to check if they can fit on one row, even when depth limit is reached
+        $over = $depth - self::$maxDepth;
+        if ($over >= 0) {
             $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
+            $short = self::bracket('[') . ' ' . self::exceptions('...') . ' ' . self::bracket(']') . $info;
 
-            return self::bracket('[') . ' ' . self::exceptions('...') . ' ' . self::bracket(']') . $info;
-        }
-
-        $isList = range(0, $count - 1) === array_keys($array);
-        $coma = self::symbol(',');
-        /** @var non-empty-string $infoPrefix */
-        $infoPrefix = self::infoPrefix();
-
-        $hasInfo = false;
-        $items = [];
-        try {
-            $array[$marker] = true;
-            foreach ($array as $k => $value) {
-                if ($k === $marker) {
-                    continue;
-                }
-                $item = $isList && !self::$alwaysShowArrayKeys
-                    ? self::dumpValue($value, $depth + 1)
-                    : self::key($k) . ' ' . self::symbol('=>') . ' ' . self::dumpValue($value, $depth + 1, $k);
-
-                $pos = strrpos($item, $infoPrefix);
-                if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
-                    $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
-                    $hasInfo = true;
-                } else {
-                    $item .= $coma;
-                }
-
-                $items[] = $item;
+            if ($over >= 2) {
+                // stop speculative descent on MAX + 2 levels
+                return $short;
             }
-        } finally {
-            unset($array[$marker]);
         }
 
-        $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
-        $start = self::bracket('[');
-        $end = self::bracket(']') . $info;
+        $long = null;
+        do {
+            $isList = range(0, $count - 1) === array_keys($array);
+            $coma = self::symbol(',');
+            /** @var non-empty-string $infoPrefix */
+            $infoPrefix = self::infoPrefix();
 
-        $length = Ansi::length(implode(', ', $items), self::$inputEncoding);
+            $hasInfo = false;
+            $items = [];
+            try {
+                $array[$marker] = true;
+                foreach ($array as $k => $value) {
+                    if ($k === $marker) {
+                        continue;
+                    }
+                    $item = $isList && !self::$alwaysShowArrayKeys
+                        ? self::dumpValue($value, $depth + 1)
+                        : self::key($k) . ' ' . self::symbol('=>') . ' ' . self::dumpValue($value, $depth + 1, $k);
 
-        if ($isList && $length < self::$shortArrayMaxLength && !$hasInfo) {
-            // simple values: "[1, 2, 3] // 3 items"
-            return $start . substr(implode(' ', $items), 0, -strlen($coma)) . $end;
-        } elseif ($isList && $length < self::$shortArrayMaxLength && $count < self::$shortArrayMaxItems) {
-            // squish lines: "['foo', 'bar'] // 2 items (3 B, 3 B)"
-            $values = [];
-            $infos = [];
-            foreach ($items as $item) {
-                $parts = explode($infoPrefix, $item);
-                $parts[] = '';
-                [$v, $i] = $parts;
-                //$i = str_replace(Ansi::RESET_FORMAT, '', $i);
-                $values[] = $v;
-                $infos[] = $i;
+                    $pos = strrpos($item, $infoPrefix);
+                    if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+                        $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
+                        $hasInfo = true;
+                    } else {
+                        $item .= $coma;
+                    }
+
+                    if ($over >= 0 && strlen($item) > self::$shortArrayMaxLength) {
+                        // stop speculative descent on too long item
+                        break;
+                    }
+
+                    $items[] = $item;
+                }
+            } finally {
+                unset($array[$marker]);
             }
-            $infos = array_filter($infos);
 
-            return $start . substr(implode(' ', $values), 0, -strlen($coma))
-                . $end . self::info(' (' . implode(', ', $infos) . ')');
-        } else {
-            // item per line
-            $indent = self::indent($depth);
-            $indent2 = self::indent($depth + 1);
+            $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
+            $start = self::bracket('[');
+            $end = self::bracket(']') . $info;
 
-            return $start . "\n" . $indent2 . implode("\n" . $indent2, $items) . "\n" . $indent . $end;
-        }
+            $length = Ansi::length(implode(', ', $items), self::$inputEncoding);
+
+            if ($over >= 0 && $length > self::$shortArrayMaxLength) {
+                // stop speculative descent on too long output
+                break;
+            }
+
+            if ($isList && $length < self::$shortArrayMaxLength && !$hasInfo) {
+                // simple values: "[1, 2, 3] // 3 items"
+                $long = $start . substr(implode(' ', $items), 0, -strlen($coma)) . $end;
+            } elseif ($isList && $length < self::$shortArrayMaxLength && $count < self::$shortArrayMaxItems) {
+                // squish lines: "['foo', 'bar'] // 2 items (3 B, 3 B)"
+                $values = [];
+                $infos = [];
+                foreach ($items as $item) {
+                    $parts = explode($infoPrefix, $item);
+                    $parts[] = '';
+                    [$v, $i] = $parts;
+                    //$i = str_replace(Ansi::RESET_FORMAT, '', $i);
+                    $values[] = $v;
+                    $infos[] = $i;
+                }
+                $infos = array_filter($infos);
+
+                $long = $start . substr(implode(' ', $values), 0, -strlen($coma))
+                    . $end . self::info(' (' . implode(', ', $infos) . ')');
+            } else {
+                // item per line
+                $indent = self::indent($depth);
+                $indent2 = self::indent($depth + 1);
+
+                $long = $start . "\n" . $indent2 . implode("\n" . $indent2, $items) . "\n" . $indent . $end;
+            }
+        } while (false);
+
+        return $long ?? $short;
     }
 
     /**
