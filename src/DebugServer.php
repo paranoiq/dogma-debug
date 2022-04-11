@@ -12,19 +12,15 @@
 namespace Dogma\Debug;
 
 use Socket;
+use function clearstatcache;
+use function count;
+use function explode;
 use function fclose;
 use function file_exists;
 use function filesize;
+use function fopen;
 use function fread;
 use function fseek;
-use function str_replace;
-use function strlen;
-use function var_dump;
-use const AF_INET;
-use const SOCK_STREAM;
-use const SOL_TCP;
-use function count;
-use function explode;
 use function serialize;
 use function socket_accept;
 use function socket_bind;
@@ -35,8 +31,13 @@ use function socket_listen;
 use function socket_read;
 use function socket_set_nonblock;
 use function socket_write;
+use function str_replace;
+use function strlen;
 use function unserialize;
 use function usleep;
+use const AF_INET;
+use const SOCK_STREAM;
+use const SOL_TCP;
 
 class DebugServer
 {

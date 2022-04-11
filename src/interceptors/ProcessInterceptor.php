@@ -12,7 +12,6 @@ namespace Dogma\Debug;
 use LogicException;
 use function func_get_args;
 use function ignore_user_abort;
-use function sapi_windows_set_ctrl_handler;
 
 /**
  * Tracks signals, exit() and die() and tries to determine what lead to process termination

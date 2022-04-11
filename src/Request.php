@@ -127,8 +127,8 @@ class Request
         if (self::$sapi === 'cli') {
             return false;
         }
-        if (isset($method, $_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === $method) {
-            return true;
+        if (isset($method, $_SERVER['REQUEST_METHOD'])) {
+            return $_SERVER['REQUEST_METHOD'] === $method;
         }
 
         return true;
@@ -197,14 +197,14 @@ class Request
     {
         if (self::commandMatches('~dogma-debug/tests/.*\.phpt~')) {
             self::$application = 'self-tests';
+        } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~')) {
+            self::$application = 'phpstan';
         } elseif (self::commandMatches('~tests/.*\.phpt~')) {
             self::$application = 'nette-tests';
         } elseif (self::commandMatchesAny(['~composer[^/]*.phar~', '~update --dry-run~', '~validate --no-check-publish~', '~show --format=json -a --name-only~'])) {
             self::$application = 'composer';
         } elseif (self::commandMatches('~composer-require-checker~')) {
             self::$application = 'require-checker';
-        } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~')) {
-            self::$application = 'phpstan';
         } elseif (self::commandMatches('~/squizlabs/php_codesniffer/bin/phpcs~')) {
             self::$application = 'phpcs';
         } elseif (self::commandMatches('~/php-parallel-lint/parallel-lint~')) {

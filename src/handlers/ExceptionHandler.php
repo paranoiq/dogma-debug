@@ -11,6 +11,7 @@ namespace Dogma\Debug;
 
 use Throwable;
 use function get_class;
+use function in_array;
 use function is_a;
 use function restore_exception_handler;
 use function set_exception_handler;
@@ -110,7 +111,7 @@ class ExceptionHandler
         self::$logExceptions = $log;
         self::$notLogExceptions = $notLog;
 
-        Intercept::inspectCaughtExceptions(self::NAME, self::class, 'log');
+        Intercept::inspectCaughtExceptions(self::NAME, [self::class, 'log']);
     }
 
     public static function log(Throwable $e): void

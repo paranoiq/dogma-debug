@@ -11,7 +11,21 @@
 
 namespace Dogma\Debug;
 
+use function array_slice;
+use function array_sum;
+use function func_get_args;
+use function getcwd;
 use function in_array;
+use function is_callable;
+use function microtime;
+use function str_replace;
+use function stream_wrapper_register;
+use function stream_wrapper_restore;
+use function stream_wrapper_unregister;
+use function strlen;
+use function substr;
+use function time;
+use function user_error;
 use const E_USER_WARNING;
 use const SEEK_SET;
 use const STREAM_META_ACCESS;
@@ -29,20 +43,6 @@ use const STREAM_REPORT_ERRORS;
 use const STREAM_URL_STAT_LINK;
 use const STREAM_URL_STAT_QUIET;
 use const STREAM_USE_PATH;
-use function array_slice;
-use function array_sum;
-use function func_get_args;
-use function getcwd;
-use function is_callable;
-use function microtime;
-use function str_replace;
-use function stream_wrapper_register;
-use function stream_wrapper_restore;
-use function stream_wrapper_unregister;
-use function strlen;
-use function substr;
-use function time;
-use function user_error;
 
 /**
  * Common implementation for stream wrappers (file, phar, http...)
@@ -202,7 +202,7 @@ trait StreamWrapperMixin
             $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
             $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
-            self::runNativeIfNeeded(static function () use ($message, $backtrace) {
+            self::runNativeIfNeeded(static function () use ($message, $backtrace): void {
                 Debugger::send(Packet::STREAM_IO, $message, $backtrace);
             });
 

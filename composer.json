@@ -1,7 +1,7 @@
 {
     "name": "dogma/dogma-debug",
     "type": "library",
-    "description": "Simple remote debugger/dumper",
+    "description": "Powerful remote debugger/dumper",
     "homepage": "https://github.com/paranoiq/dogma-debug",
     "license": ["BSD-3-Clause"],
     "authors": [
@@ -11,17 +11,17 @@
         }
     ],
     "require": {
-        "php": "^7.1|^8.0",
-        "ext-sockets": "*"
+        "php": "^7.1|^8.0"
     },
     "require-dev": {
         "dogma/dogma": "*",
-        "dogma/dogma-dev": "0.1.24"
+        "dogma/dogma-dev": "0.1.28"
     },
     "suggest": {
-        "ext-mb": "Any of these for unicode strings",
-        "ext-intl": "Any of these for unicode strings",
-        "ext-iconv": "Any of these for unicode strings"
+        "ext-sockets": "If you want to use socket connection (alternatives are log file or printing to stdout)",
+        "ext-mb": "Any of ext-mb|ext-intl|ext-iconv for unicode strings",
+        "ext-intl": "Any of ext-mb|ext-intl|ext-iconv for unicode strings",
+        "ext-iconv": "Any of ext-mb|ext-intl|ext-iconv for unicode strings"
     },
     "scripts": {
         "da": "composer dump-autoload",

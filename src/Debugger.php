@@ -14,17 +14,11 @@ namespace Dogma\Debug;
 
 use DateTime;
 use Socket;
-use const AF_INET;
-use const CONNECTION_ABORTED;
-use const PHP_SAPI;
-use const PHP_SESSION_ACTIVE;
-use const PHP_VERSION;
-use const SOCK_STREAM;
-use const SOL_TCP;
 use function array_shift;
 use function array_sum;
 use function connection_aborted;
 use function connection_status;
+use function count;
 use function dirname;
 use function end;
 use function error_get_last;
@@ -55,9 +49,18 @@ use function sprintf;
 use function str_replace;
 use function strlen;
 use function strtolower;
+use function substr;
 use function touch;
+use function trim;
 use function ucfirst;
 use function unserialize;
+use const AF_INET;
+use const CONNECTION_ABORTED;
+use const PHP_SAPI;
+use const PHP_SESSION_ACTIVE;
+use const PHP_VERSION;
+use const SOCK_STREAM;
+use const SOL_TCP;
 
 class Debugger
 {
@@ -66,7 +69,7 @@ class Debugger
     public const CONNECTION_SOCKET = 2;
     public const CONNECTION_FILE = 3;
 
-    /** @var bool When set to false, all output is local. But remember, that parent process can eat all the output */
+    /** @var int Switching between dumps to local STDOUT or remote console over a socket or through a log file */
     public static $connection = self::CONNECTION_FILE;
 
     /** @var string Address on which is server.php running */
@@ -268,15 +271,17 @@ class Debugger
         return $label;
     }
 
-    /**
-     * @param int[] $lines
-     */
-    public static function backtrace(?int $length = null, ?int $argsDepth = null, array $lines = []): void
+    public static function backtrace(
+        ?int $length = null,
+        ?int $argsDepth = null,
+        ?int $codeLines = null,
+        ?int $codeDepth = null
+    ): void
     {
         ob_start();
 
         $callstack = Callstack::get(Dumper::$traceFilters);
-        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $lines);
+        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeDepth, $codeLines);
 
         self::send(Packet::TRACE, $trace);
 
@@ -563,7 +568,7 @@ class Debugger
             $args = $argv;
             if (count($args) === 1 && $args[0] === '-') {
                 if (RequestHandler::$stdinData) {
-                    $stdin = file_get_contents('php://stdin');
+                    $stdin = (string) file_get_contents('php://stdin');
                     $trim = trim($stdin);
                     $args[0] = Dumper::string(substr($trim, 0, 50) . (strlen($trim) > 50 ? '...' : '')) . ' | php';
                     // todo: faking input through PhpStreamHandler is needed for this, because php://stdin can not be rewinded
@@ -595,7 +600,7 @@ class Debugger
 
             $file = Request::getFile();
             if (RequestHandler::$showIndex && $file !== null) {
-                $header .= DUmper::info('(') . Dumper::file($file) . Dumper::info(')') . ' ';
+                $header .= Dumper::info('(') . Dumper::file($file) . Dumper::info(')') . ' ';
             }
         }
 
@@ -766,8 +771,6 @@ class Debugger
                     }
                 }
             }
-        } else {
-            //$footer .= ' ' . self::$name;
         }
 
         return $footer;

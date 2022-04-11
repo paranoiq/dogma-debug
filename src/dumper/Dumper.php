@@ -51,8 +51,6 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
-use const PHP_INT_MAX;
-use const PHP_INT_MIN;
 use function array_filter;
 use function array_keys;
 use function array_map;
@@ -91,6 +89,8 @@ use function substr;
 use function trim;
 use function uniqid;
 use function var_dump;
+use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 class Dumper
 {
@@ -256,7 +256,7 @@ class Dumper
     /** @var bool - turn on/of user formatters for dumps */
     public static $useFormatters = true;
 
-    /** @var array<string, callable> - user formatters for int values */
+    /** @var array<callable> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
         '~filemode|permissions~i' => [self::class, 'dumpPermissions'],
         '~time|\\Wts~i' => [self::class, 'dumpTimestamp'],
@@ -265,12 +265,12 @@ class Dumper
         [self::class, 'dumpPowersOfTwo'],
     ];
 
-    /** @var array<string, callable> - user formatters for float values */
+    /** @var array<callable> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
         '~time~i' => [self::class, 'dumpFloatTimestamp'],
     ];
 
-    /** @var array<string, callable> - user formatters for string values */
+    /** @var array<callable> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
         [self::class, 'dumpHiddenString'], // must be first!
         '/path(?!ext)/i' => [self::class, 'dumpPathList'],
@@ -437,7 +437,7 @@ class Dumper
 
             $expression = self::$dumpExpressions ? self::findExpression($callstack) : null;
 
-            $result = self::dumpValue($value, 0, $expression);
+            $result = self::dumpValue($value, 0, $expression === true ? null : $expression);
 
             $trace = self::formatCallstack($callstack, $traceLength, 0, 0);
 
@@ -602,6 +602,7 @@ class Dumper
 
         // try to speculatively format the array to check if they can fit on one row, even when depth limit is reached
         $over = $depth - self::$maxDepth;
+        $short = ''; // only to satisfy PHPStan
         if ($over >= 0) {
             $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
             $short = self::bracket('[') . ' ' . self::exceptions('...') . ' ' . self::bracket(']') . $info;
@@ -687,7 +688,7 @@ class Dumper
 
                 $long = $start . "\n" . $indent2 . implode("\n" . $indent2, $items) . "\n" . $indent . $end;
             }
-        } while (false);
+        } while (false); // @phpstan-ignore-line
 
         return $long ?? $short;
     }
@@ -760,6 +761,9 @@ class Dumper
             . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
     }
 
+    /**
+     * @param mixed[] $properties
+     */
     public static function dumpProperties(array $properties, int $depth, string $class): string
     {
         $indent = self::indent($depth + 1);

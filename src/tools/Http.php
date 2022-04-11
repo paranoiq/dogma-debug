@@ -12,6 +12,7 @@ namespace Dogma\Debug;
 use function array_map;
 use function explode;
 use function implode;
+use function str_replace;
 use function strtolower;
 use function substr;
 

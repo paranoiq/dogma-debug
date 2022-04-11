@@ -9,6 +9,12 @@
 
 namespace Dogma\Debug;
 
+use function array_search;
+use function function_exists;
+use function in_array;
+use function pcntl_async_signals;
+use function pcntl_signal;
+use function sapi_windows_set_ctrl_handler;
 use const SIG_DFL;
 use const SIGABRT;
 use const SIGALRM;
@@ -41,12 +47,6 @@ use const SIGVTALRM;
 use const SIGWINCH;
 use const SIGXCPU;
 use const SIGXFSZ;
-use function array_search;
-use function function_exists;
-use function in_array;
-use function pcntl_async_signals;
-use function pcntl_signal;
-use function sapi_windows_set_ctrl_handler;
 
 /**
  * Tracks signals, exit() and die() and tries to determine what lead to process termination

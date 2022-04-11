@@ -14,13 +14,13 @@ namespace Dogma\Debug;
 use ReflectionFunction;
 use ReflectionMethod;
 use Throwable;
-use const PHP_SAPI;
 use function array_unshift;
 use function count;
 use function debug_backtrace;
 use function in_array;
 use function preg_match;
 use function str_replace;
+use const PHP_SAPI;
 
 /**
  * In CallstackFrame a function is always paired with file and line in which it is defined,

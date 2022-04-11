@@ -130,7 +130,7 @@ class Intercept
     /** @var array<class-string, string> */
     private static $exceptions = [];
 
-    /** @var array{string, class-string, string} */
+    /** @var array{string, array{class-string, string}}|null */
     private static $exceptionCallable;
 
     /** @var bool|null */
@@ -233,14 +233,16 @@ class Intercept
     /**
      * Register callable, that can inspect all thrown exceptions before they are caught by application. Callable cannot change or catch the exceptions
      * Implementation: debugger will insert call to supplied callable to all catch statements in loaded code
+     *
+     * @param array{class-string, string} $callback
      */
-    public static function inspectCaughtExceptions(string $handler, string $callbackClass, string $callbackMethod): void
+    public static function inspectCaughtExceptions(string $handler, array $callback): void
     {
         if (!self::enabled()) {
             self::startStreamHandlers();
         }
 
-        self::$exceptionCallable = [$handler, $callbackClass, $callbackMethod];
+        self::$exceptionCallable = [$handler, $callback];
     }
 
     /**
@@ -371,7 +373,7 @@ class Intercept
         }
 
         if (self::$exceptionCallable) {
-            [$handler, $class, $method] = self::$exceptionCallable;
+            [$handler, [$class, $method]] = self::$exceptionCallable;
             $result = preg_replace('~([ \t]*)(}\s*catch\s*\([^)]+\s+)(\\$[a-zA-Z0-9_]+)(\s*\)\s*{)~', "\\1\\2\\3\\4\n\\1\t\\\\$class::$method(\\3);", $code);
             if ($result !== $code) {
                 $replaced[$handler][] = "catch (...)";

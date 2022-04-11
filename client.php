@@ -17,8 +17,8 @@ use Dogma\Debug\Callstack;
 use Dogma\Debug\CallstackFrame;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Dumper;
-use Dogma\Debug\FilesystemInterceptor;
 use Dogma\Debug\FileStreamWrapper;
+use Dogma\Debug\FilesystemInterceptor;
 use Dogma\Debug\FtpStreamWrapper;
 use Dogma\Debug\Http;
 use Dogma\Debug\HttpStreamWrapper;
@@ -36,7 +36,7 @@ $_dogma_debug_start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? m
 
 // do not load auto-prepended libs from other location than tests are when in tests
 // tester loads local copy, which may differ from stable auto-prepended version
-$_dogma_debug_prepend = ini_get('auto_prepend_file');
+$_dogma_debug_prepend = (string) ini_get('auto_prepend_file');
 $_dogma_debug_script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
 if ($_dogma_debug_prepend !== str_replace('\\', '/', __FILE__)
     && $_dogma_debug_prepend !== str_replace(['\\', 'client'], ['/', 'shortcuts'], __FILE__)

@@ -11,8 +11,6 @@
 
 namespace Dogma\Debug;
 
-use const E_USER_NOTICE;
-use const STR_PAD_RIGHT;
 use function hexdec;
 use function ltrim;
 use function preg_match;
@@ -22,6 +20,8 @@ use function strlen;
 use function strtolower;
 use function substr;
 use function user_error;
+use const E_USER_NOTICE;
+use const STR_PAD_RIGHT;
 
 final class Ansi
 {

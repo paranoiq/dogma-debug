@@ -148,7 +148,6 @@ class VirtualFile
     public function truncate(int $newSize): bool
     {
         if (!$this->write) {
-
             return false;
         } else {
             $this->contents = substr($this->contents, 0, $newSize);

@@ -9,8 +9,6 @@
 
 namespace Dogma\Debug;
 
-use function strrpos;
-use const PREG_OFFSET_CAPTURE;
 use function array_keys;
 use function array_pop;
 use function array_values;
@@ -30,7 +28,9 @@ use function str_replace;
 use function strlen;
 use function strncmp;
 use function strpos;
+use function strrpos;
 use function substr;
+use const PREG_OFFSET_CAPTURE;
 
 class Str
 {

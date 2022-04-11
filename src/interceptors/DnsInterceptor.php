@@ -10,9 +10,9 @@
 namespace Dogma\Debug;
 
 use LogicException;
-use const DNS_ANY;
 use function dns_get_mx;
 use function dns_get_record;
+use const DNS_ANY;
 
 /**
  * Tracks calls to dns related functions

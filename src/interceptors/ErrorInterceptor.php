@@ -9,9 +9,9 @@
 
 namespace Dogma\Debug;
 
+use function error_reporting;
 use const E_ALL;
 use const E_STRICT;
-use function error_reporting;
 
 /**
  * Tracks usage of error related functions

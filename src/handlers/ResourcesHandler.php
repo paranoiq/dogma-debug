@@ -9,8 +9,6 @@
 
 namespace Dogma\Debug;
 
-use const SIG_DFL;
-use const SIGALRM;
 use function function_exists;
 use function microtime;
 use function pcntl_alarm;
@@ -18,6 +16,8 @@ use function pcntl_signal;
 use function rd;
 use function register_tick_function;
 use function unregister_tick_function;
+use const SIG_DFL;
+use const SIGALRM;
 
 /**
  * Monitors system resources (time, memory)

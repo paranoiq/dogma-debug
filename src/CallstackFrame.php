@@ -16,7 +16,6 @@ use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionObject;
 use RuntimeException;
-use const FILE_IGNORE_NEW_LINES;
 use function array_key_exists;
 use function array_slice;
 use function array_values;
@@ -29,6 +28,7 @@ use function in_array;
 use function is_array;
 use function is_file;
 use function strpos;
+use const FILE_IGNORE_NEW_LINES;
 
 class CallstackFrame
 {
@@ -197,8 +197,9 @@ class CallstackFrame
 
             return new ReflectionMethod($object, $this->function);
         } elseif ($this->isClosure()) {
-            // todo?
-            return new ReflectionFunction($this->function);
+            // todo: this does not work. investigate
+            //return new ReflectionFunction($this->function);
+            return null;
         }
 
         return null;

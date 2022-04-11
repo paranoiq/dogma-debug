@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use const PHP_OS;
 use function cli_set_process_title;
 use function exec;
 use function explode;
@@ -19,6 +18,7 @@ use function getmypid;
 use function strtolower;
 use function trim;
 use function zend_thread_id;
+use const PHP_OS;
 
 class System
 {

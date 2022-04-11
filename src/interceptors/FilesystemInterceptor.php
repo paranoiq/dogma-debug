@@ -10,8 +10,6 @@
 namespace Dogma\Debug;
 
 use LogicException;
-use const SEEK_SET;
-use const STREAM_CLIENT_CONNECT;
 use function array_shift;
 use function call_user_func_array;
 use function count;
@@ -23,6 +21,8 @@ use function microtime;
 use function preg_match;
 use function stream_get_meta_data;
 use function stream_socket_client;
+use const SEEK_SET;
+use const STREAM_CLIENT_CONNECT;
 
 /**
  * Tracks file operations regardless of stream protocol
@@ -357,6 +357,8 @@ class FilesystemInterceptor
 
     /**
      * @param resource|null $context
+     * @param int|mixed $error_code
+     * @param string|mixed $error_message
      * @return resource|false
      */
     public static function stream_socket_client(

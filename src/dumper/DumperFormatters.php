@@ -130,7 +130,6 @@ trait DumperFormatters
 
     /**
      * @param object $object
-     * @return string
      */
     public static function dumpEntityId($object): string
     {
@@ -217,13 +216,13 @@ trait DumperFormatters
                 continue;
             } elseif ($name === 'client_version' || $name === 'server_version') {
                 continue;
-            } elseif ($value === 0 && in_array($name, ['connect_errno', 'errno', 'warning_count', 'field_count', 'insert_id'])) {
+            } elseif ($value === 0 && in_array($name, ['connect_errno', 'errno', 'warning_count', 'field_count', 'insert_id'], true)) {
                 continue;
             } elseif ($value === '' && $name === 'error') {
                 continue;
             } elseif ($value === [] && $name === 'error_list') {
                 continue;
-            } elseif ($value === '00000' && $name === 'sqlstate'){
+            } elseif ($value === '00000' && $name === 'sqlstate') {
                 continue;
             }
             $properties[$name] = $value;
@@ -288,7 +287,7 @@ trait DumperFormatters
         return self::int((string) $int) . ' ' . self::info('// ' . Units::size($int));
     }
 
-    public static  function dumpFlags(int $int): ?string
+    public static function dumpFlags(int $int): ?string
     {
         if ($int < 0) {
             return null;
@@ -341,7 +340,7 @@ trait DumperFormatters
             return null;
         }
 
-        return self::string($string, $depth, PATH_SEPARATOR) .  ' ' . self::info("// $info");
+        return self::string($string, $depth, PATH_SEPARATOR) . ' ' . self::info("// $info");
     }
 
     public static function dumpPath(string $string, string $info, string $key, int $depth): ?string

@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use const COUNT_RECURSIVE;
 use function array_map;
 use function array_merge;
 use function array_shift;
@@ -27,6 +26,7 @@ use function strlen;
 use function substr;
 use function trim;
 use function unserialize;
+use const COUNT_RECURSIVE;
 
 /**
  * Tracks and displays communication with Redis

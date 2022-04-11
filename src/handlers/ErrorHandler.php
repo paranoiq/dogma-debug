@@ -10,6 +10,10 @@
 namespace Dogma\Debug;
 
 use Throwable;
+use function error_reporting;
+use function ksort;
+use function restore_error_handler;
+use function set_error_handler;
 use function str_replace;
 use const E_ALL;
 use const E_COMPILE_ERROR;
@@ -27,10 +31,6 @@ use const E_USER_ERROR;
 use const E_USER_NOTICE;
 use const E_USER_WARNING;
 use const E_WARNING;
-use function error_reporting;
-use function ksort;
-use function restore_error_handler;
-use function set_error_handler;
 
 /**
  * Tracks and displays errors, warnings and notices
@@ -189,9 +189,10 @@ class ErrorHandler
         if (self::$printLimit !== null && self::$printCount >= self::$printLimit) {
             return;
         }
-        if (self::$uniqueOnly && self::$messages[$typeMessage][$fileLine] < 2) {
-            //return;
-        }
+        // todo: wtf?
+        //if (self::$uniqueOnly && self::$messages[$typeMessage][$fileLine] < 2) {
+        //    return;
+        //}
         if ($muted && !self::$showMutedErrors) {
             return;
         }
