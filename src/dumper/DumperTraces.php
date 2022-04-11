@@ -159,7 +159,7 @@ trait DumperTraces
         $n = 0;
         foreach ($callstack->frames as $frame) {
             [$result, $args] = self::formatFrame($frame, $prevArgs);
-            if ($frame === null) {
+            if ($result === null) {
                 continue;
             }
             $prevArgs = $args;

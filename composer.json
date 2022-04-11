@@ -15,7 +15,8 @@
     },
     "require-dev": {
         "dogma/dogma": "*",
-        "dogma/dogma-dev": "0.1.28"
+        "dogma/dogma-dev": "0.1.28",
+        "phpstan/phpstan": "1.4.10"
     },
     "suggest": {
         "ext-sockets": "If you want to use socket connection (alternatives are log file or printing to stdout)",

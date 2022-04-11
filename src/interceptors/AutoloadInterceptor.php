@@ -19,7 +19,7 @@ class AutoloadInterceptor
     /** @var int */
     private static $intercept = Intercept::NONE;
 
-    /** @var string|null */
+    /** @var callable-string|null */
     private static $unserializeCallback;
 
     /**
@@ -40,7 +40,9 @@ class AutoloadInterceptor
         Intercept::registerFunction(self::NAME, '__autoload', self::class);
 
         // unserialize_callback_func ini setting
-        self::$unserializeCallback = ini_get('unserialize_callback_func');
+        /** @var callable-string|null $cb */
+        $cb = ini_get('unserialize_callback_func') ?: null;
+        self::$unserializeCallback = $cb;
         if (self::$unserializeCallback !== false) {
             // todo: can this be a static method?
             Intercept::registerFunction(self::NAME, self::$unserializeCallback, [self::class, 'fakeUnserializeCallback']);
@@ -83,7 +85,7 @@ class AutoloadInterceptor
 
     public static function __autoload(string $class): void
     {
-        Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$class], null);
+        Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$class], null); // @phpstan-ignore-line
     }
 
     public static function fakeUnserializeCallback(string $class): void

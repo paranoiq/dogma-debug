@@ -401,7 +401,7 @@ trait DumperFormatters
             return self::string($string, $depth) . ' ' . self::info("// $info");
         } else {
             foreach (get_loaded_extensions() as $extension) {
-                if (in_array($string, get_extension_funcs($extension), true)) {
+                if (in_array($string, get_extension_funcs($extension) ?: [], true)) {
                     $extension = strtolower($extension);
                     $info .= "callable from ext-$extension";
 

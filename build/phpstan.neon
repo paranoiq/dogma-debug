@@ -25,7 +25,6 @@ parameters:
         - '~Method Dogma\\Debug\\Ansi::.* has parameter \$string with no type specified~' # casting to string anyway
         - '~Method Dogma\\Debug\\Str::length\(\) should return int but returns~' # could happen with wrong encoding, but won't fix
         - '~Method Dogma\\Debug\\Str::trim\(\) should return string but returns~' # cannot happen because start offset is always 0
-        - '~Method Dogma\\Debug\\Dumper::dumpDomNodeList\(\) has parameter \$nodeList with no value type specified~' # don't care
         - '~Parameter #1 \$class of static method Dogma\\Debug\\Dumper::dumpClass\(\) expects class-string, string given~' # ok
         - '~on array\{timed_out: bool, blocked: bool, eof: bool, unread_bytes: int, stream_type: string, wrapper_type: string, wrapper_data: mixed, mode: string, ...\} on left side of \?\? always exists and is not nullable~' # offset 'uri' ... bullshit. does not exist on sockets
         - '~While loop condition is always true~' # DebugServer.php

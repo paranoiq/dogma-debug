@@ -287,7 +287,7 @@ class Dumper
     ];
 
     /** @var array<class-string, callable> - user formatters for dumping objects and resources */
-    public static $objectFormatters = [
+    public static $objectFormatters = [ // @phpstan-ignore-line
         // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
         UnitEnum::class => [self::class, 'dumpUnitEnum'],
@@ -337,9 +337,9 @@ class Dumper
         NodeList::class => [self::class, 'dumpDomNodeList'],
     ];
 
-    /** @var array<class-string|string, callable> - user formatters for dumping objects and resources in single-line mode */
+    /** @var array<class-string|int, callable> - user formatters for dumping objects and resources in single-line mode */
     public static $shortObjectFormatters = [
-        '' => [self::class, 'dumpEntityId'],
+        [self::class, 'dumpEntityId'],
     ];
 
     /** @var array<class-string> - classes that are not traversed. short dumps are used if configured */

@@ -66,7 +66,10 @@ class Callstack
      */
     public static function get(array $filters = [], bool $filter = true): self
     {
-        return self::fromBacktrace(debug_backtrace(), $filters, $filter);
+        /** @var PhpBacktraceItem[] $trace */
+        $trace = debug_backtrace();
+
+        return self::fromBacktrace($trace, $filters, $filter);
     }
 
     /**
@@ -74,6 +77,7 @@ class Callstack
      */
     public static function fromThrowable(Throwable $e, array $filters = [], bool $filter = true): self
     {
+        /** @var PhpBacktraceItem[] $trace */
         $trace = $e->getTrace();
         if ($trace) {
             $file = $e->getFile();

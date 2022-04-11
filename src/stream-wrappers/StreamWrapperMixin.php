@@ -160,14 +160,15 @@ trait StreamWrapperMixin
      */
     private static function runNativeIfNeeded(callable $fn): void
     {
+        // @phpstan-ignore-next-line
         $restore = static::class === FileStreamWrapper::class && Debugger::$connection === Debugger::CONNECTION_FILE;
-        if ($restore) {
+        if ($restore) { // @phpstan-ignore-line
             self::disable();
         }
 
         $fn();
 
-        if ($restore) {
+        if ($restore) { // @phpstan-ignore-line
             self::enable();
         }
     }

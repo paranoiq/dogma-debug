@@ -491,6 +491,9 @@ class CurlInterceptor
         if (isset(self::$files[$id])) {
             fseek(self::$files[$id], 0);
             $contents = fread(self::$files[$id], 2000);
+            if ($contents === false) {
+                $contents = 'ERROR: debugger could not read curl response content';
+            }
             fseek(self::$files[$id], 0);
             // todo: better response visualisation
             if (!(self::$intercept & Intercept::SILENT)) {
@@ -508,9 +511,9 @@ class CurlInterceptor
     public static function curl_getinfo($handle, ?int $option = null)
     {
         if ($option) {
-            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle, $option], $option ? '' : []);
+            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle, $option], '');
         } else {
-            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], $option ? '' : []);
+            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], []);
         }
     }
 

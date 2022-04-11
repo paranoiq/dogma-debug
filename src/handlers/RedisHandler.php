@@ -199,7 +199,7 @@ class RedisHandler
             $response = substr($response, 0, self::$maxLength) . ' ' . Dumper::exceptions('...');
         }
 
-        if ($key !== null) {
+        if ($key !== '') {
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN)
                 . ' ' . Dumper::key($key) . Dumper::symbol(':') . ' ' . $response;
         } else {
