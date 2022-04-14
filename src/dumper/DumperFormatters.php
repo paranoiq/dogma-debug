@@ -56,6 +56,7 @@ use function preg_replace;
 use function preg_replace_callback;
 use function property_exists;
 use function range;
+use function rtrim;
 use function spl_object_hash;
 use function spl_object_id;
 use function str_pad;
@@ -361,7 +362,7 @@ trait DumperFormatters
             || Str::contains($string, '/../')
         ) {
             $path = self::normalizePath($string);
-            $path = ($path !== $string) ? ', ' . $path : '';
+            $path = ($path !== rtrim($string, '/')) ? ', ' . $path : '';
 
             return self::string($string, $depth) . ' ' . self::info("// $info{$path}");
         }
@@ -577,16 +578,9 @@ trait DumperFormatters
 
     public static function file(string $file): string
     {
-        $dirName = self::normalizePath(dirname($file));
+        $dirName = self::trimPath(self::normalizePath(dirname($file)));
         $fileName = basename($file);
         $separator = $dirName ? (Str::contains($file, '://') ? '//' : '/') : '';
-
-        foreach (self::$trimPathPrefix as $prefix) {
-            if (Str::startsWith($dirName, $prefix)) {
-                $dirName = substr($dirName, strlen($prefix));
-                break;
-            }
-        }
 
         return Ansi::color($dirName . $separator, self::$colors['path'])
             . Ansi::color($fileName, self::$colors['file']);
@@ -594,15 +588,8 @@ trait DumperFormatters
 
     public static function fileLine(string $file, int $line): string
     {
-        $dirName = self::normalizePath(dirname($file)) . '/';
+        $dirName = self::trimPath(self::normalizePath(dirname($file))) . '/';
         $fileName = basename($file);
-
-        foreach (self::$trimPathPrefix as $prefix) {
-            if (Str::startsWith($dirName, $prefix)) {
-                $dirName = substr($dirName, strlen($prefix));
-                break;
-            }
-        }
 
         return Ansi::color($dirName, self::$colors['path'])
             . Ansi::color($fileName, self::$colors['file'])

@@ -31,33 +31,6 @@ use function trim;
 trait DumperTraces
 {
 
-    public static function trimPathPrefixBefore(string $string): void
-    {
-        $traces = debug_backtrace();
-        $trace = end($traces);
-        $dir = $trace ? ($trace['file'] ?? __DIR__) : __DIR__;
-        $dir = str_replace('\\', '/', $dir);
-
-        $end = strpos($dir, $string);
-        if ($end) {
-            self::$trimPathPrefix[] = substr($dir, 0, $end);
-        }
-    }
-
-    public static function trimPathPrefixAfter(string $string): void
-    {
-        $traces = debug_backtrace();
-        $trace = end($traces);
-        $dir = $trace ? ($trace['file'] ?? __DIR__) : __DIR__;
-        $dir = str_replace('\\', '/', $dir);
-
-        $end = strpos($dir, $string);
-
-        if ($end) {
-            self::$trimPathPrefix[] = substr($dir, 0, $end + strlen($string) + 1);
-        }
-    }
-
     /**
      * @return non-empty-string|true|null
      */
@@ -213,7 +186,7 @@ trait DumperTraces
 
         $fileLine = '';
         if ($frame->file !== null && $frame->line !== null) {
-            $fileLine = self::fileLine(self::normalizePath($frame->file), $frame->line);
+            $fileLine = self::fileLine(self::trimPath(self::normalizePath($frame->file)), $frame->line);
         }
 
         $separator = '';
@@ -260,6 +233,18 @@ trait DumperTraces
         $path = preg_replace(array_keys($patterns), array_values($patterns), $path);
 
         return $relative && $path[0] === '/' ? substr($path, 1) : $path;
+    }
+
+    public static function trimPath(string $path): string
+    {
+        foreach (self::$trimPathPrefixes as $prefix) {
+            $after = preg_replace($prefix, '', $path);
+            if ($after !== $path) {
+                return $after;
+            }
+        }
+
+        return $path;
     }
 
 }

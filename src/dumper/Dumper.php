@@ -212,8 +212,8 @@ class Dumper
         '~^preg_match$~', // thrown from inside
     ];
 
-    /** @var string[] - common path prefixes to remove from all paths */
-    public static $trimPathPrefix = [];
+    /** @var string[] - common path prefixes to remove from all paths (regexps) */
+    public static $trimPathPrefixes = [];
 
     // type formatter settings -----------------------------------------------------------------------------------------
 
