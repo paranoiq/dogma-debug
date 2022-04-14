@@ -240,31 +240,33 @@ trait DumperFormatters
 
     // scalars ---------------------------------------------------------------------------------------------------------
 
-    public static function dumpTimestamp(int $int): ?string
+    public static function dumpIntTime(int $int): ?string
     {
-        if ($int < 10000000) {
-            return null;
+        if ($int >= 10000000) {
+            return self::int((string) $int) . ' ' . self::info('// ' . self::intToFormattedDate($int));
         }
 
-        return self::int((string) $int) . ' ' . self::info('// ' . self::intToFormattedDate($int));
+        return null;
     }
 
-    public static function dumpFloatTimestamp(float $float): ?string
+    public static function dumpFloatTime(float $float): ?string
     {
-        if ($float < 1000000) {
-            return null;
-        }
-
         $decimal = (float) (int) $float === $float ? '.0' : '';
 
-        /** @var DateTime $time */
-        $time = DateTime::createFromFormat('U.uP', $float . $decimal . 'Z');
-        $time = $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s.uP');
+        if ($float >= 1000000) {
+            /** @var DateTime $time */
+            $time = DateTime::createFromFormat('U.uP', $float . $decimal . 'Z');
+            $time = $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s.uP');
 
-        return self::float($float . $decimal) . ' ' . self::info('// ' . $time);
+            return self::float($float . $decimal) . ' ' . self::info('// ' . $time);
+        } elseif ($float <= 3600) {
+            return self::float($float . $decimal) . ' ' . self::info('// ' . Units::time($float));
+        }
+
+        return null;
     }
 
-    public static function dumpPermissions(int $int): ?string
+    public static function dumpIntPermissions(int $int): ?string
     {
         if ($int < 0) {
             return null;
@@ -283,7 +285,7 @@ trait DumperFormatters
         return self::int(str_pad(decoct($int), 4, '0', STR_PAD_LEFT)) . ' ' . self::info('// ' . $perms);
     }
 
-    public static function dumpSize(int $int): ?string
+    public static function dumpIntSize(int $int): ?string
     {
         if ($int < 1024) {
             return null;
@@ -292,7 +294,7 @@ trait DumperFormatters
         return self::int((string) $int) . ' ' . self::info('// ' . Units::size($int));
     }
 
-    public static function dumpFlags(int $int): ?string
+    public static function dumpIntFlags(int $int): ?string
     {
         if ($int < 0) {
             return null;
@@ -303,7 +305,7 @@ trait DumperFormatters
         return self::int((string) $int) . ' ' . self::info('// ' . $info);
     }
 
-    public static function dumpPowersOfTwo(int $int): ?string
+    public static function dumpIntPowersOfTwo(int $int): ?string
     {
         $abs = abs($int);
         $exp = null;
@@ -321,7 +323,7 @@ trait DumperFormatters
         return self::int((string) $int) . ' ' . self::info("// 2^$exp");
     }
 
-    public static function dumpHiddenString(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringHidden(string $string, string $info, string $key, int $depth): ?string
     {
         $key2 = ltrim($key, '$');
         if (!in_array($key, self::$hiddenFields, true) && !in_array($key2, self::$hiddenFields, true)) {
@@ -339,7 +341,7 @@ trait DumperFormatters
         return $quote . self::exceptions('*****') . $quote . $info;
     }
 
-    public static function dumpPathList(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringPathList(string $string, string $info, string $key, int $depth): ?string
     {
         if (!Str::contains($string, PATH_SEPARATOR)) {
             return null;
@@ -348,7 +350,7 @@ trait DumperFormatters
         return self::string($string, $depth, PATH_SEPARATOR) . ' ' . self::info("// $info");
     }
 
-    public static function dumpPath(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringPath(string $string, string $info, string $key, int $depth): ?string
     {
         if (preg_match('~file|path~', $key)
             || preg_match('~^[a-z]:[/\\\\]~i', $string)
@@ -364,7 +366,7 @@ trait DumperFormatters
         return null;
     }
 
-    public static function dumpUuid(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringUuid(string $string, string $info, string $key, int $depth): ?string
     {
         static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{12})}?~';
 
@@ -379,7 +381,7 @@ trait DumperFormatters
         return null;
     }
 
-    public static function dumpColor(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringColor(string $string, string $info, string $key, int $depth): ?string
     {
         if (!Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
             return null;
@@ -388,7 +390,7 @@ trait DumperFormatters
         return self::string($string, $depth) . ' ' . self::info("// " . Ansi::rgb('     ', null, $string));
     }
 
-    public static function dumpCallableString(string $string, string $info, string $key, int $depth): ?string
+    public static function dumpStringCallable(string $string, string $info, string $key, int $depth): ?string
     {
         if (!is_callable($string)) {
             return null;

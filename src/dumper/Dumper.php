@@ -258,26 +258,26 @@ class Dumper
 
     /** @var array<callable> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
-        '~filemode|permissions~i' => [self::class, 'dumpPermissions'],
-        '~time|\\Wts~i' => [self::class, 'dumpTimestamp'],
-        '~size|bytes~i' => [self::class, 'dumpSize'],
-        '~flags|options|headeropt|settings~i' => [self::class, 'dumpFlags'],
-        [self::class, 'dumpPowersOfTwo'],
+        '~filemode|permissions~i' => [self::class, 'dumpIntPermissions'],
+        '~time|\\Wts~i' => [self::class, 'dumpIntTime'],
+        '~size|bytes|memory~i' => [self::class, 'dumpIntSize'],
+        '~flags|options|headeropt|settings~i' => [self::class, 'dumpIntFlags'],
+        [self::class, 'dumpIntPowersOfTwo'],
     ];
 
     /** @var array<callable> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
-        '~time~i' => [self::class, 'dumpFloatTimestamp'],
+        '~time~i' => [self::class, 'dumpFloatTime'],
     ];
 
     /** @var array<callable> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
-        [self::class, 'dumpHiddenString'], // must be first!
-        '/path(?!ext)/i' => [self::class, 'dumpPathList'],
-        [self::class, 'dumpPath'],
-        [self::class, 'dumpUuid'],
-        [self::class, 'dumpColor'],
-        [self::class, 'dumpCallableString'],
+        [self::class, 'dumpStringHidden'], // must be first!
+        '/path(?!ext)/i' => [self::class, 'dumpStringPathList'],
+        [self::class, 'dumpStringPath'],
+        [self::class, 'dumpStringUuid'],
+        [self::class, 'dumpStringColor'],
+        [self::class, 'dumpStringCallable'],
     ];
 
     /** @var array<string, callable> - user formatters for resources */
