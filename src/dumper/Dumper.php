@@ -117,7 +117,10 @@ class Dumper
     /** @var string[] - list of fields that are hidden from dumps */
     public static $hiddenFields = [];
 
-    // string settings -------------------------------------------------------------------------------------------------
+    // scalars settings ------------------------------------------------------------------------------------------------
+
+    /** @var bool|null - render long integers and floats with "_" dividing digits into groups of 3, null for auto on PHP >= 7.4 */
+    public static $numbersWithUnderscore = false;
 
     /** @var int - max length of dumped strings */
     public static $maxLength = 10000;
@@ -536,8 +539,6 @@ class Dumper
 
     public static function dumpFloat(float $float, string $key = ''): string
     {
-        $decimal = (float) (int) $float === $float ? '.0' : '';
-
         if (self::$showInfo) {
             foreach (self::$floatFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
@@ -549,7 +550,7 @@ class Dumper
             }
         }
 
-        return self::float($float . $decimal);
+        return self::float((string) $float);
     }
 
     public static function dumpString(string $string, int $depth = 0, string $key = ''): string

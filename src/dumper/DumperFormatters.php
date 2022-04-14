@@ -61,14 +61,17 @@ use function spl_object_id;
 use function str_pad;
 use function str_repeat;
 use function str_replace;
+use function str_split;
 use function stream_context_get_params;
 use function stream_get_meta_data;
 use function strlen;
 use function strpos;
+use function strrev;
 use function strtolower;
 use function substr;
 use function trim;
 use const PATH_SEPARATOR;
+use const PHP_VERSION_ID;
 use const STR_PAD_LEFT;
 
 trait DumperFormatters
@@ -258,9 +261,9 @@ trait DumperFormatters
             $time = DateTime::createFromFormat('U.uP', $float . $decimal . 'Z');
             $time = $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s.uP');
 
-            return self::float($float . $decimal) . ' ' . self::info('// ' . $time);
+            return self::float((string) $float) . ' ' . self::info('// ' . $time);
         } elseif ($float <= 3600) {
-            return self::float($float . $decimal) . ' ' . self::info('// ' . Units::time($float));
+            return self::float((string) $float) . ' ' . self::info('// ' . Units::time($float));
         }
 
         return null;
@@ -436,11 +439,25 @@ trait DumperFormatters
 
     public static function int(string $value): string
     {
+        $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
+        if ($under) {
+            $value = strrev(implode('_', str_split(strrev($value), 3)));
+        }
+
         return Ansi::color($value, self::$colors['int']);
     }
 
     public static function float(string $value): string
     {
+        if (!Str::contains($value, '.')) {
+            $value .= '.0';
+        }
+        $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
+        if ($under) {
+            [$int, $decimal] = explode('.', $value);
+            $value = strrev(implode('_', str_split(strrev($int), 3))) . '.' . implode('_', str_split($decimal, 3));
+        }
+
         return Ansi::color($value, self::$colors['float']);
     }
 
