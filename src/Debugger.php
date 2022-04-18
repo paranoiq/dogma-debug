@@ -19,7 +19,6 @@ use function array_sum;
 use function connection_aborted;
 use function connection_status;
 use function count;
-use function debug_backtrace;
 use function dirname;
 use function end;
 use function error_get_last;
@@ -36,7 +35,6 @@ use function is_array;
 use function is_file;
 use function is_null;
 use function memory_get_peak_usage;
-use function memory_get_usage;
 use function microtime;
 use function number_format;
 use function ob_get_clean;
@@ -94,6 +92,9 @@ class Debugger
 
     /** @var int Max length of a dump message [bytes after all formatting] */
     public static $maxMessageLength = 20000;
+
+    /** @var int Amount of memory reserved for OOM shutdown */
+    public static $reserveMemory = 100000;
 
     /** @var callable[] Functions to call before starting the actual request */
     public static $beforeStart = [];
@@ -199,6 +200,9 @@ class Debugger
 
     /** @var bool */
     private static $shutdownDone = false;
+
+    /** @var string|false|null - reserved memory for case of OOM shutdown. false if already freed */
+    public static $reserved;
 
     /**
      * @param mixed $value
@@ -514,6 +518,10 @@ class Debugger
             }
 
             self::$initDone = true;
+
+            if (is_null(self::$reserved)) {
+                self::$reserved = str_repeat('!', self::$reserveMemory);
+            }
         }
     }
 
@@ -540,6 +548,7 @@ class Debugger
     {
         register_shutdown_function(static function (): void {
             if (!self::$shutdownDone) {
+                self::$reserved = false;
                 try {
                     foreach (self::$beforeShutdown as $callback) {
                         $callback();
@@ -565,6 +574,8 @@ class Debugger
 
         self::send(Packet::ERROR, $message);
     }
+
+    // header & footer -------------------------------------------------------------------------------------------------
 
     private static function createHeader(): string
     {

@@ -15,6 +15,7 @@ use function in_array;
 use function is_a;
 use function restore_exception_handler;
 use function set_exception_handler;
+use function str_repeat;
 
 /**
  * Catches and displays exceptions
@@ -52,6 +53,10 @@ class ExceptionHandler
     {
         set_exception_handler([self::class, 'handle']);
         self::$enabled = true;
+
+        if (Debugger::$reserved === null) {
+            Debugger::$reserved = str_repeat('!', Debugger::$reserveMemory);
+        }
     }
 
     public static function disable(): void
@@ -67,6 +72,7 @@ class ExceptionHandler
 
     public static function handle(Throwable $e): void
     {
+        Debugger::$reserved = false;
         Debugger::init();
 
         self::logFatal($e);

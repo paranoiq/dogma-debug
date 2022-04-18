@@ -12,8 +12,11 @@ namespace Dogma\Debug;
 use Throwable;
 use function error_reporting;
 use function ksort;
+use function ob_start;
+use function preg_match;
 use function restore_error_handler;
 use function set_error_handler;
+use function str_repeat;
 use function str_replace;
 use const E_ALL;
 use const E_COMPILE_ERROR;
@@ -39,6 +42,10 @@ class ErrorHandler
 {
 
     public const NAME = 'error';
+
+    // will log uncatchable errors like "Out of memory" or parse errors. these are not passed to error handler
+    // even with E_ALL, so we are using output buffer to read error messages from the PHP output
+    public const E_UNCATCHABLE_ERROR = 1 << 29;
 
     /** @var bool Prevent error from bubbling to other error handlers (including the native handler) */
     public static $catch = false;
@@ -96,8 +103,17 @@ class ErrorHandler
         self::$printLimit = $printLimit;
         self::$uniqueOnly = $uniqueOnly;
 
-        self::$previous = set_error_handler([self::class, 'handle'], $types);
+        self::$previous = set_error_handler([self::class, 'handleError'], $types);
+
+        if ($types & self::E_UNCATCHABLE_ERROR) {
+            ob_start([self::class, 'handleOutput'], 1);
+        }
+
         self::$enabled = true;
+
+        if (Debugger::$reserved === null) {
+            Debugger::$reserved = str_repeat('!', Debugger::$reserveMemory);
+        }
     }
 
     public static function disable(): void
@@ -110,7 +126,7 @@ class ErrorHandler
         return self::$enabled;
     }
 
-    public static function handle(
+    public static function handleError(
         int $type,
         string $message,
         ?string $file = null,
@@ -137,6 +153,31 @@ class ErrorHandler
             Debugger::send(Packet::ERROR, $e->getMessage(), $trace);
             return false;
         }
+    }
+
+    public static function handleOutput(string $output): bool
+    {
+        if (Str::contains($output, 'Fatal error:')) {
+            if (Str::contains($output, 'Allowed memory size of')) {
+                // ending buffering here only produces a notice, so no `ob_end_...()` here
+
+                // free reserved memory
+                Debugger::$reserved = false;
+
+                preg_match('~Allowed memory size of ([0-9]+) bytes exhausted \\(tried to allocate ([0-9]+) bytes\\)~', $output, $m);
+                $message = Ansi::white(' ' . self::typeDescription(self::E_UNCATCHABLE_ERROR) . ': ', Ansi::LRED) . ' ' . Ansi::lyellow($m[0]);
+
+                $callstack = Callstack::fromOutOfMemoryMessage($output);
+                $backtrace = Dumper::formatCallstack($callstack, 1000, null, 5, 1);
+
+                Debugger::send(Packet::ERROR, $message, $backtrace);
+                Debugger::setTermination('memory limit (' . Units::memory(Resources::memoryLimit()) . ')');
+            } else {
+                // todo: ???
+            }
+        }
+
+        return false;
     }
 
     private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): void
@@ -214,6 +255,7 @@ class ErrorHandler
     private static function typeDescription(int $type): string
     {
         static $types = [
+            self::E_UNCATCHABLE_ERROR => 'Fatal error',
             E_ERROR => 'Fatal Error',
             E_USER_ERROR => 'User Error',
             E_RECOVERABLE_ERROR => 'Recoverable Error',
