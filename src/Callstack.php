@@ -19,6 +19,7 @@ use function count;
 use function debug_backtrace;
 use function in_array;
 use function preg_match;
+use function preg_replace;
 use function str_replace;
 use const PHP_SAPI;
 
@@ -119,6 +120,11 @@ class Callstack
             } elseif ($function === null && $file === null) {
                 // on some internal functions that call back
                 continue;
+            }
+
+            if ($function !== null && Str::contains($function, '{closure:')) {
+                // too long and redundant
+                $function = preg_replace('~[^:{]+\\{closure:.*:([0-9]+)~', '{closure:\\1', $function);
             }
 
             // fill starting line of function for last frame

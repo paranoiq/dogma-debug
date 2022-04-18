@@ -201,7 +201,7 @@ Assert::same(
     '<^--- 26 in ><vendor/dogma/dogma/src/Enum/>EnumSetMixin.php<:><51> -- <Dogma><\><Enum><\>IntSet::checkValues<(> <???> <)> <1.57 s> <242 MB>
 <^--- 24 in ><sqlftw/vendor/dogma/dogma/src/Enum/>IntSet.php<:><57> -- <SqlFtw><\><Parser><\>TokenType::__construct<(> <???> <)> <1.57 s> <242 MB>
 <^--- 23 in ><sqlftw/vendor/dogma/dogma/src/Enum/>IntSet.php<:><67> -- <Dogma><\><Enum><\>IntSet::get<(> <???> <)> <1.57 s> <242 MB>
-<^--- 22 in ><sqlftw/sources/Parser/exceptions/>UnexpectedTokenException.php<:><31> -- <SqlFtw><\><Parser><\>UnexpectedTokenException::<SqlFtw><\><Parser><\><{closure:C:><\><http><\><sqlftw><\><sqlftw><\><sources><\><Parser><\><exceptions><\>UnexpectedTokenException.php:30-32}<(> <???> <)> <1.57 s> <242 MB>
+<^--- 22 in ><sqlftw/sources/Parser/exceptions/>UnexpectedTokenException.php<:><31> -- <SqlFtw><\><Parser><\>UnexpectedTokenException::{closure:30-32}<(> <???> <)> <1.57 s> <242 MB>
 <^--- 21 in ><sqlftw/vendor/dogma/dogma/src/common/lists/>Arr.php<:><1143> -- array_map<(> <???> <)> <1.57 s> <242 MB>
 <^--- 20 in ><sqlftw/vendor/dogma/dogma/src/common/lists/>Arr.php<:><1143> -- <Dogma><\>Arr::map<(> <???> <)> <1.57 s> <242 MB>
 <^--- 19 in ><sqlftw/sources/Parser/exceptions/>UnexpectedTokenException.php<:><32> -- <SqlFtw><\><Parser><\>UnexpectedTokenException::__construct<(> <???> <)> <1.57 s> <242 MB>
