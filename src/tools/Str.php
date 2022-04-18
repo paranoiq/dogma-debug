@@ -35,6 +35,11 @@ use const PREG_OFFSET_CAPTURE;
 class Str
 {
 
+    public static function normalizeLineEndings(string $string): string
+    {
+        return str_replace(["\r\n", "\r"], ["\n", "\n"], $string);
+    }
+
     public static function length(string $string, string $encoding = 'utf-8'): int
     {
         if (!preg_match('~~u', $string)) {

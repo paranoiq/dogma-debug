@@ -153,7 +153,7 @@ class ResourcesHandler
         }
 
         if (Resources::memoryRemainingRatio() < 0.1) { // 90% used
-            Debugger::setTermination('memory limit (' . Units::size(Resources::memoryLimit()) . ')');
+            Debugger::setTermination('memory limit (' . Units::memory(Resources::memoryLimit()) . ')');
         }
     }
 
@@ -173,7 +173,7 @@ class ResourcesHandler
         self::$lastReportTime = $now;
 
         $time = Units::time($resources->time - Debugger::getStart());
-        $memory = Units::size($resources->phpMemory);
+        $memory = Units::memory($resources->phpMemory);
         Debugger::send(Packet::ERROR, Ansi::dyellow("Running $time, $memory"));
     }
 

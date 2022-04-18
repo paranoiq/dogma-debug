@@ -295,7 +295,7 @@ trait DumperFormatters
             return null;
         }
 
-        return self::int((string) $int) . ' ' . self::info('// ' . Units::size($int));
+        return self::int((string) $int) . ' ' . self::info('// ' . Units::memory($int));
     }
 
     public static function dumpIntFlags(int $int): ?string
@@ -656,6 +656,16 @@ trait DumperFormatters
         } else {
             return Ansi::color($name, Dumper::$colors['function']);
         }
+    }
+
+    public static function time(string $time): string
+    {
+        return Ansi::color($time, self::$colors['time']);
+    }
+
+    public static function memory(string $memory): string
+    {
+        return Ansi::color($memory, self::$colors['memory']);
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

@@ -42,7 +42,7 @@ use const PHP_SAPI;
  *   { file: index.php, function: null }, // inside no function here, thus function is null
  * ]
  *
- * @phpstan-type PhpBacktraceItem array{file?: string, line?: int, function?: string, class?: class-string, object?: object, type?: '->'|'::'|null, args?: array<int, mixed>}
+ * @phpstan-type PhpBacktraceItem array{file?: ?string, line?: int, function?: ?string, class?: ?class-string, object?: ?object, type?: '->'|'::'|null, args?: array<int, mixed>|false, number?: int, time?: float, memory?: int}
  */
 class Callstack
 {
@@ -103,22 +103,21 @@ class Callstack
         global $argv;
 
         $frames = [];
-        for ($i = 0; $i <= count($trace); $i++) {
+        for ($i = -1; $i <= count($trace); $i++) {
+            $j = $i + 1;
             $file = isset($trace[$i]['file']) ? str_replace('\\', '/', $trace[$i]['file']) : null;
             $line = $trace[$i]['line'] ?? null;
-            if ($file !== null && $file === str_replace('\\', '/', __FILE__)) {
-                // always skip self
-                continue;
-            }
-
-            $j = $i + 1;
             $function = $trace[$j]['function'] ?? null;
             $class = $trace[$j]['class'] ?? null;
             $object = $trace[$j]['object'] ?? null;
             $args = $trace[$j]['args'] ?? ($i === count($trace) && $function === null && PHP_SAPI === 'cli' ? $argv : []);
             $type = $trace[$j]['type'] ?? null;
 
-            if ($function === null && $file === null) {
+            if ($class === self::class) {
+                // always skip self
+                continue;
+            } elseif ($function === null && $file === null) {
+                // on some internal functions that call back
                 continue;
             }
 
@@ -139,12 +138,61 @@ class Callstack
                 }
             }
 
-            $frames[] = new CallstackFrame($file, $line, $class, $function, $type, $object, $args);
+            // from OOM message
+            $number = $trace[$i]['number'] ?? count($trace) - $i;
+            $time = $trace[$j]['time'] ?? null;
+            $memory = $trace[$j]['memory'] ?? null;
+            if ($number === 0 && $line === 0) {
+                continue;
+            }
+
+            $frames[] = new CallstackFrame($file, $line, $class, $function, $type, $object, $args, $number, $time, $memory);
         }
 
         $that = new self($frames);
 
         return $filter && $filters ? $that->filter($filters) : $that;
+    }
+
+    public static function fromOutOfMemoryMessage(string $message): self
+    {
+        $message = Str::normalizeLineEndings($message);
+
+        /** @var PhpBacktraceItem[] $frames */
+        $frames = [];
+        foreach (explode("\n", $message) as $line) {
+            if (!preg_match('~\s+([0-9]+\\.[0-9]+)\s+([0-9]+)\s+([0-9]+)\\.\s+([^(]+)\\(\\)\s+(.*)~', $line, $m)) {
+                continue;
+            }
+
+            [, $time, $memory, $number, $classFunction, $fileLine] = $m;
+
+            $type = Str::contains($classFunction, '->') ? '->' : (Str::contains($classFunction, '::') ? '::' : null);
+            $class = $function = null;
+            if ($type !== null) {
+                /** @var class-string $class */
+                [$class, $function] = explode($type, $classFunction);
+            } elseif ($classFunction !== '{main}') {
+                $function = $classFunction;
+            }
+
+            [$file, $line] = Str::splitByLast($fileLine, ':');
+
+            $frames[] = [
+                'file' => $file,
+                'line' => (int) $line,
+                'function' => (string) $function,
+                'class' => $class,
+                'object' => null,
+                'type' => $type,
+                'args' => false,
+                'number' => (int) ($number - 1),
+                'time' => (float) $time,
+                'memory' => (int) $memory,
+            ];
+        }
+
+        return self::fromBacktrace(array_reverse($frames));
     }
 
     /**

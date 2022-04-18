@@ -77,7 +77,7 @@ if (!function_exists('rd')) {
      */
     function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
     {
-        Debugger::backtrace($length, $argsDepth, $lines);
+        Debugger::callstack($length, $argsDepth, $lines);
     }
 
     /**

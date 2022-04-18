@@ -14,7 +14,7 @@ use function round;
 class Units
 {
 
-    public static function size(int $size, int $digits = 3): string
+    public static function memory(int $size, int $digits = 3): string
     {
         $size = (float) $size;
 

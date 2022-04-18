@@ -164,8 +164,12 @@ trait DumperTraces
     private static function formatFrame(CallstackFrame $frame, string $prevArgs): array
     {
         $skipArgs = ' ' . self::exceptions('...') . ' ';
+        $unknownArgs = ' ' . self::exceptions('???') . ' ';
+
         $currentArgs = '';
-        if ($frame->args !== [] && self::$maxDepth === 0) {
+        if ($frame->args === false) {
+            $currentArgs = $unknownArgs;
+        } elseif ($frame->args !== [] && self::$maxDepth === 0) {
             $currentArgs = $skipArgs;
         } elseif ($frame->args !== []) {
             $in = self::bracket('[');
@@ -174,9 +178,8 @@ trait DumperTraces
             $currentArgs = substr($currentArgs, strlen($in), strrpos($currentArgs, $out) - strlen($out));
         }
 
-        $args = $currentArgs === $prevArgs && $currentArgs !== $skipArgs && $currentArgs !== ''
-            ? ' ' . self::exceptions('^ same') . ' '
-            : $currentArgs;
+        $same = $currentArgs === $prevArgs && $currentArgs !== $skipArgs && $currentArgs !== $unknownArgs && $currentArgs !== '';
+        $args = $same ? ' ' . self::exceptions('^ same') . ' ' : $currentArgs;
 
         $classMethod = '';
         if (self::$traceDetails && $frame->function !== null) {
@@ -198,7 +201,17 @@ trait DumperTraces
             return [null, $currentArgs];
         }
 
-        return [self::info("^--- in ") . $fileLine . $separator . $classMethod, $currentArgs];
+        $timeMemory = '';
+        if ($frame->time || $frame->memory) {
+            $timeMemory = ' ';
+            $timeMemory .= $frame->time ? self::time(Units::time($frame->time)) : '';
+            $timeMemory .= $frame->time && $frame->memory ? ' ' : '';
+            $timeMemory .= $frame->memory ? self::memory(Units::memory($frame->memory)) : '';
+        }
+
+        $number = $frame->number !== null && self::$traceNumbered ? ' ' . $frame->number : '';
+
+        return [self::info("^---$number in ") . $fileLine . $separator . $classMethod . $timeMemory, $currentArgs];
     }
 
     /**

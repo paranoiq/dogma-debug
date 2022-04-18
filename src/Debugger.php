@@ -19,6 +19,7 @@ use function array_sum;
 use function connection_aborted;
 use function connection_status;
 use function count;
+use function debug_backtrace;
 use function dirname;
 use function end;
 use function error_get_last;
@@ -31,8 +32,11 @@ use function headers_list;
 use function http_response_code;
 use function ignore_user_abort;
 use function implode;
+use function is_array;
 use function is_file;
+use function is_null;
 use function memory_get_peak_usage;
+use function memory_get_usage;
 use function microtime;
 use function number_format;
 use function ob_get_clean;
@@ -46,6 +50,7 @@ use function socket_create;
 use function socket_read;
 use function socket_write;
 use function sprintf;
+use function str_repeat;
 use function str_replace;
 use function strlen;
 use function strtolower;
@@ -62,6 +67,9 @@ use const PHP_VERSION;
 use const SOCK_STREAM;
 use const SOL_TCP;
 
+/**
+ * @phpstan-import-type PhpBacktraceItem from Callstack
+ */
 class Debugger
 {
 
@@ -271,17 +279,27 @@ class Debugger
         return $label;
     }
 
-    public static function backtrace(
+    /**
+     * @param Callstack|PhpBacktraceItem[]|null $callstack
+     */
+    public static function callstack(
         ?int $length = null,
         ?int $argsDepth = null,
         ?int $codeLines = null,
-        ?int $codeDepth = null
+        ?int $codeDepth = null,
+        $callstack = null
     ): void
     {
         ob_start();
 
-        $callstack = Callstack::get(Dumper::$traceFilters);
-        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeDepth, $codeLines);
+        if ($callstack instanceof Callstack) {
+            // ok
+        } elseif (is_array($callstack)) {
+            $callstack = Callstack::fromBacktrace($callstack);
+        } else {
+            $callstack = Callstack::get(Dumper::$traceFilters);
+        }
+        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeLines, $codeDepth);
 
         self::send(Packet::TRACE, $trace);
 
@@ -664,10 +682,10 @@ class Debugger
             OutputHandler::terminateAllOutputBuffers();
         }
         $outputLength = OutputHandler::getTotalLength();
-        $output = $outputLength > 0 ? Units::size($outputLength) . ', ' : '';
+        $output = $outputLength > 0 ? Units::memory($outputLength) . ', ' : '';
         $start = self::$timers['total'];
         $time = Units::time(microtime(true) - $start);
-        $memory = Units::size(memory_get_peak_usage(false));
+        $memory = Units::memory(memory_get_peak_usage(false));
         $id = System::getId();
         $footer .= Ansi::white(" << #$id, {$output}$time, $memory ", self::$headerColor);
 
@@ -710,7 +728,7 @@ class Debugger
         if ($events > 0) {
             $queries = $stats['events']['total'];
             $time = Units::time($stats['time']['total']);
-            $data = Units::size((int) $stats['data']['total']);
+            $data = Units::memory((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
             $footer .= Ansi::white("| redis: $queries q, $time, $data, $rows rows ", self::$headerColor);
         }
@@ -721,7 +739,7 @@ class Debugger
         if ($events > 0) {
             $queries = $stats['events']['total'];
             $time = Units::time($stats['time']['total']);
-            $data = Units::size((int) $stats['data']['total']);
+            $data = Units::memory((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
             $footer .= Ansi::white("| amqp: $queries q, $time, $data, $rows rows ", self::$headerColor);
         }

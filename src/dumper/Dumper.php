@@ -191,6 +191,9 @@ class Dumper
     /** @var bool - show class, method, arguments in backtrace */
     public static $traceDetails = true;
 
+    /** @var bool - show depth of each callstack frame */
+    public static $traceNumbered = true;
+
     /** @var int - depth of dumped arguments of called function in backtrace */
     public static $traceArgsDepth = 0;
 
@@ -254,6 +257,7 @@ class Dumper
 
         'function' => Ansi::LGREEN, // intercept or stream wrapper function call
         'time' => Ansi::LBLUE, // operation time
+        'memory' => Ansi::DBLUE, // allocated memory
     ];
 
     /** @var bool - turn on/of user formatters for dumps */

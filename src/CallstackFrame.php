@@ -48,20 +48,29 @@ class CallstackFrame
     /** @var class-string|null */
     public $class;
 
+    /** @var string|null self::INSTANCE | self::STATIC */
+    public $type;
+
     /** @var object|null */
     public $object;
 
-    /** @var mixed[] */
+    /** @var mixed[]|false */
     public $args;
 
-    /** @var string|null self::INSTANCE | self::STATIC */
-    public $type;
+    /** @var int|null */
+    public $number;
+
+    /** @var float|null */
+    public $time;
+
+    /** @var int|null */
+    public $memory;
 
     /**
      * @param class-string|null $class
      * @param self::INSTANCE|self::STATIC|null $type
      * @param object|null $object
-     * @param mixed[] $args
+     * @param mixed[]|false $args (false means unknown)
      */
     public function __construct(
         ?string $file,
@@ -70,7 +79,10 @@ class CallstackFrame
         ?string $function = null,
         ?string $type = null,
         $object = null,
-        array $args = []
+        $args = false,
+        ?int $number = null,
+        ?float $time = null,
+        ?int $memory = null
     ) {
         if ($class !== null && $type === null) {
             throw new LogicException('When $class is set, then $type must also be set.');
@@ -86,6 +98,9 @@ class CallstackFrame
         $this->type = $type;
         $this->object = $object;
         $this->args = $args;
+        $this->number = $number;
+        $this->time = $time;
+        $this->memory = $memory;
     }
 
     /**
@@ -141,7 +156,7 @@ class CallstackFrame
      */
     public function getNamedArgs(): array
     {
-        if ($this->args === []) {
+        if ($this->args === [] || $this->args === false) {
             return [];
         }
 
@@ -268,20 +283,22 @@ class CallstackFrame
             return null;
         }
 
+        $lines = self::readLines($this->file);
         $start = $this->line - $before - 1;
-        if ($start >= 0) {
-            $actualLinesBefore = $before;
-        } else {
-            $actualLinesBefore = $before - $start;
+        if ($start <= 0) {
             $start = 0;
+        } elseif (count($lines) - $start < $after) {
+            $start = count($lines) - $before - $after - 1;
         }
 
-        $lines = [];
-        foreach (self::readLines($this->file, $start, $actualLinesBefore + $after + 1) as $i => $line) {
-            $lines[$start + $i + 1] = $line;
+        $lines = array_slice($lines, $start, $before + $after + 1);
+
+        $res = [];
+        foreach ($lines as $i => $line) {
+            $res[$start + $i + 1] = $line;
         }
 
-        return $lines;
+        return $res;
     }
 
     public function getFunctionCode(): ?string
