@@ -22,16 +22,18 @@ class Packet
     public const DUMP = 3;
     public const LABEL = 4;
     public const TIMER = 5;
-    public const ERROR = 6;
-    public const EXCEPTION = 7;
-    public const TRACE = 8;
-    public const INTERCEPT = 9;
-    public const INFO = 10;
-    public const STD_IO = 11;
-    public const STREAM_IO = 12;
-    public const SQL = 13;
-    public const REDIS = 14;
-    public const AMQP = 15;
+    public const MEMORY = 6;
+    public const CALLSTACK = 7;
+    public const ERROR = 8;
+    public const EXCEPTION = 9;
+    public const INTERCEPT = 10;
+    public const INFO = 11;
+
+    public const STD_IO = 12;
+    public const STREAM_IO = 13;
+    public const SQL = 14;
+    public const REDIS = 15;
+    public const AMQP = 16;
 
     public const OUTPUT_WIDTH = 100;
 

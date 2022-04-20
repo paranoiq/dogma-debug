@@ -100,13 +100,23 @@ if (!function_exists('rd')) {
     }
 
     /**
-     * Remote timer
+     * Remote timer. Shows time since previous event or from start of the request
      *
      * @param string|int|null $name
      */
     function rt($name = ''): void
     {
         Debugger::timer($name);
+    }
+
+    /**
+     * Remote memory report. Shows memory consumed/freed from previous event or total
+     *
+     * @param string|int|null $name
+     */
+    function rm($name = ''): void
+    {
+        Debugger::memory($name);
     }
 }
 

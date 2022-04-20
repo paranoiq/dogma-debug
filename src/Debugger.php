@@ -35,6 +35,7 @@ use function is_array;
 use function is_file;
 use function is_null;
 use function memory_get_peak_usage;
+use function memory_get_usage;
 use function microtime;
 use function number_format;
 use function ob_get_clean;
@@ -177,20 +178,26 @@ class Debugger
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    /** @var float[] */
+    /** @var array<string, float> - previous state of timers indexed by name [seconds from start] */
     private static $timers = [];
 
-    /** @var string|null exit(...)|signal (...)|memory limit (...)|time limit (...) */
+    /** @var array<string, int> - previous states of memory indexed by name [bytes] */
+    private static $memory = [];
+
+    /** @var string|null - textual description of termination reason - exit(...)|signal (...)|memory limit (...)|time limit (...) */
     private static $terminatedBy;
+
+    /** @var string - simplified name of the process/request */
+    private static $name;
+
+    /** @var string|false|null - reserved memory for case of OOM shutdown. false if already freed */
+    public static $reserved;
 
     /** @var resource|Socket */
     private static $socket;
 
     /** @var DebugServer */
     private static $server;
-
-    /** @var string */
-    private static $name;
 
     /** @var bool */
     private static $connected = false;
@@ -200,9 +207,6 @@ class Debugger
 
     /** @var bool */
     private static $shutdownDone = false;
-
-    /** @var string|false|null - reserved memory for case of OOM shutdown. false if already freed */
-    public static $reserved;
 
     /**
      * @param mixed $value
@@ -305,7 +309,7 @@ class Debugger
         }
         $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeLines, $codeDepth);
 
-        self::send(Packet::TRACE, $trace);
+        self::send(Packet::CALLSTACK, $trace);
 
         self::checkAccidentalOutput(__FUNCTION__);
     }
@@ -327,7 +331,7 @@ class Debugger
             $message = Ansi::white(" $function() ", Ansi::DRED);
         }
 
-        self::send(Packet::TRACE, $message);
+        self::send(Packet::CALLSTACK, $message);
 
         self::checkAccidentalOutput(__FUNCTION__);
     }
@@ -344,19 +348,57 @@ class Debugger
         if (isset(self::$timers[$name])) {
             $start = self::$timers[$name];
             self::$timers[$name] = microtime(true);
-        } elseif (isset(self::$timers[null])) {
-            $start = self::$timers[null];
-            self::$timers[null] = microtime(true);
+        } elseif (isset(self::$timers[''])) {
+            $start = self::$timers[''];
+            self::$timers[''] = microtime(true);
         } else {
-            self::$timers[null] = microtime(true);
+            self::$timers[''] = microtime(true);
             return;
         }
 
         $time = Units::time(microtime(true) - $start);
-        $name = $name ? ucfirst($name) : 'Timer';
+        $name = $name ? 'Timer' . $name : 'Timer';
         $message = Ansi::white(" $name: $time ", Ansi::DGREEN);
 
         self::send(Packet::TIMER, $message);
+
+        self::checkAccidentalOutput(__FUNCTION__);
+    }
+
+    /**
+     * @param string|int|null $name
+     */
+    public static function memory($name = ''): void
+    {
+        ob_start();
+
+        $name = (string) $name;
+
+        $last = $previous = end(self::$memory) ?: 0;
+        if (isset(self::$memory[$name])) {
+            $previous = self::$memory[$name];
+        }
+
+        $now = memory_get_usage();
+        unset(self::$memory[$name]); // because of end()
+        self::$memory[$name] = $now;
+
+        $memory = ' ' . Dumper::memory(Units::memory($now, 4));
+
+        if ($name !== '') {
+            $change = $now - $previous;
+            $pos = $change >= 0 ? '+' : '-';
+            $memory .= ", since last " . Ansi::white($name) . ": " . Dumper::memory($pos . Units::memory($change));
+        }
+
+        $change = $now - $last;
+        $pos = $change >= 0 ? '+' : '-';
+        $memory .= ', change: ' . Dumper::memory($pos . Units::memory($change));
+
+        $name = $name ? 'Memory ' . $name : 'Memory';
+        $message = Ansi::white(" $name: ", Ansi::DGREEN) . $memory;
+
+        self::send(Packet::MEMORY, $message);
 
         self::checkAccidentalOutput(__FUNCTION__);
     }
