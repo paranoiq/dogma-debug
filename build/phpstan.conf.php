@@ -34,11 +34,7 @@ if (PHP_VERSION_ID >= 80000) {
 }
 if (PHP_VERSION_ID >= 80100) {
     $paths[] = 'tests/php81';
-    $ignore[] = '~Access to an undefined property BackedEnum::\\$name~'; // PHPStan bug
     $ignore[] = '~Call to function is_int\\(\\) with string will always evaluate to false~';
-} elseif (PHP_VERSION_ID >= 80000) {
-    $ignore[] = '~Access to an undefined property UnitEnum::\\$name~'; // non-existing enums
-    $ignore[] = '~Access to an undefined property BackedEnum::\\$(name|value)~';
 }
 
 return [
