@@ -15,6 +15,7 @@ use Socket;
 use function clearstatcache;
 use function count;
 use function explode;
+use function extension_loaded;
 use function fclose;
 use function file_exists;
 use function filesize;
@@ -41,6 +42,9 @@ use const SOL_TCP;
 
 class DebugServer
 {
+
+    /** @var bool */
+    private $useSockets;
 
     /** @var int */
     private $port;
@@ -77,6 +81,7 @@ class DebugServer
         $this->port = $port;
         $this->address = $address;
         $this->file = str_replace('\\', '/', $file);
+        $this->useSockets = extension_loaded('sockets');
     }
 
     /**
@@ -84,44 +89,47 @@ class DebugServer
      */
     public function run(): void
     {
-        $this->connect();
+        System::switchTerminalToUtf8();
+
+        if ($this->useSockets) {
+            $this->socketsConnect();
+            echo "Listening on port " . Ansi::white($this->port) . " and watching " . Ansi::white($this->file) . "\n";
+        } else {
+            echo "Sockets are unavailable. Watching " . Ansi::white($this->file) . "\n";
+        }
 
         while (true) {
-            $newConnection = socket_accept($this->socket);
-            if ($newConnection) {
-                //socket_set_nonblock($newConnection);
-                $this->connections[] = $newConnection;
-            }
+            if ($this->useSockets) {
+                $newConnection = socket_accept($this->socket);
+                if ($newConnection) {
+                    //socket_set_nonblock($newConnection);
+                    $this->connections[] = $newConnection;
+                }
 
-            foreach ($this->connections as $i => $connection) {
-                $content = @socket_read($connection, 1000000);
-                if ($content === false) {
-                    if (socket_last_error() === 10035) { // Win: WSAEWOULDBLOCK
+                foreach ($this->connections as $i => $connection) {
+                    $content = @socket_read($connection, 1000000);
+                    if ($content === false) {
+                        if (socket_last_error() === 10035) { // Win: WSAEWOULDBLOCK
+                            continue;
+                        }
+                        // closed
+                        echo "\n" . Ansi::white(" << #{$this->ids[$i]} disconnected ", Ansi::DYELLOW);
+                        socket_close($connection);
+                        unset($this->connections[$i]);
+                        unset($this->ids[$i]);
+                        continue;
+                    } elseif ($content === '') {
+                        // nothing to read
                         continue;
                     }
-                    // closed
-                    echo "\n" . Ansi::white(" << #{$this->ids[$i]} disconnected ", Ansi::DYELLOW);
-                    socket_close($connection);
-                    unset($this->connections[$i]);
-                    unset($this->ids[$i]);
-                    continue;
-                } elseif ($content === '') {
-                    // nothing to read
-                    continue;
-                }
 
-                $outro = $this->processRequests($content, $i);
-                if ($outro) {
-                    socket_close($connection);
-                    unset($this->connections[$i]);
+                    $outro = $this->processRequests($content, $i);
+                    if ($outro) {
+                        socket_close($connection);
+                        unset($this->connections[$i]);
+                    }
                 }
             }
-            /*$content = stream_socket_recvfrom($this->sock, 1, 0, $peer);
-            if ($content) {
-                $this->processRequest($content, $peer);
-            }*/
-
-            usleep(1000000);
 
             clearstatcache();
             if (file_exists($this->file)) {
@@ -149,6 +157,8 @@ class DebugServer
                     fclose($file);
                 }
             }
+
+            usleep(1000000);
         }
     }
 
@@ -237,10 +247,9 @@ class DebugServer
         $this->lastRequest = $packet;
     }
 
-    private function connect(): void
+    private function socketsConnect(): void
     {
         $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        //$sock = stream_socket_server("tcp://$this->address:$this->port");
         if ($sock === false) {
             echo Ansi::lred("Could not create socket.\n");
             exit(1);
@@ -258,11 +267,6 @@ class DebugServer
             echo Ansi::lred("Could not set socket to non-blocking.\n");
             exit(1);
         }
-        //stream_set_blocking($this->sock, false);
-
-        System::switchTerminalToUtf8();
-
-        echo "Listening on port " . Ansi::white($this->port) . " and watching " . Ansi::white($this->file) . "\n";
     }
 
 }
