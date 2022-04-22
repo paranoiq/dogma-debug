@@ -572,12 +572,11 @@ class Dumper
                         $item .= $coma;
                     }
 
+                    $items[] = $item;
                     if ($over >= 0 && strlen($item) > self::$shortArrayMaxLength) {
                         // stop speculative descent on too long item
                         break;
                     }
-
-                    $items[] = $item;
                 }
             } finally {
                 unset($array[$marker]);
