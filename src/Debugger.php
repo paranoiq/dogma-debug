@@ -56,7 +56,6 @@ use function strtolower;
 use function substr;
 use function touch;
 use function trim;
-use function ucfirst;
 use function unserialize;
 use const AF_INET;
 use const CONNECTION_ABORTED;

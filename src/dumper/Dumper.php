@@ -11,39 +11,8 @@ namespace Dogma\Debug;
 
 use BackedEnum;
 use Closure;
-use Consistence\Enum\Enum;
-use Consistence\Enum\MultiEnum;
 use DateTimeInterface;
 use DateTimeZone;
-use Dogma\Dom\Element;
-use Dogma\Dom\NodeList;
-use Dogma\Enum\IntEnum;
-use Dogma\Enum\IntSet;
-use Dogma\Enum\StringEnum;
-use Dogma\Enum\StringSet;
-use Dogma\Math\Interval\IntervalSet;
-use Dogma\Math\Interval\ModuloIntervalSet;
-use Dogma\Pokeable;
-use Dogma\Time\Date;
-use Dogma\Time\Interval\DateInterval;
-use Dogma\Time\Interval\DateTimeInterval;
-use Dogma\Time\Interval\NightInterval;
-use Dogma\Time\Interval\TimeInterval;
-use Dogma\Time\IntervalData\DateIntervalData;
-use Dogma\Time\IntervalData\DateIntervalDataSet;
-use Dogma\Time\IntervalData\NightIntervalData;
-use Dogma\Time\IntervalData\NightIntervalDataSet;
-use Dogma\Time\Time;
-use DOMAttr;
-use DOMCdataSection;
-use DOMComment;
-use DOMDocument;
-use DOMDocumentFragment;
-use DOMDocumentType;
-use DOMElement;
-use DOMEntity;
-use DOMNodeList;
-use DOMText;
 use InvalidArgumentException;
 use LogicException;
 use mysqli;
@@ -96,9 +65,6 @@ class Dumper
 {
     use DumperTraces;
     use DumperFormatters;
-    use DumperFormattersConsistence;
-    use DumperFormattersDogma;
-    use DumperFormattersDom;
 
     public const ESCAPING_NONE = 0;
     public const ESCAPING_PHP = 1;
@@ -294,7 +260,7 @@ class Dumper
     ];
 
     /** @var array<class-string, callable> - user formatters for dumping objects and resources */
-    public static $objectFormatters = [ // @phpstan-ignore-line
+    public static $objectFormatters = [
         // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
         UnitEnum::class => [self::class, 'dumpUnitEnum'],
@@ -303,45 +269,6 @@ class Dumper
 
         // Debug
         Callstack::class => [self::class, 'dumpCallstack'],
-
-        // Dogma
-        Date::class => [self::class, 'dumpDate'],
-        Time::class => [self::class, 'dumpTime'],
-
-        DateTimeInterval::class => [self::class, 'dumpDateTimeInterval'],
-        TimeInterval::class => [self::class, 'dumpTimeInterval'],
-        DateInterval::class => [self::class, 'dumpDateOrNightInterval'],
-        NightInterval::class => [self::class, 'dumpDateOrNightInterval'],
-        DateIntervalData::class => [self::class, 'dumpDateOrNightIntervalData'],
-        NightIntervalData::class => [self::class, 'dumpDateOrNightIntervalData'],
-
-        IntervalSet::class => [self::class, 'dumpIntervalSet'],
-        ModuloIntervalSet::class => [self::class, 'dumpIntervalSet'],
-        DateIntervalDataSet::class => [self::class, 'dumpIntervalSet'],
-        NightIntervalDataSet::class => [self::class, 'dumpIntervalSet'],
-
-        IntEnum::class => [self::class, 'dumpIntEnum'],
-        StringEnum::class => [self::class, 'dumpStringEnum'],
-        IntSet::class => [self::class, 'dumpIntSet'],
-        StringSet::class => [self::class, 'dumpStringSet'],
-
-        // Consistence
-        MultiEnum::class => [self::class, 'dumpConsistenceMultiEnum'], // must precede Enum
-        Enum::class => [self::class, 'dumpConsistenceEnum'],
-
-        // Dom & Dogma\Dom
-        DOMDocument::class => [self::class, 'dumpDomDocument'],
-        DOMDocumentFragment::class => [self::class, 'dumpDomDocumentFragment'],
-        DOMDocumentType::class => [self::class, 'dumpDomDocumentType'],
-        DOMEntity::class => [self::class, 'dumpDomEntity'],
-        DOMElement::class => [self::class, 'dumpDomElement'],
-        DOMNodeList::class => [self::class, 'dumpDomNodeList'],
-        DOMCdataSection::class => [self::class, 'dumpDomCdataSection'],
-        DOMComment::class => [self::class, 'dumpDomComment'],
-        DOMText::class => [self::class, 'dumpDomText'],
-        DOMAttr::class => [self::class, 'dumpDomAttr'],
-        Element::class => [self::class, 'dumpDomElement'],
-        NodeList::class => [self::class, 'dumpDomNodeList'],
     ];
 
     /** @var array<class-string|int, callable> - user formatters for dumping objects and resources in single-line mode */
@@ -706,10 +633,6 @@ class Dumper
         $short = spl_object_hash($object);
         $recursion = isset(self::$objects[$short]);
         $class = get_class($object);
-
-        if (!$recursion && $object instanceof Pokeable) {
-            $object->poke();
-        }
 
         $info = '';
         if (self::$showInfo) {

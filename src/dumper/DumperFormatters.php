@@ -69,6 +69,7 @@ use function strlen;
 use function strpos;
 use function strrev;
 use function strtolower;
+use function strtoupper;
 use function substr;
 use function trim;
 use const PATH_SEPARATOR;
@@ -450,7 +451,8 @@ trait DumperFormatters
 
     public static function float(string $value): string
     {
-        if (!Str::contains($value, '.')) {
+        $value = strtoupper($value);
+        if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN' && !Str::contains($value, '.')) {
             $value .= '.0';
         }
         $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);

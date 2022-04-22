@@ -6,6 +6,7 @@ use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
 use Dogma\Debug\Assert;
+use Dogma\Debug\FormattersDogma;
 use Dogma\Time\Date;
 use Dogma\Time\DateTime as DogmaDateTime;
 use Dogma\Time\Interval\DateInterval;
@@ -20,7 +21,7 @@ require_once __DIR__ . '/../bootstrap.php';
 // todo remove
 Assert::$dump = true;
 
-
+FormattersDogma::register();
 ini_set('date.timezone', 'Europe/Prague');
 
 $timeZone = new DateTimeZone('Europe/Prague');

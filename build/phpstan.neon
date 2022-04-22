@@ -30,3 +30,4 @@ parameters:
         - '~While loop condition is always true~' # DebugServer.php
         - '~Call to function is_resource\(\) with array will always evaluate to false~' # resource is neither scalar or array!
         - '~Cannot use array destructuring on callable~' # fuck off! we need callable-array type
+        - '~Static method Dogma\\Debug\\FormattersConsistence::register\(\) is unused~'

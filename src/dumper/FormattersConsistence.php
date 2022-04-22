@@ -19,8 +19,14 @@ use function implode;
 use function in_array;
 use function is_string;
 
-trait DumperFormattersConsistence
+class FormattersConsistence
 {
+
+    private static function register(): void
+    {
+        Dumper::$objectFormatters[MultiEnum::class] = [self::class, 'dumpConsistenceMultiEnum']; // must precede Enum
+        Dumper::$objectFormatters[Enum::class] = [self::class, 'dumpConsistenceEnum'];
+    }
 
     private static function dumpConsistenceMultiEnum(MultiEnum $enum): string
     {
@@ -29,24 +35,24 @@ trait DumperFormattersConsistence
             return in_array($value, $values, true);
         }));
         $value = $enum->getValue();
-        $value = is_string($value) ? self::string($value) : self::int((string) $value);
+        $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
 
-        return self::name(get_class($enum)) . self::bracket('(')
-            . $value . ' ' . self::symbol('/') . ' '
-            . self::value2(implode('|', $keys))
-            . self::bracket(')');
+        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+            . $value . ' ' . Dumper::symbol('/') . ' '
+            . Dumper::value2(implode('|', $keys))
+            . Dumper::bracket(')');
     }
 
     private static function dumpConsistenceEnum(Enum $enum): string
     {
         $key = array_search($enum->getValue(), $enum::getAvailableValues(), true);
         $value = $enum->getValue();
-        $value = is_string($value) ? self::string($value) : self::int((string) $value);
+        $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
 
-        return self::name(get_class($enum)) . self::bracket('(')
-            . $value . ' ' . self::symbol('/') . ' '
-            . self::value2((string) $key)
-            . self::bracket(')');
+        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+            . $value . ' ' . Dumper::symbol('/') . ' '
+            . Dumper::value2((string) $key)
+            . Dumper::bracket(')');
     }
 
 }
