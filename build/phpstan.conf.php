@@ -34,7 +34,6 @@ if (PHP_VERSION_ID >= 80000) {
 }
 if (PHP_VERSION_ID >= 80100) {
     $paths[] = 'tests/php81';
-    $ignore[] = '~Call to function is_int\\(\\) with string will always evaluate to false~';
 }
 
 return [

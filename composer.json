@@ -99,5 +99,11 @@
         "lint:run": "Run PHPLint",
         "lint:all": "Run PHPLint on all supported PHP versions (7.1 - 8.1)",
         "spell:run": "Run spell-checker"
+    },
+    "config": {
+        "allow-plugins": {
+            "sllh/composer-versions-check": false,
+            "dealerdirect/phpcodesniffer-composer-installer": false
+        }
     }
 }

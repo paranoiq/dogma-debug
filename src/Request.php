@@ -196,19 +196,23 @@ class Request
     public static function autodetectApps(): void
     {
         if (self::commandMatches('~dogma-debug/tests/.*\.phpt~')) {
-            self::$application = 'self-tests';
+            self::$application = 'self-test';
         } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~')) {
             self::$application = 'phpstan';
+        } elseif (self::commandMatches('~/nette/tester/src/tester~')) {
+            self::$application = 'nette-tester';
+        } elseif (self::commandMatches('~nette/tester/src/Runner/info.php~')) {
+            self::$application = 'nette-tester';
         } elseif (self::commandMatches('~tests/.*\.phpt~')) {
-            self::$application = 'nette-tests';
+            self::$application = 'nette-test';
         } elseif (self::commandMatchesAny(['~composer[^/]*.phar~', '~update --dry-run~', '~validate --no-check-publish~', '~show --format=json -a --name-only~'])) {
             self::$application = 'composer';
         } elseif (self::commandMatches('~composer-require-checker~')) {
             self::$application = 'require-checker';
         } elseif (self::commandMatches('~/squizlabs/php_codesniffer/bin/phpcs~')) {
             self::$application = 'phpcs';
-        } elseif (self::commandMatches('~/php-parallel-lint/parallel-lint~')) {
-            self::$application = 'phplint';
+        } elseif (self::commandMatches('~/php-parallel-lint/php-parallel-lint/parallel-lint~')) {
+            self::$application = 'parallel-lint';
         } elseif (self::commandMatches('~/codeception/codeception/codecept~')) {
             self::$application = 'codeception';
         } elseif (self::urlMatches('~/adminer/adminer~')) {
