@@ -560,9 +560,10 @@ class Dumper
                     if ($k === $marker) {
                         continue;
                     }
-                    $item = $isList && !self::$alwaysShowArrayKeys
-                        ? self::dumpValue($value, $depth + 1)
-                        : self::key($k) . ' ' . self::symbol('=>') . ' ' . self::dumpValue($value, $depth + 1, $k);
+                    $dumpedValue = self::dumpValue($value, $depth + 1, $k);
+                    $item = !$isList || self::$alwaysShowArrayKeys
+                        ? self::key($k) . ' ' . self::symbol('=>') . ' ' . $dumpedValue
+                        : $dumpedValue;
 
                     $pos = strrpos($item, $infoPrefix);
                     if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
@@ -629,8 +630,9 @@ class Dumper
      */
     public static function dumpObject($object, int $depth = 0): string
     {
-        $short = spl_object_hash($object);
-        $recursion = isset(self::$objects[$short]);
+        $hash = spl_object_hash($object);
+        $recursion = isset(self::$objects[$hash]);
+        self::$objects[$hash] = true;
         $class = get_class($object);
 
         $info = '';
