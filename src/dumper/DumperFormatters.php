@@ -844,11 +844,23 @@ trait DumperFormatters
         if (!self::$escapeWhiteSpace) {
             unset($translations["\n"], $translations["\r"], $translations["\t"]);
         }
+        $translationsWithoutQuote = $translations;
+        unset($translationsWithoutQuote['"']);
+        $apos = false;
+        if ($escaping === self::ESCAPING_PHP || $escaping === self::ESCAPING_JS) {
+            if (str_replace(array_keys($translationsWithoutQuote), '', $string) === $string
+                && str_replace('"', '', $string) !== $string
+                && str_replace("'", '', $string) === $string
+            ) {
+                $apos = true;
+                $translations = $translationsWithoutQuote;
+            }
+        }
         $pattern = Str::createCharPattern(array_keys($translations));
 
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
-            return self::stringChunk($string, $escaping, $pattern, $translations, false, $ellipsis);
+            return self::stringChunk($string, $escaping, $pattern, $translations, false, $ellipsis, $apos ? "'" : '"');
         }
 
         // chunked
@@ -883,11 +895,10 @@ trait DumperFormatters
         string $pattern,
         array $translations,
         bool $binary,
-        string $ellipsis = ''
+        string $ellipsis = '',
+        string $quote = '"'
     ): string
     {
-        $quote = '"';
-
         if ($escaping === self::ESCAPING_NONE) {
             $formatted = Ansi::color($quote . $string . $ellipsis . $quote, self::$colors['string']);
         } elseif ($escaping === self::ESCAPING_CP437) {
