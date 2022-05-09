@@ -129,6 +129,44 @@ trait DumperFormatters
         '"' => '\"',
     ];
 
+    /** @var string[] */
+    private static $asciiEscapes = [
+        "\x00" => '⎕', // NUL
+        "\x01" => '⌈', // SOH
+        "\x02" => '⊥', // STX
+        "\x03" => '⌋', // ETX
+        "\x04" => '⌁', // EOT
+        "\x05" => '⊠', // ENQ
+        "\x06" => '✓', // ACK
+        "\x07" => '⍾', // BEL
+        "\x08" => '⤺', // BS
+        "\x09" => '⪫', // HT
+        "\x0a" => '≡', // LF
+        "\x0b" => '⩛', // VT
+        "\x0c" => '↡', // FF
+        "\x0d" => '⪪', // CR
+        "\x0e" => '⊗', // SO
+        "\x0f" => '⊙', // SI
+        "\x10" => '⊟', // DLE
+        "\x11" => '◷', // DC1
+        "\x12" => '◶', // DC2
+        "\x13" => '◵', // DC3
+        "\x14" => '◴', // DC4
+        "\x15" => '⍻', // NAK
+        "\x16" => '⎍', // SYN
+        "\x17" => '⊣', // ETB
+        "\x18" => '⧖', // CAN
+        "\x19" => '⍿', // EM
+        "\x1a" => '␦', // SUB
+        "\x1b" => '⊖', // ESC
+        "\x1c" => '◰', // FS
+        "\x1d" => '◱', // GS
+        "\x1e" => '◲', // RS
+        "\x1f" => '◳', // US
+        "\x20" => '△', // SP
+        "\x7f" => '▨', // DEL
+    ];
+
     // objects and resources -------------------------------------------------------------------------------------------
 
     /**
@@ -911,6 +949,9 @@ trait DumperFormatters
                 break;
             case self::ESCAPING_MYSQL:
                 $translations = self::$mysqlEscapes;
+                break;
+            case self::ESCAPING_ISO2047:
+                $translations = self::$asciiEscapes;
                 break;
         }
 

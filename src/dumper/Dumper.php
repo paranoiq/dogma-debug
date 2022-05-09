@@ -71,7 +71,8 @@ class Dumper
     public const ESCAPING_JS = 2;
     public const ESCAPING_JSON = 3;
     public const ESCAPING_MYSQL = 4;
-    public const ESCAPING_CP437 = 5;
+    public const ESCAPING_ISO2047 = 5; // https://en.wikipedia.org/wiki/ISO_2047
+    public const ESCAPING_CP437 = 6; // https://en.wikipedia.org/wiki/Code_page_437
 
     public const ORDER_ORIGINAL = 1;
     public const ORDER_ALPHABETIC = 2;
