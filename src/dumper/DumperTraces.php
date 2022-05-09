@@ -12,8 +12,6 @@ namespace Dogma\Debug;
 use function array_keys;
 use function array_slice;
 use function array_values;
-use function debug_backtrace;
-use function end;
 use function floor;
 use function implode;
 use function in_array;

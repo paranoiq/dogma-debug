@@ -18,7 +18,6 @@ use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
 use function abs;
-use function array_diff;
 use function array_keys;
 use function array_map;
 use function array_pop;
@@ -55,7 +54,6 @@ use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
 use function property_exists;
-use function range;
 use function rtrim;
 use function spl_object_hash;
 use function spl_object_id;
@@ -95,7 +93,7 @@ trait DumperFormatters
     /** @var string[] */
     private static $jsEscapes = [
         "\x00" => '\0',
-        "\x08" => '\b', // 08
+        "\x08" => '\b',
         "\f" => '\f', // 0c
         "\n" => '\n', // 0a
         "\r" => '\r', // 0d
@@ -107,7 +105,7 @@ trait DumperFormatters
 
     /** @var string[] */
     private static $jsonEscapes = [
-        "\x08" => '\b', // 08
+        "\x08" => '\b',
         "\f" => '\f', // 0c
         "\n" => '\n', // 0a
         "\r" => '\r', // 0d
@@ -118,8 +116,8 @@ trait DumperFormatters
 
     /** @var string[] */
     private static $mysqlEscapes = [
-        "\x00" => '\0', // 00
-        "\x08" => '\b', // 08
+        "\x00" => '\0',
+        "\x08" => '\b',
         "\n" => '\n', // 0a
         "\r" => '\r', // 0d
         "\t" => '\t', // 09
@@ -794,7 +792,7 @@ trait DumperFormatters
             $ellipsis = Ansi::between('...', self::$colors['exceptions'], self::$colors['string']);
         }
 
-        $binary = self::escapeAsBinary($string, array_keys(self::getTranslations(self::$stringsEscaping)));
+        $binary = Str::isBinary($string, array_keys(self::getTranslations(self::$stringsEscaping)));
         $split = false;
         if ($splitBy !== null) {
             $pos = strpos($string, $splitBy);
@@ -805,11 +803,10 @@ trait DumperFormatters
 
         $escaping = $binary ? self::$binaryEscaping : self::$stringsEscaping;
         $translations = self::getTranslations($escaping);
-        $pattern = self::createCharPattern(array_keys($translations));
-
         if (!self::$escapeWhiteSpace) {
             unset($translations["\n"], $translations["\r"], $translations["\t"]);
         }
+        $pattern = Str::createCharPattern(array_keys($translations));
 
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
@@ -894,33 +891,6 @@ trait DumperFormatters
         }
 
         return $formatted;
-    }
-
-    /**
-     * @param string[] $allowedChars
-     */
-    private static function escapeAsBinary(string $string, array $allowedChars = []): bool
-    {
-        if ($allowedChars !== []) {
-            $chars = array_diff(range("\x00", "\x1f"), $allowedChars);
-            $pattern = self::createCharPattern($chars);
-        } else {
-            $pattern = '~[\x00-\x1f]~';
-        }
-
-        return preg_match($pattern, $string) === 1;
-    }
-
-    /**
-     * @param string[] $chars
-     */
-    private static function createCharPattern(array $chars): string
-    {
-        $chars = array_map(static function (string $ch): string {
-            return '\x' . Str::charToHex($ch);
-        }, $chars);
-
-        return '~[' . implode('', $chars) . ']~';
     }
 
     /**

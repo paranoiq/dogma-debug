@@ -9,7 +9,9 @@
 
 namespace Dogma\Debug;
 
+use function array_diff;
 use function array_keys;
+use function array_map;
 use function array_pop;
 use function array_values;
 use function count;
@@ -24,6 +26,7 @@ use function mb_strlen;
 use function mb_substr;
 use function ord;
 use function preg_match;
+use function range;
 use function str_replace;
 use function strlen;
 use function strncmp;
@@ -139,6 +142,33 @@ class Str
         }
 
         return $matches[0][1];
+    }
+
+    /**
+     * @param string[] $allowedChars
+     */
+    public static function isBinary(string $string, array $allowedChars = ["\n", "\r", "\t"]): bool
+    {
+        if ($allowedChars !== []) {
+            $chars = array_diff(range("\x00", "\x1f"), $allowedChars);
+            $pattern = self::createCharPattern($chars);
+        } else {
+            $pattern = '~[\x00-\x1f]~';
+        }
+
+        return preg_match($pattern, $string) === 1;
+    }
+
+    /**
+     * @param string[] $chars
+     */
+    public static function createCharPattern(array $chars): string
+    {
+        $chars = array_map(static function (string $ch): string {
+            return '\x' . Str::charToHex($ch);
+        }, $chars);
+
+        return '~[' . implode('', $chars) . ']~';
     }
 
     /**

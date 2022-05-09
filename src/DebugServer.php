@@ -186,7 +186,7 @@ class DebugServer
                 continue;
             }
 
-            $this->ids[$i] = $packet->pid;
+            $this->ids[$i] = $packet->processId;
 
             $this->renderPacket($packet);
 
@@ -216,7 +216,7 @@ class DebugServer
 
         // process id
         if (count($this->connections) > 1 && $packet->type !== Packet::INTRO && $packet->type !== Packet::OUTRO) {
-            echo "\n" . Ansi::white(" #$packet->pid ", Ansi::DYELLOW) . ' ';
+            echo "\n" . Ansi::white(" #$packet->processId ", Ansi::DYELLOW) . ' ';
         } else {
             echo "\n";
         }

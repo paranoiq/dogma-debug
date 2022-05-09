@@ -37,6 +37,8 @@ class Packet
 
     public const OUTPUT_WIDTH = 100;
 
+    private const ALLOWED_CHARS = ["\n", "\r", "\t", "\e"];
+
     public const MARKER = "\x01\x07\x02\x09";
 
     /** @var int */
@@ -48,20 +50,23 @@ class Packet
     /** @var string|null */
     public $backtrace;
 
-    /** @var bool */
+    /** @var int */
     public $bell;
 
     /** @var int */
     public $counter = -1;
 
     /** @var float|null */
-    public $time = 0.0;
+    public $time;
 
     /** @var float|null */
     public $duration;
 
-    /** @var string|null */
-    public $pid = '0';
+    /** @var int|null */
+    public $processId;
+
+    /** @var int|null */
+    public $threadId;
 
     /**
      * @var int
@@ -81,6 +86,13 @@ class Packet
         if (Str::endsWith($payload, "\n")) {
             throw new Exception('Payload should not end with new line.');
         }
+        if (Str::isBinary($payload, self::ALLOWED_CHARS)) {
+            throw new Exception('Payload can not contain special characters.');
+        }
+        if ($backtrace !== null && Str::isBinary($backtrace, self::ALLOWED_CHARS)) {
+            echo Dumper::varDump($backtrace);
+            throw new Exception('Backtrace can not contain special characters.');
+        }
         if (strlen($payload) > Debugger::$maxMessageLength) {
             $payload = substr($payload, 0, Debugger::$maxMessageLength) . Dumper::exceptions(' ... ');
         }
@@ -94,8 +106,24 @@ class Packet
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);
             $this->counter = ++self::$count;
-            $this->pid = System::getId();
+            [$this->processId, $this->threadId] = System::getIds();
         }
+    }
+
+    /**
+     * Serialized packet structure is marked by ASCII control characters:
+     * - "Start of Heading" \x01
+     *   - int $type, int $bell, int $counter, float $time, float $duration, int $processId, int $threadId separated by "Unit Separator" \x1F
+     * - "Start of Text" \x02
+     *   - formatted main message
+     * - "End of Text" \x03
+     *   - formatted backtrace
+     * - "End of Transmission" \x04
+     */
+    public function serialize(): string
+    {
+        return "\x01$this->type\x1F$this->bell\x1F$this->counter\x1F$this->time\x1F$this->duration\x1F$this->processId\x1F$this->threadId"
+            . "\x02$this->payload\x03$this->backtrace\x04";
     }
 
 }

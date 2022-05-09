@@ -14,6 +14,7 @@ namespace Dogma\Debug;
 
 use DateTime;
 use Socket;
+use function array_filter;
 use function array_shift;
 use function array_sum;
 use function connection_aborted;
@@ -625,7 +626,7 @@ class Debugger
         /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
-        $id = System::getId();
+        $id = implode('/', array_filter(System::getIds()));
         $php = PHP_VERSION . ', ' . Request::$sapi;
         $header = "\n" . Ansi::white(" >> #$id $time | PHP $php ", self::$headerColor) . ' ';
         if (Request::$application && Request::$environment) {
@@ -738,7 +739,7 @@ class Debugger
         $start = self::$timers['total'];
         $time = Units::time(microtime(true) - $start);
         $memory = Units::memory(memory_get_peak_usage(false));
-        $id = System::getId();
+        $id = implode('/', array_filter(System::getIds()));
         $footer .= Ansi::white(" << #$id, {$output}$time, $memory ", self::$headerColor);
 
         // includes io

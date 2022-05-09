@@ -63,14 +63,12 @@ class System
         }
     }
 
-    public static function getId(): string
+    /**
+     * @return array{int, int|null}
+     */
+    public static function getIds(): array
     {
-        $id = (string) (int) getmypid();
-        if (function_exists('zend_thread_id')) {
-            $id .= '/' . zend_thread_id();
-        }
-
-        return $id;
+        return [(int) getmypid(), function_exists('zend_thread_id') ? zend_thread_id() : null];
     }
 
     public static function setProcessName(string $name): void
