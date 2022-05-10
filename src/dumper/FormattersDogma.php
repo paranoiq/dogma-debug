@@ -216,9 +216,14 @@ class FormattersDogma
 
     public static function dumpIntSet(IntSet $set): string
     {
+        $names = implode('|', $set->getConstantNames());
+        if ($names === '') {
+            $names = 'empty';
+        }
+
         return Dumper::name(get_class($set)) . Dumper::bracket('(')
             . Dumper::int((string) $set->getValue()) . ' ' . Dumper::symbol('/') . ' '
-            . Dumper::value2(implode('|', $set->getConstantNames()))
+            . Dumper::value2($names)
             . Dumper::bracket(')');
     }
 
