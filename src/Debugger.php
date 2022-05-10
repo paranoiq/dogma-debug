@@ -178,8 +178,14 @@ class Debugger
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    /** @var array<string, float> - previous state of timers indexed by name [seconds from start] */
-    private static $timers = [];
+    /** @var array<string, float> - starts of timers indexed by name [timestamp] */
+    private static $timerStarts = [];
+
+    /** @var array<string, float> - previous state of timers indexed by name [timestamp] */
+    private static $timerPrevious = [];
+
+    /** @var array<string, int> - counts of timer events indexed by name */
+    private static $timerEvents = [];
 
     /** @var array<string, int> - previous states of memory indexed by name [bytes] */
     private static $memory = [];
@@ -345,19 +351,35 @@ class Debugger
 
         $name = (string) $name;
 
-        if (isset(self::$timers[$name])) {
-            $start = self::$timers[$name];
-            self::$timers[$name] = microtime(true);
-        } elseif (isset(self::$timers[''])) {
-            $start = self::$timers[''];
-            self::$timers[''] = microtime(true);
+        if (isset(self::$timerStarts[$name])) {
+            // next call
+            $previous = self::$timerPrevious[$name];
+            $time = microtime(true);
+            self::$timerPrevious[$name] = $time;
+            self::$timerEvents[$name]++;
+            $event = ' ' . self::$timerEvents[$name];
+        } elseif (isset(self::$timerStarts[''])) {
+            // referring to global timer
+            $previous = self::$timerPrevious[''];
+            $time = microtime(true);
+            self::$timerStarts[$name] = $time;
+            self::$timerPrevious[$name] = $time;
+            self::$timerEvents[$name]++;
+            $event = ' ' . self::$timerEvents[''];
         } else {
-            self::$timers[''] = microtime(true);
+            // first call ever
+            $time = microtime(true);
+            self::$timerStarts[''] = $time;
+            self::$timerPrevious[''] = $time;
+            self::$timerEvents[''] = 0;
+            self::$timerStarts[$name] = $time;
+            self::$timerPrevious[$name] = $time;
+            self::$timerEvents[$name] = 0;
             return;
         }
 
-        $time = Units::time(microtime(true) - $start);
-        $name = $name ? 'Timer' . $name : 'Timer';
+        $time = Units::time(microtime(true) - $previous);
+        $name = $name ? 'Timer' . $name . $event : 'Timer' . $event;
         $message = Ansi::white(" $name: $time ", Ansi::DGREEN);
 
         self::send(Packet::TIMER, $message);
@@ -495,12 +517,17 @@ class Debugger
 
     public static function getStart(): float
     {
-        return self::$timers['total'];
+        return self::$timerStarts[''];
     }
 
+    /**
+     * @internal
+     */
     public static function setStart(float $time): void
     {
-        self::$timers['total'] = $time;
+        self::$timerStarts[''] = $time;
+        self::$timerPrevious[''] = $time;
+        self::$timerEvents[''] = 0;
     }
 
     public static function setTermination(string $reason): void
@@ -624,7 +651,7 @@ class Debugger
         global $argv;
 
         /** @var DateTime $dt */
-        $dt = DateTime::createFromFormat('U.u', number_format(self::$timers['total'], 6, '.', ''));
+        $dt = DateTime::createFromFormat('U.u', number_format(self::$timerStarts[''], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
         $id = implode('/', array_filter(System::getIds()));
         $php = PHP_VERSION . ', ' . Request::$sapi;
@@ -736,7 +763,7 @@ class Debugger
         }
         $outputLength = OutputHandler::getTotalLength();
         $output = $outputLength > 0 ? Units::memory($outputLength) . ', ' : '';
-        $start = self::$timers['total'];
+        $start = self::$timerStarts[''];
         $time = Units::time(microtime(true) - $start);
         $memory = Units::memory(memory_get_peak_usage(false));
         $id = implode('/', array_filter(System::getIds()));
