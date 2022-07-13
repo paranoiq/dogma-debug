@@ -216,11 +216,11 @@ class Dumper
         'line' => Ansi::DGRAY, // :42
 
         'bracket' => Ansi::WHITE, // [ ] { } ( )
-        'symbol' => Ansi::LGRAY, // , ; :: => =
+        'symbol' => Ansi::LGRAY, // , ; :: : => =
         'indent' => Ansi::DGRAY, // |
         'info' => Ansi::DGRAY, // // 5 items
 
-        'exceptions' => Ansi::LMAGENTA, // RECURSION, *****, ... (max depth, max length, not traversed)
+        'exceptions' => Ansi::LMAGENTA, // RECURSION, SKIPPED, *****, ... (max depth, max length, not traversed)
 
         'function' => Ansi::LGREEN, // intercept or stream wrapper function call
         'time' => Ansi::LBLUE, // operation time
@@ -406,6 +406,10 @@ class Dumper
     {
         if ($depth === 0) {
             self::$objects = [];
+        }
+
+        if (in_array($key, self::$hiddenFields, true)) {
+            return self::exceptions('*****');
         }
 
         if ($value === null) {
@@ -676,6 +680,9 @@ class Dumper
                     }
                 }
             }
+
+            return self::name($class) . ' ' . self::bracket('{') . ' '
+                . self::exceptions('...') . ' ' . self::bracket('}') . $info;
         }
 
         if ($handlerResult !== '') {
@@ -933,6 +940,42 @@ class Dumper
         }
 
         ksort($items);
+
+        return "\n" . implode("\n", $items) . "\n";
+    }
+
+    /**
+     * @param mixed[] $variables
+     */
+    public static function dumpArguments(array $variables): string
+    {
+        if ($variables === []) {
+            return '';
+        }
+
+        $indent = self::indent(1);
+        $sep = self::symbol(':') . ' ';
+        $coma = self::symbol(',');
+        $infoPrefix = self::infoPrefix();
+
+        $n = 0;
+        $items = [];
+        foreach ($variables as $name => $value) {
+            $var = self::property($name);
+            $value = self::dumpValue($value, 1, $name);
+
+            $item = $indent . $var . $sep . $value;
+
+            $pos = strrpos($item, $infoPrefix);
+            if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
+                $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
+            } else {
+                $item .= $coma;
+            }
+
+            $items[] = $item;
+            $n++;
+        }
 
         return "\n" . implode("\n", $items) . "\n";
     }

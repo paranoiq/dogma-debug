@@ -167,11 +167,7 @@ class CallstackFrame
 
         $names = [];
         foreach ($reflection->getParameters() as $param) {
-            if ($param->isVariadic()) {
-                $names[] = '...$' . $param->getName();
-            } else {
-                $names[] = '$' . $param->getName();
-            }
+            $names[] = $param->getName();
         }
 
         // todo: how will this cope with PHP 'named arguments'?

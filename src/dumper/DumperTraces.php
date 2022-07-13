@@ -170,10 +170,7 @@ trait DumperTraces
         } elseif ($frame->args !== [] && self::$maxDepth === 0) {
             $currentArgs = $skipArgs;
         } elseif ($frame->args !== []) {
-            $in = self::bracket('[');
-            $out = self::bracket(']');
-            $currentArgs = self::dumpArray($frame->getNamedArgs());
-            $currentArgs = substr($currentArgs, strlen($in), strrpos($currentArgs, $out) - strlen($out));
+            $currentArgs = self::dumpArguments($frame->getNamedArgs());
         }
 
         $same = $currentArgs === $prevArgs && $currentArgs !== $skipArgs && $currentArgs !== $unknownArgs && $currentArgs !== '';

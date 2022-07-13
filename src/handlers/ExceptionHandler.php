@@ -35,7 +35,7 @@ class ExceptionHandler
     public static $traceCodeLines = 5;
 
     /** @var int */
-    public static $traceCodeDepth = 5;
+    public static $traceCodeDepth = 1;
 
     /** @var class-string[] */
     public static $logExceptions = [];
@@ -48,6 +48,18 @@ class ExceptionHandler
 
     /** @var bool */
     private static $enabled = false;
+
+    /**
+     * @param class-string[] $log
+     * @param class-string[] $notLog
+     */
+    public static function inspectThrownExceptions(array $log = [], array $notLog = []): void
+    {
+        self::$logExceptions = $log;
+        self::$notLogExceptions = $notLog;
+
+        Intercept::inspectCaughtExceptions(self::NAME, [self::class, 'log']);
+    }
 
     public static function enable(): void
     {
@@ -82,58 +94,33 @@ class ExceptionHandler
         exit(1);
     }
 
-    public static function logFatal(Throwable $e): void
+    public static function logFatal(Throwable $exception): void
     {
-        $message = Ansi::white(' Exception: ', Ansi::LRED) . ' '
-            . Dumper::name(get_class($e)) . ' ' . Ansi::lyellow($e->getMessage());
-
         // so io operations will work after PHP shutting down user handlers
         FileStreamWrapper::disable();
         PharStreamWrapper::disable();
         HttpStreamWrapper::disable();
         FtpStreamWrapper::disable();
 
-        try {
-            $callstack = Callstack::fromThrowable($e);
-            if (self::$filterTrace) {
-                $callstack = $callstack->filter(Dumper::$traceFilters);
-            }
-            $trace = Dumper::formatCallstack($callstack, 1000, 1, 5, 1);
-        } catch (Throwable $e) {
-            Debugger::dump($e);
+        $message = self::formatException($exception);
 
-            return;
-        }
-
-        Debugger::send(Packet::EXCEPTION, $message, $trace);
+        Debugger::send(Packet::EXCEPTION, $message);
     }
 
-    /**
-     * @param class-string[] $log
-     * @param class-string[] $notLog
-     */
-    public static function inspectThrownExceptions(array $log = [], array $notLog = []): void
-    {
-        self::$logExceptions = $log;
-        self::$notLogExceptions = $notLog;
-
-        Intercept::inspectCaughtExceptions(self::NAME, [self::class, 'log']);
-    }
-
-    public static function log(Throwable $e): void
+    public static function log(Throwable $exception): void
     {
         $log = true;
         if (self::$logExceptions !== []) {
             $log = false;
             foreach (self::$logExceptions as $exceptionClass) {
-                if (is_a($e, $exceptionClass)) {
+                if (is_a($exception, $exceptionClass)) {
                     $log = true;
                 }
             }
         }
         if (self::$notLogExceptions !== []) {
             foreach (self::$notLogExceptions as $exceptionClass) {
-                if (is_a($e, $exceptionClass)) {
+                if (is_a($exception, $exceptionClass)) {
                     $log = false;
                 }
             }
@@ -142,35 +129,51 @@ class ExceptionHandler
             return;
         }
 
-        $message = Ansi::white(' Exception: ', Ansi::LPURPLE) . ' '
-            . Dumper::name(get_class($e)) . ' ' . Ansi::lyellow($e->getMessage());
+        $message = self::formatException($exception);
 
-        try {
-            $properties = (array) $e;
-            foreach ($properties as $name => $value) {
-                if (in_array($name, ["\0Exception\0string", "\0Exception\0previous", "\0Exception\0trace", "\0*\0file", "\0*\0line", "\0*\0message", "xdebug_message"], true)) {
-                    unset($properties[$name]);
+        Debugger::send(Packet::EXCEPTION, $message);
+    }
+
+    private static function formatException(Throwable $exception): string
+    {
+        $first = true;
+        $message = '';
+
+        while ($exception !== null) {
+            $message .= $first
+                ? Ansi::white(' Exception: ', Ansi::LRED)
+                : "\n" . Ansi::white(' Previous: ', Ansi::LRED);
+            $message .= ' ' . Dumper::name(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
+
+            try {
+                $properties = (array) $exception;
+                foreach ($properties as $name => $value) {
+                    if (in_array($name, ["\0Exception\0string", "\0Exception\0previous", "\0Exception\0trace", "\0*\0file", "\0*\0line", "\0*\0message", "xdebug_message"], true)) {
+                        unset($properties[$name]);
+                    }
+                    if ($name === "\0*\0code" && $value === 0) {
+                        unset($properties[$name]);
+                    }
                 }
-                if ($name === "\0*\0code" && $value === 0) {
-                    unset($properties[$name]);
+                if ($properties !== []) {
+                    $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, 1, get_class($exception)) . "\n" . Dumper::bracket('}');
                 }
-            }
-            if ($properties !== []) {
-                $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, 1, get_class($e)) . "\n" . Dumper::bracket('}');
+
+                $callstack = Callstack::fromThrowable($exception);
+                if (self::$filterTrace) {
+                    $callstack = $callstack->filter(Dumper::$traceFilters);
+                }
+                $message .= "\n" . Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
+            } catch (Throwable $exception) {
+                Debugger::label('Exception formatting failed with:', null, 'r');
+                Debugger::varDump($exception);
             }
 
-            $callstack = Callstack::fromThrowable($e);
-            if (self::$filterTrace) {
-                $callstack = $callstack->filter(Dumper::$traceFilters);
-            }
-            $trace = Dumper::formatCallstack($callstack, 1000, 1, 5, 5);
-        } catch (Throwable $e) {
-            Debugger::dump($e);
-
-            return;
+            $first = false;
+            $exception = $exception->getPrevious();
         }
 
-        Debugger::send(Packet::EXCEPTION, $message, $trace);
+        return $message;
     }
 
 }
