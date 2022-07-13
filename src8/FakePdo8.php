@@ -104,6 +104,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function beginTransaction()
     {
         $result = false;
@@ -116,6 +117,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function commit()
     {
         $result = false;
@@ -128,6 +130,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function rollBack()
     {
         $result = false;
@@ -152,6 +155,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function setAttribute($attribute, $value)
     {
         $result = false;
@@ -164,6 +168,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function getAttribute($attribute)
     {
         $result = null;
@@ -176,6 +181,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function exec($statement)
     {
         $result = false;
@@ -188,6 +194,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function query($query, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, ...$fetch_mode_args)
     {
         $result = false;
@@ -200,6 +207,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         $result = false;
@@ -212,6 +220,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function errorCode()
     {
         $result = null;
@@ -224,6 +233,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function errorInfo()
     {
         $result = [];
@@ -236,6 +246,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public function quote($string, $type = PDO::PARAM_INT)
     {
         $result = false;
@@ -260,6 +271,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[\ReturnTypeWillChange]
     public static function getAvailableDrivers()
     {
         $result = [];

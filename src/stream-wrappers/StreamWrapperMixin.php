@@ -840,6 +840,8 @@ trait StreamWrapperMixin
         static $noRestore = ['fstat', 'feof', 'fread'];
 
         if (!in_array($function, $noRestore, true)) {
+            // todo: on 8.1 throws: Notice: stream_wrapper_restore(): file:// was never changed, nothing to restore
+            // when shutting down, because of some changes in shutdown sequence
             stream_wrapper_restore(self::PROTOCOL);
         }
 

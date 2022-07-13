@@ -146,7 +146,7 @@ class FilesystemInterceptor
             }
         }
 
-        if ($ignored || (self::$intercept & Intercept::SILENT)) {
+        if ($ignored || (self::$intercept & Intercept::SILENT) || self::$intercept === Intercept::NONE) {
             return;
         }
 
@@ -332,7 +332,7 @@ class FilesystemInterceptor
         [$protocol, $path, $ignored] = self::ignored(FileStreamWrapper::OPEN, $filename);
 
         $params = [$mode, $use_include_path, $context];
-        if ($ignored || self::$intercept === Intercept::SILENT || (self::$intercept & Intercept::LOG_CALLS)) {
+        if ($ignored || self::$intercept === Intercept::NONE || self::$intercept === Intercept::SILENT || (self::$intercept & Intercept::LOG_CALLS)) {
             $start = microtime(true);
             if ($context !== null) {
                 $result = fopen($filename, $mode, $use_include_path, $context);
@@ -373,7 +373,7 @@ class FilesystemInterceptor
         [$protocol, $path, $ignored] = self::ignored(FileStreamWrapper::OPEN, $address);
 
         $params = [&$error_code, &$error_message, $timeout, $flags, $context];
-        if ($ignored || self::$intercept === Intercept::SILENT || (self::$intercept & Intercept::LOG_CALLS)) {
+        if ($ignored || self::$intercept === Intercept::NONE || self::$intercept === Intercept::SILENT || (self::$intercept & Intercept::LOG_CALLS)) {
             $start = microtime(true);
             if ($context !== null) {
                 $result = stream_socket_client($address, ...$params);
