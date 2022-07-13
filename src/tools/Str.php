@@ -29,8 +29,6 @@ use function preg_match;
 use function range;
 use function str_replace;
 use function strlen;
-use function strncmp;
-use function strpos;
 use function strrpos;
 use function substr;
 use const PREG_OFFSET_CAPTURE;
@@ -73,21 +71,6 @@ class Str
         } else {
             return substr($string, 0, $length);
         }
-    }
-
-    public static function contains(string $string, string $find): bool
-    {
-        return strpos($string, $find) !== false;
-    }
-
-    public static function startsWith(string $string, string $find): bool
-    {
-        return strncmp($string, $find, strlen($find)) === 0;
-    }
-
-    public static function endsWith(string $string, string $find): bool
-    {
-        return $find === '' || substr($string, -strlen($find)) === $find;
     }
 
     /**

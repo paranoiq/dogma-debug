@@ -16,8 +16,10 @@ use function ob_start;
 use function preg_match;
 use function restore_error_handler;
 use function set_error_handler;
+use function str_contains;
 use function str_repeat;
 use function str_replace;
+use function str_starts_with;
 use const E_ALL;
 use const E_COMPILE_ERROR;
 use const E_COMPILE_WARNING;
@@ -157,8 +159,8 @@ class ErrorHandler
 
     public static function handleOutput(string $output): bool
     {
-        if (Str::contains($output, 'Fatal error:')) {
-            if (Str::contains($output, 'Allowed memory size of')) {
+        if (str_contains($output, 'Fatal error:')) {
+            if (str_contains($output, 'Allowed memory size of')) {
                 // ending buffering here only produces a notice, so no `ob_end_...()` here
 
                 // free reserved memory
@@ -183,7 +185,7 @@ class ErrorHandler
     private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): void
     {
         // todo: filter better (spams logs when $count/showMutedErrors is on and is useless)
-        if (Str::startsWith($message, 'stat(): stat failed for')) {
+        if (str_starts_with($message, 'stat(): stat failed for')) {
             return;
         }
 
@@ -206,14 +208,14 @@ class ErrorHandler
         // start match
         if ($places === []) {
             foreach (self::$ignore as $m => $p) {
-                if (Str::startsWith($typeMessage, $m)) {
+                if (str_starts_with($typeMessage, $m)) {
                     $places = $p;
                 }
             }
         }
         foreach ($places as $place) {
             // place match
-            if (Str::contains($fileLine, $place)) {
+            if (str_contains($fileLine, $place)) {
                 self::$ignoreCount++;
                 return;
             }

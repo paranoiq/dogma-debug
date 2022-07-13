@@ -50,6 +50,7 @@ if ($_dogma_debug_prepend !== str_replace('\\', '/', __FILE__)
 unset($_dogma_debug_prepend, $_dogma_debug_script);
 
 if (!class_exists(Debugger::class)) {
+    require_once __DIR__ . '/src/tools/polyfils.php';
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/Ascii.php';

@@ -51,8 +51,10 @@ use function socket_create;
 use function socket_read;
 use function socket_write;
 use function sprintf;
+use function str_ends_with;
 use function str_repeat;
 use function str_replace;
+use function str_starts_with;
 use function strlen;
 use function strtolower;
 use function substr;
@@ -740,7 +742,7 @@ class Debugger
             if (RequestHandler::$requestHeaders) {
                 $headers = [];
                 foreach ($_SERVER as $name => $value) {
-                    if (Str::startsWith($name, 'HTTP_')) {
+                    if (str_starts_with($name, 'HTTP_')) {
                         $headers[Http::normalizeHeaderName($name)] = $value;
                     }
                 }
@@ -872,7 +874,7 @@ class Debugger
             $message = Http::RESPONSE_MESSAGES[$status] ?? 'Unknown';
             $color = RequestHandler::$responseColors[$status] ?? Ansi::DYELLOW;
             foreach (RequestHandler::$responseColors as $code => $color) {
-                if (Str::startsWith((string) $status, (string) $code)) {
+                if (str_ends_with((string) $status, (string) $code)) {
                     break;
                 }
             }

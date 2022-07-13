@@ -15,6 +15,7 @@ use function explode;
 use function file_put_contents;
 use function function_exists;
 use function getmypid;
+use function str_contains;
 use function strtolower;
 use function trim;
 use function zend_thread_id;
@@ -32,7 +33,7 @@ class System
 
         $os = strtolower(PHP_OS);
 
-        return $win = (Str::contains($os, 'win') && !Str::contains($os, 'darwin'));
+        return $win = (str_contains($os, 'win') && !str_contains($os, 'darwin'));
     }
 
     public static function getTerminalWidth(): int

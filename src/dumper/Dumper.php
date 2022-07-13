@@ -50,6 +50,8 @@ use function preg_replace;
 use function preg_replace_callback;
 use function range;
 use function spl_object_hash;
+use function str_contains;
+use function str_ends_with;
 use function str_replace;
 use function strlen;
 use function strpos;
@@ -432,7 +434,7 @@ class Dumper
         } elseif (is_float($value)) {
             return self::dumpFloat($value, (string) $key);
         } elseif (is_string($value)) {
-            if ($depth === 0 && is_string($key) && Str::endsWith($key, '::class')) {
+            if ($depth === 0 && is_string($key) && str_ends_with($key, '::class')) {
                 return self::dumpClass($value, $depth);
             } else {
                 return self::dumpString($value, $depth, (string) $key);
@@ -687,7 +689,7 @@ class Dumper
 
         $skip = in_array($class, self::$doNotTraverse, true);
         if ($depth >= self::$maxDepth || $skip) {
-            if ($handlerResult !== '' && !Str::contains($handlerResult, "\n")) {
+            if ($handlerResult !== '' && !str_contains($handlerResult, "\n")) {
                 return $handlerResult;
             }
 
@@ -792,7 +794,7 @@ class Dumper
             $item = $indent . $access . ' ' . $name . $equal . $value;
 
             $pos = strrpos($item, $infoPrefix);
-            if ($pos !== false && Str::contains(substr($item, $pos), "\n")) {
+            if ($pos !== false && str_contains(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $semi . substr($item, $pos);
             } else {
                 $item .= $semi;
@@ -882,7 +884,7 @@ class Dumper
             }
             $params = implode(', ', $params);
 
-            $name = Str::contains($ref->getName(), '{closure}')
+            $name = str_contains($ref->getName(), '{closure}')
                 ? ''
                 : self::name($ref->getName());
 

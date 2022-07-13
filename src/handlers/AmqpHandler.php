@@ -22,6 +22,8 @@ use function is_numeric;
 use function is_string;
 use function json_decode;
 use function preg_match;
+use function str_ends_with;
+use function str_starts_with;
 use function strlen;
 use function substr;
 use function trim;
@@ -160,7 +162,7 @@ class AmqpHandler
         if ($return === false) {
             $response = Dumper::exceptions('ERROR');
         } else {
-            if ($return !== '' && !Str::endsWith($return, "\r\n")) {
+            if ($return !== '' && !str_ends_with($return, "\r\n")) {
                 self::$readBuffer .= $return;
                 return;
             } elseif (self::$readBuffer !== '') {
@@ -216,7 +218,7 @@ class AmqpHandler
     private static function formatArgument(string $message): string
     {
         $prefix = '';
-        if (Str::startsWith($message, 'BZ')) {
+        if (str_starts_with($message, 'BZ')) {
             $res = bzdecompress($message);
             if (is_string($res)) {
                 $message = $res;
@@ -246,7 +248,7 @@ class AmqpHandler
     {
         $rows = 1;
         $prefix = '';
-        if (Str::startsWith($message, 'BZ')) {
+        if (str_starts_with($message, 'BZ')) {
             $res = bzdecompress($message);
             if (is_string($res)) {
                 $message = $res;

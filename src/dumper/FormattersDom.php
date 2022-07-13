@@ -26,6 +26,7 @@ use function count;
 use function error_get_last;
 use function get_class;
 use function implode;
+use function str_contains;
 use function strrpos;
 use function substr;
 use function trim;
@@ -93,7 +94,7 @@ trait FormattersDom
         foreach ($fragment->childNodes as $node) {
             $node = Dumper::indent($depth + 1) . Dumper::dumpValue($node, $depth + 1);
             $pos = strrpos($node, Dumper::infoPrefix());
-            if ($pos !== false && Str::contains(substr($node, $pos), "\n")) {
+            if ($pos !== false && str_contains(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
             } else {
                 $node .= $coma;
@@ -119,7 +120,7 @@ trait FormattersDom
         foreach ($nodeList as $node) {
             $node = Dumper::indent($depth + 1) . Dumper::dumpValue($node, $depth + 1);
             $pos = strrpos($node, Dumper::infoPrefix());
-            if ($pos !== false && Str::contains(substr($node, $pos), "\n")) {
+            if ($pos !== false && str_contains(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
             } else {
                 $node .= $coma;
@@ -157,7 +158,7 @@ trait FormattersDom
         foreach ($node->childNodes as $childNode) {
             $childNode = Dumper::indent($depth + 1) . Dumper::dumpValue($childNode, $depth + 1);
             $pos = strrpos($childNode, Dumper::infoPrefix());
-            if ($pos !== false && Str::contains(substr($childNode, $pos), "\n")) {
+            if ($pos !== false && str_contains(substr($childNode, $pos), "\n")) {
                 $childNode = substr($childNode, 0, $pos) . $coma . substr($childNode, $pos);
             } else {
                 $childNode .= $coma;

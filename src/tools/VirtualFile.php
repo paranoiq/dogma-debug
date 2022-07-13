@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use function array_values;
+use function str_ends_with;
 use function str_repeat;
 use function str_replace;
 use function strlen;
@@ -51,7 +52,7 @@ class VirtualFile
             case 'r+':
                 // open
                 $this->read = true;
-                $this->write = Str::endsWith($mode, '+');
+                $this->write = str_ends_with($mode, '+');
 
                 return $this->contents !== null;
             case 'w':
@@ -62,7 +63,7 @@ class VirtualFile
                     return false;
                 } else {
                     $this->write = true;
-                    $this->read = Str::endsWith($mode, '+');
+                    $this->read = str_ends_with($mode, '+');
                     $this->contents = '';
 
                     return true;
@@ -71,7 +72,7 @@ class VirtualFile
             case 'a+':
                 // open/create & seek end
                 $this->write = true;
-                $this->read = Str::endsWith($mode, '+');
+                $this->read = str_ends_with($mode, '+');
                 if ($this->contents === null) {
                     $this->contents = '';
                 }
@@ -82,7 +83,7 @@ class VirtualFile
             case 'x+':
                 // create
                 $this->write = true;
-                $this->read = Str::endsWith($mode, '+');
+                $this->read = str_ends_with($mode, '+');
                 if ($this->contents !== null) {
                     /////
                     return false;
@@ -95,7 +96,7 @@ class VirtualFile
             case 'c+':
                 // open/create
                 $this->write = true;
-                $this->read = Str::endsWith($mode, '+');
+                $this->read = str_ends_with($mode, '+');
                 if ($this->contents === null) {
                     $this->contents = '';
                 }

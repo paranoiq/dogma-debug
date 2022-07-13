@@ -13,6 +13,7 @@ use function array_map;
 use function explode;
 use function implode;
 use function str_replace;
+use function str_starts_with;
 use function strtolower;
 use function substr;
 
@@ -211,7 +212,7 @@ class Http
 
     public static function normalizeHeaderName(string $name): string
     {
-        if (Str::startsWith($name, 'HTTP_')) {
+        if (str_starts_with($name, 'HTTP_')) {
             $name = substr($name, 5);
         }
         $name = str_replace('_', '-', strtolower($name));

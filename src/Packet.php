@@ -11,6 +11,7 @@ namespace Dogma\Debug;
 
 use Exception;
 use function microtime;
+use function str_ends_with;
 use function strlen;
 use function substr;
 
@@ -84,7 +85,7 @@ class Packet
     )
     {
         // todo: temporary
-        if (Str::endsWith($payload, "\n")) {
+        if (str_ends_with($payload, "\n")) {
             throw new Exception('Payload should not end with new line.');
         }
         if (Str::isBinary($payload, self::ALLOWED_CHARS)) {

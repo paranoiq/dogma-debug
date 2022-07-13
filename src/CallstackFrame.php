@@ -27,6 +27,8 @@ use function implode;
 use function in_array;
 use function is_array;
 use function is_file;
+use function str_ends_with;
+use function str_starts_with;
 use function strpos;
 use const FILE_IGNORE_NEW_LINES;
 
@@ -122,12 +124,12 @@ class CallstackFrame
 
     public function isClosure(): bool
     {
-        return $this->class === null && Str::endsWith($this->function, '{closure}');
+        return $this->class === null && str_ends_with($this->function, '{closure}');
     }
 
     public function isFunction(): bool
     {
-        return $this->class === null && !Str::endsWith($this->function, '{closure}')
+        return $this->class === null && !str_ends_with($this->function, '{closure}')
             && !in_array($this->function, Callstack::INCLUDES, true);
     }
 
@@ -138,7 +140,7 @@ class CallstackFrame
 
     public function isMethod(): bool
     {
-        return $this->class !== null && !Str::endsWith($this->function, '{closure}');
+        return $this->class !== null && !str_ends_with($this->function, '{closure}');
     }
 
     public function isStatic(): bool
@@ -148,7 +150,7 @@ class CallstackFrame
 
     public function isAnonymous(): bool
     {
-        return $this->class !== null && Str::startsWith($this->class, 'class@anonymous');
+        return $this->class !== null && str_starts_with($this->class, 'class@anonymous');
     }
 
     /**

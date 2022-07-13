@@ -19,6 +19,7 @@ use function in_array;
 use function is_callable;
 use function microtime;
 use function str_replace;
+use function str_starts_with;
 use function stream_wrapper_register;
 use function stream_wrapper_restore;
 use function stream_wrapper_unregister;
@@ -253,7 +254,7 @@ trait StreamWrapperMixin
         $path = str_replace('\\', '/', $path);
         $this->path = $path;
         foreach (self::$pathRedirects as $from => $to) {
-            if (Str::startsWith($path, $from)) {
+            if (str_starts_with($path, $from)) {
                 $this->path = $to . substr($path, strlen($from));
                 break;
             }

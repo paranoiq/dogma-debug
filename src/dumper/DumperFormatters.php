@@ -58,6 +58,8 @@ use function property_exists;
 use function rtrim;
 use function spl_object_hash;
 use function spl_object_id;
+use function str_contains;
+use function str_ends_with;
 use function str_pad;
 use function str_repeat;
 use function str_replace;
@@ -388,7 +390,7 @@ trait DumperFormatters
 
         $quote = Ansi::color('"', self::$colors['string']);
 
-        if (Str::endsWith($info, ', trimmed')) {
+        if (str_ends_with($info, ', trimmed')) {
             $info = substr($info, 0, -9);
         }
         $info .= $info ? ', hidden' : 'hidden';
@@ -399,7 +401,7 @@ trait DumperFormatters
 
     public static function dumpStringPathList(string $string, string $info, string $key, int $depth): ?string
     {
-        if (!Str::contains($string, PATH_SEPARATOR)) {
+        if (!str_contains($string, PATH_SEPARATOR)) {
             return null;
         }
 
@@ -411,7 +413,7 @@ trait DumperFormatters
         if (preg_match('~file|path~', $key)
             || preg_match('~^[a-z]:[/\\\\]~i', $string)
             || ($string !== '' && $string[0] === '/')
-            || Str::contains($string, '/../')
+            || str_contains($string, '/../')
         ) {
             $path = self::normalizePath($string);
             $path = ($path !== rtrim($string, '/')) ? ', ' . $path : '';
@@ -503,7 +505,7 @@ trait DumperFormatters
     public static function float(string $value): string
     {
         $value = strtoupper($value);
-        if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN' && !Str::contains($value, '.')) {
+        if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN' && !str_contains($value, '.')) {
             $value .= '.0';
         }
         $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
@@ -633,7 +635,7 @@ trait DumperFormatters
     {
         $dirName = self::trimPath(self::normalizePath(dirname($file)));
         $fileName = basename($file);
-        $separator = $dirName ? (Str::contains($file, '://') ? '//' : '/') : '';
+        $separator = $dirName ? (str_contains($file, '://') ? '//' : '/') : '';
 
         return Ansi::color($dirName . $separator, self::$colors['path'])
             . Ansi::color($fileName, self::$colors['file']);

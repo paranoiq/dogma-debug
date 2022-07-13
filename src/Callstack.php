@@ -20,6 +20,7 @@ use function debug_backtrace;
 use function in_array;
 use function preg_match;
 use function preg_replace;
+use function str_contains;
 use function str_replace;
 use const PHP_SAPI;
 
@@ -122,7 +123,7 @@ class Callstack
                 continue;
             }
 
-            if ($function !== null && Str::contains($function, '{closure:')) {
+            if ($function !== null && str_contains($function, '{closure:')) {
                 // too long and redundant
                 $function = preg_replace('~[^:{]+\\{closure:.*:([0-9]+)~', '{closure:\\1', $function);
             }
@@ -173,7 +174,7 @@ class Callstack
 
             [, $time, $memory, $number, $classFunction, $fileLine] = $m;
 
-            $type = Str::contains($classFunction, '->') ? '->' : (Str::contains($classFunction, '::') ? '::' : null);
+            $type = str_contains($classFunction, '->') ? '->' : (str_contains($classFunction, '::') ? '::' : null);
             $class = $function = null;
             if ($type !== null) {
                 /** @var class-string $class */
