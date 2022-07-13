@@ -8,7 +8,6 @@ directories:
 
 dictionariesByFileName:
     */Ansi.php: skip
-    */Cp437.php: skip
 
 dictionariesByFileExtension:
     neon: en

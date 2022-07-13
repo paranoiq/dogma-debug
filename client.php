@@ -53,7 +53,6 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/Ascii.php';
-    require_once __DIR__ . '/src/tools/Cp437.php';
     require_once __DIR__ . '/src/tools/Http.php';
     require_once __DIR__ . '/src/tools/System.php';
     require_once __DIR__ . '/src/tools/RedisParser.php';
