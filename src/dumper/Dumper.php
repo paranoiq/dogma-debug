@@ -365,6 +365,8 @@ class Dumper
      */
     public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null): string
     {
+        self::$objects = [];
+
         $maxDepthBefore = self::$maxDepth;
         if ($maxDepth !== null) {
             self::$maxDepth = $maxDepth;
@@ -653,6 +655,16 @@ class Dumper
         }
 
         if ($recursion) {
+            /** @var int|class-string $cl */
+            foreach (self::$shortObjectFormatters as $cl => $handler) {
+                if (is_int($cl) || is_a($object, $cl)) {
+                    $short = $handler($object);
+                    if ($short) {
+                        return $short;
+                    }
+                }
+            }
+
             return self::name($class) . ' ' . self::bracket('{') . ' '
                 . self::exceptions('RECURSION') . ' ' . self::bracket('}') . $info;
         }
@@ -673,7 +685,8 @@ class Dumper
             }
         }
 
-        if ($depth >= self::$maxDepth || in_array($class, self::$doNotTraverse, true)) {
+        $skip = in_array($class, self::$doNotTraverse, true);
+        if ($depth >= self::$maxDepth || $skip) {
             if ($handlerResult !== '' && !Str::contains($handlerResult, "\n")) {
                 return $handlerResult;
             }
@@ -697,9 +710,12 @@ class Dumper
         }
 
         $properties = self::dumpProperties((array) $object, $depth, $class);
-
-        return self::name($class) . ' ' . self::bracket('{') . $info
-            . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
+        if ($properties !== '') {
+            return self::name($class) . ' ' . self::bracket('{') . $info
+                . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
+        } else {
+            return self::name($class) . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
+        }
     }
 
     /**

@@ -780,7 +780,7 @@ trait DumperFormatters
             /** @var positive-int $time */
             $time = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
 
-            return 'UUID v' . $version . ', ' . self::intToFormattedDate($time);
+            return 'UUID v' . $version . ', ' . self::intToFormattedDate((int) $time);
         } elseif ($version < 6) {
             return 'UUID v' . $version;
         } else {
