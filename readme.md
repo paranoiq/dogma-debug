@@ -61,12 +61,17 @@ Dumper has a lot of features and configuration options to make dump outputs more
 - custom colors configuration
 
 function shortcuts:
-- `ld($value, ...)` - dumps value locally (echoes the output)
-- `rd($value, ...);` - dumps value remotely
-- `rc(callable, ...)` - captures and dump result of a callable
-- `rf()` - prints name of current function/method
-- `rl($label)` - prints label
-- `rt([$label])` - prints time since request start or last `rt()`
+- `ld($value, ...)` - Local dump
+- `lvd($value, ...)` - Local dump implemented with native var_dump() + some colors
+- `rd($value, ...);` - Remote dump
+- `rvd($value, ...);` - Remote dump implemented with native var_dump() + some colors
+- `rc($callable, ...)` - Remote capture dump (dumps outputted result of a callable)
+- `rb($length, $argsDepth, $codeLines, $codeDepth, $callstack)` - Remote backtrace dump
+- `rf()` - Remotely print function/method name
+- `rl($label, [$name])` - Remotely print user defined label
+- `rt([$name])` - Remote timer/counter. Shows time since previous event
+- `rm([$name])` - Remote memory report. Shows memory consumed/freed from previous event
+- `rw($string)` - Remote write. Write raw formatted string to debug output
 
 other:
 - `Dumper::varDump()` - better formatted and colorized `var_dump()`

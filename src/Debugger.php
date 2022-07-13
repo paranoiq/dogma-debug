@@ -35,6 +35,7 @@ use function implode;
 use function is_array;
 use function is_file;
 use function is_null;
+use function is_string;
 use function memory_get_peak_usage;
 use function memory_get_usage;
 use function microtime;
@@ -90,6 +91,9 @@ class Debugger
 
     /** @var bool Show notice when a debugger component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) */
     public static $showDependenciesInfo = true;
+
+    /** @var bool Show notice when a debugger component accidentally outputs anything to stdout */
+    public static $reportDebuggerAccidentalOutput = true;
 
     /** @var int Max length of a dump message [bytes after all formatting] */
     public static $maxMessageLength = 20000;
@@ -271,11 +275,13 @@ class Debugger
 
     /**
      * @param string|int|float|bool|null $label
-     * @return string|int|float|bool
+     * @return string|int|float|bool|null
      */
-    public static function label($label, ?string $name = null)
+    public static function label($label, ?string $name = null, ?string $color)
     {
         ob_start();
+
+        $color = $color ?? Ansi::LGRAY;
 
         if ($label === null) {
             $label = 'null';
@@ -283,14 +289,34 @@ class Debugger
             $label = 'false';
         } elseif ($label === true) {
             $label = 'true';
+        } elseif (is_string($label)) {
+            $label = Dumper::escapeRawString($label, Dumper::$rawEscaping, Ansi::BLACK, $color);
         }
-        $message = Ansi::white($name ? " $name: $label " : " $label ", Ansi::DRED);
+        if ($name !== null) {
+            $name = Dumper::escapeRawString($name, Dumper::$rawEscaping, Ansi::BLACK, $color);
+        }
+
+        $message = Ansi::black($name ? " $name: $label " : " $label ", $color);
 
         self::send(Packet::LABEL, $message);
 
         self::checkAccidentalOutput(__FUNCTION__);
 
         return $label;
+    }
+
+    public static function raw(string $message, string $background = Ansi::BLACK): string
+    {
+        ob_start();
+
+        // escape special chars, that can interfere with packet formatting
+        $message = Dumper::escapeRawString($message, Dumper::$rawEscaping, Ansi::LGRAY, $background);
+
+        self::send(Packet::RAW, $message);
+
+        self::checkAccidentalOutput(__FUNCTION__);
+
+        return $message;
     }
 
     /**
@@ -357,15 +383,15 @@ class Debugger
             $time = microtime(true);
             self::$timerPrevious[$name] = $time;
             self::$timerEvents[$name]++;
-            $event = ' ' . self::$timerEvents[$name];
+            $event = self::$timerEvents[$name];
         } elseif (isset(self::$timerStarts[''])) {
             // referring to global timer
             $previous = self::$timerPrevious[''];
             $time = microtime(true);
             self::$timerStarts[$name] = $time;
             self::$timerPrevious[$name] = $time;
-            self::$timerEvents[$name]++;
-            $event = ' ' . self::$timerEvents[''];
+            self::$timerEvents[$name] = 1;
+            $event = self::$timerEvents[''];
         } else {
             // first call ever
             $time = microtime(true);
@@ -379,8 +405,11 @@ class Debugger
         }
 
         $time = Units::time(microtime(true) - $previous);
-        $name = $name ? 'Timer' . $name . $event : 'Timer' . $event;
-        $message = Ansi::white(" $name: $time ", Ansi::DGREEN);
+        if ($name !== '') {
+            $message = Ansi::white("Timer ") . Ansi::lyellow($name) . Ansi::white(" $event:") . ' ' . Dumper::time($time);
+        } else {
+            $message = Ansi::white("Timer $event:") . ' ' . Dumper::time($time);
+        }
 
         self::send(Packet::TIMER, $message);
 
@@ -637,6 +666,8 @@ class Debugger
             return;
         } elseif ($output === false) {
             $message = Ansi::white(" Output buffer closed unexpectedly in Debugger::$function(). ", Ansi::DRED);
+        } elseif (!self::$reportDebuggerAccidentalOutput) {
+            return;
         } else {
             $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
         }

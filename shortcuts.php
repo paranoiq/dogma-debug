@@ -71,16 +71,6 @@ if (!function_exists('rd')) {
     }
 
     /**
-     * Remote backtrace dump
-     *
-     * @param int[] $lines
-     */
-    function rb(?int $length = null, ?int $argsDepth = null, array $lines = []): void
-    {
-        Debugger::callstack($length, $argsDepth, $lines);
-    }
-
-    /**
      * Remotely print function/method name
      */
     function rf(): void
@@ -89,14 +79,24 @@ if (!function_exists('rd')) {
     }
 
     /**
+     * Remote backtrace dump
+     *
+     * @param int[] $lines
+     */
+    function rb(?int $length = null, ?int $argsDepth = null, ?int $codeLines = null, ?int $codeDepth = null, $callstack = null): void
+    {
+        Debugger::callstack($length, $argsDepth, $codeLines, $codeDepth, $callstack);
+    }
+
+    /**
      * Remote label print
      *
-     * @param string|int|float|bool $label
-     * @return string|int|float|bool
+     * @param string|int|float|bool|null $label
+     * @return string|int|float|bool|null
      */
-    function rl($label, ?string $name = null)
+    function rl($label, ?string $name = null, ?string $color = null)
     {
-        return Debugger::label($label, $name);
+        return Debugger::label($label, $name, $color);
     }
 
     /**
@@ -117,6 +117,14 @@ if (!function_exists('rd')) {
     function rm($name = ''): void
     {
         Debugger::memory($name);
+    }
+
+    /**
+     * Remote write. Write raw formatted string to debug output
+     */
+    function rw(string $data): void
+    {
+        Debugger::raw($data);
     }
 }
 

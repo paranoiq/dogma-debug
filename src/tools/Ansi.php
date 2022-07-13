@@ -352,13 +352,17 @@ final class Ansi
         return isset(self::NAMED_COLORS[$value]) || preg_match($pattern, $value);
     }
 
-    public static function between($string, string $color, string $after): string
+    public static function between($string, string $color, string $after, string $background = self::BLACK): string
     {
         if (self::$off) {
             return (string) $string;
         }
 
-        return "\x1B[" . self::$fg[$color] . 'm' . $string . "\x1B[" . self::$fg[$after] . 'm';
+        if ($background === self::BLACK) {
+            return "\x1B[" . self::$fg[$color] . 'm' . $string . "\x1B[" . self::$fg[$after] . 'm';
+        } else {
+            return "\x1B[" . self::$fg[$color] . "m\x1B[" . self::$bg[$background] . 'm' . $string . "\x1B[" . self::$fg[$after] . "m\x1B[" . self::$bg[$background] . 'm';
+        }
     }
 
     public static function background(string $string, string $background): string

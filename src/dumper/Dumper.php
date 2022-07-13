@@ -71,8 +71,10 @@ class Dumper
     public const ESCAPING_JS = 2;
     public const ESCAPING_JSON = 3;
     public const ESCAPING_MYSQL = 4;
-    public const ESCAPING_ISO2047 = 5; // https://en.wikipedia.org/wiki/ISO_2047
-    public const ESCAPING_CP437 = 6; // https://en.wikipedia.org/wiki/Code_page_437
+    public const ESCAPING_PGSQL = 5;
+    public const ESCAPING_CHAR_NAMES = 6;
+    public const ESCAPING_ISO2047_SYMBOLS = 7; // https://en.wikipedia.org/wiki/ISO_2047
+    public const ESCAPING_CP437 = 8; // https://en.wikipedia.org/wiki/Code_page_437
 
     public const ORDER_ORIGINAL = 1;
     public const ORDER_ALPHABETIC = 2;
@@ -100,6 +102,9 @@ class Dumper
 
     /** @var int - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
     public static $binaryEscaping = self::ESCAPING_CP437;
+
+    /** @var int - string escaping for labels and raw output */
+    public static $rawEscaping = self::ESCAPING_CP437;
 
     /** @var bool - whether to escape \n, \r, \t or keep them as they are (not relevant for ESCAPING_CP437) */
     public static $escapeWhiteSpace = true;
@@ -198,7 +203,9 @@ class Dumper
         'value2' => Ansi::DYELLOW, // secondary color for formatted internal value of an object
 
         'string' => Ansi::LCYAN, // "foo"
-        'escape' => Ansi::DCYAN, // "\n"
+        'escape_basic' => Ansi::DCYAN, // basic escaped characters (whitespace and quotes)
+        'escape_special' => Ansi::LYELLOW, // special ascii characters (without whitespace)
+        'escape_non_ascii' => Ansi::DYELLOW, // characters outside ascii (\x80-\xff)
 
         'resource' => Ansi::LRED, // stream
         'namespace' => Ansi::LRED, // Foo...

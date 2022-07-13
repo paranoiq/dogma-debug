@@ -28,12 +28,13 @@ class Packet
     public const EXCEPTION = 9;
     public const INTERCEPT = 10;
     public const INFO = 11;
+    public const RAW = 12;
 
-    public const STD_IO = 12;
-    public const STREAM_IO = 13;
-    public const SQL = 14;
-    public const REDIS = 15;
-    public const AMQP = 16;
+    public const STD_IO = 13;
+    public const STREAM_IO = 14;
+    public const SQL = 15;
+    public const REDIS = 16;
+    public const AMQP = 17;
 
     public const OUTPUT_WIDTH = 100;
 
@@ -87,6 +88,8 @@ class Packet
             throw new Exception('Payload should not end with new line.');
         }
         if (Str::isBinary($payload, self::ALLOWED_CHARS)) {
+            Dumper::$binaryEscaping = Dumper::ESCAPING_CP437;
+            Debugger::dump($payload);
             throw new Exception('Payload can not contain special characters.');
         }
         if ($backtrace !== null && Str::isBinary($backtrace, self::ALLOWED_CHARS)) {

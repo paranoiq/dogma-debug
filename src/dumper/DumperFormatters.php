@@ -25,6 +25,7 @@ use function array_reverse;
 use function array_values;
 use function basename;
 use function bin2hex;
+use function chr;
 use function count;
 use function dechex;
 use function decoct;
@@ -123,48 +124,62 @@ trait DumperFormatters
         "\t" => '\t', // 09
         "\x1a" => '\Z', // 1a (legacy Win EOF)
         '\\' => '\\\\',
-        '%' => '\%',
-        '_' => '\_',
-        "'" => "\'",
-        '"' => '\"',
+        "'" => "''",
+        '"' => '""',
     ];
 
     /** @var string[] */
-    private static $asciiEscapes = [
-        "\x00" => '⎕', // NUL
-        "\x01" => '⌈', // SOH
-        "\x02" => '⊥', // STX
-        "\x03" => '⌋', // ETX
-        "\x04" => '⌁', // EOT
-        "\x05" => '⊠', // ENQ
-        "\x06" => '✓', // ACK
-        "\x07" => '⍾', // BEL
-        "\x08" => '⤺', // BS
-        "\x09" => '⪫', // HT
-        "\x0a" => '≡', // LF
-        "\x0b" => '⩛', // VT
-        "\x0c" => '↡', // FF
-        "\x0d" => '⪪', // CR
-        "\x0e" => '⊗', // SO
-        "\x0f" => '⊙', // SI
-        "\x10" => '⊟', // DLE
-        "\x11" => '◷', // DC1
-        "\x12" => '◶', // DC2
-        "\x13" => '◵', // DC3
-        "\x14" => '◴', // DC4
-        "\x15" => '⍻', // NAK
-        "\x16" => '⎍', // SYN
-        "\x17" => '⊣', // ETB
-        "\x18" => '⧖', // CAN
-        "\x19" => '⍿', // EM
-        "\x1a" => '␦', // SUB
-        "\x1b" => '⊖', // ESC
-        "\x1c" => '◰', // FS
-        "\x1d" => '◱', // GS
-        "\x1e" => '◲', // RS
-        "\x1f" => '◳', // US
-        "\x20" => '△', // SP
-        "\x7f" => '▨', // DEL
+    private static $pgsqlEscapes = [
+        "\x08" => '\b',
+        "\f" => '\f', // 0c
+        "\n" => '\n', // 0a
+        "\r" => '\r', // 0d
+        "\t" => '\t', // 09
+        '\\' => '\\\\',
+        "'" => "''",
+        '"' => '""',
+    ];
+
+    private static $nameEscapes = [
+        "\x00" => 'NUL', "\x01" => 'SOH', "\x02" => 'STX', "\x03" => 'ETX', "\x04" => 'EOT', "\x05" => 'ENQ', "\x06" => 'ACK', "\x07" => 'BEL',
+        "\x08" => 'BS', "\x09" => 'TAB', "\x0a" => 'LF', "\x0b" => 'VT', "\x0c" => 'FF', "\x0d" => 'CR', "\x0e" => 'SO', "\x0f" => 'SI',
+        "\x10" => 'DLE', "\x11" => 'DC1', "\x12" => 'DC2', "\x13" => 'DC3', "\x14" => 'DC4', "\x15" => 'NAK', "\x16" => 'SYN', "\x17" => 'ETB',
+        "\x18" => 'CAN', "\x19" => 'EM', "\x1a" => 'SUB', "\x1b" => 'ESC', "\x1c" => 'FS', "\x1d" => 'GS', "\x1e" => 'RS', "\x1f" => 'US',
+        "\x7f" => 'DEL',
+    ];
+
+    /** @var string[] */
+    private static $isoEscapes = [
+        "\x00" => '⎕', "\x01" => '⌈', "\x02" => '⊥', "\x03" => '⌋', "\x04" => '⌁', "\x05" => '⊠', "\x06" => '✓', "\x07" => '⍾',
+        "\x08" => '⤺', "\x09" => '⪫', "\x0a" => '≡', "\x0b" => '⩛', "\x0c" => '↡', "\x0d" => '⪪', "\x0e" => '⊗', "\x0f" => '⊙',
+        "\x10" => '⊟', "\x11" => '◷', "\x12" => '◶', "\x13" => '◵', "\x14" => '◴', "\x15" => '⍻', "\x16" => '⎍', "\x17" => '⊣',
+        "\x18" => '⧖', "\x19" => '⍿', "\x1a" => '␦', "\x1b" => '⊖', "\x1c" => '◰', "\x1d" => '◱', "\x1e" => '◲', "\x1f" => '◳',
+        "\x20" => '△',
+        "\x7f" => '▨',
+    ];
+
+    private static $cp437Escapes = [
+        "\x00" => '¤', "\x01" => '☺', "\x02" => '☻', "\x03" => '♥', "\x04" => '♦', "\x05" => '♣', "\x06" => '♠', "\x07" => '•',
+        "\x08" => '◘', "\x09" => '○', "\x0a" => '◙', "\x0b" => '♂', "\x0c" => '♀', "\x0d" => '♪', "\x0e" => '♫', "\x0f" => '☼',
+        "\x10" => '►', "\x11" => '◄', "\x12" => '↕', "\x13" => '‼', "\x14" => '¶', "\x15" => '§', "\x16" => '▬', "\x17" => '↨',
+        "\x18" => '↑', "\x19" => '↓', "\x1a" => '→', "\x1b" => '←', "\x1c" => '∟', "\x1d" => '↔', "\x1e" => '▲', "\x1f" => '▼',
+        "\x7f" => '⌂',
+        "\x80" => 'Ç', "\x81" => 'ü', "\x82" => 'é', "\x83" => 'â', "\x84" => 'ä', "\x85" => 'à', "\x86" => 'å', "\x87" => 'ç',
+        "\x88" => 'ê', "\x89" => 'ë', "\x8a" => 'è', "\x8b" => 'ï', "\x8c" => 'î', "\x8d" => 'ì', "\x8e" => 'Ä', "\x8f" => 'Å',
+        "\x90" => 'É', "\x91" => 'æ', "\x92" => 'Æ', "\x93" => 'ô', "\x94" => 'ö', "\x95" => 'ò', "\x96" => 'û', "\x97" => 'ù',
+        "\x98" => 'ÿ', "\x99" => 'Ö', "\x9a" => 'Ü', "\x9b" => '¢', "\x9c" => '£', "\x9d" => '¥', "\x9e" => '₧', "\x9f" => 'ƒ',
+        "\xa0" => 'á', "\xa1" => 'í', "\xa2" => 'ó', "\xa3" => 'ú', "\xa4" => 'ñ', "\xa5" => 'Ñ', "\xa6" => 'ª', "\xa7" => 'º',
+        "\xa8" => '¿', "\xa9" => '⌐', "\xaa" => '¬', "\xab" => '½', "\xac" => '¼', "\xad" => '¡', "\xae" => '«', "\xaf" => '»',
+        "\xb0" => '░', "\xb1" => '▒', "\xb2" => '▓', "\xb3" => '│', "\xb4" => '┤', "\xb5" => '╡', "\xb6" => '╢', "\xb7" => '╖',
+        "\xb8" => '╕', "\xb9" => '╣', "\xba" => '║', "\xbb" => '╗', "\xbc" => '╝', "\xbd" => '╜', "\xbe" => '╛', "\xbf" => '┐',
+        "\xc0" => '└', "\xc1" => '┴', "\xc2" => '┬', "\xc3" => '├', "\xc4" => '─', "\xc5" => '┼', "\xc6" => '╞', "\xc7" => '╟',
+        "\xc8" => '╚', "\xc9" => '╔', "\xca" => '╩', "\xcb" => '╦', "\xcc" => '╠', "\xcd" => '═', "\xce" => '╬', "\xcf" => '╧',
+        "\xd0" => '╨', "\xd1" => '╤', "\xd2" => '╥', "\xd3" => '╙', "\xd4" => '╘', "\xd5" => '╒', "\xd6" => '╓', "\xd7" => '╫',
+        "\xd8" => '╪', "\xd9" => '┘', "\xda" => '┌', "\xdb" => '█', "\xdc" => '▄', "\xdd" => '▌', "\xde" => '▐', "\xdf" => '▀',
+        "\xe0" => 'α', "\xe1" => 'ß', "\xe2" => 'Γ', "\xe3" => 'π', "\xe4" => 'Σ', "\xe5" => 'σ', "\xe6" => 'µ', "\xe7" => 'τ',
+        "\xe8" => 'Φ', "\xe9" => 'Θ', "\xea" => 'Ω', "\xeb" => 'δ', "\xec" => '∞', "\xed" => 'φ', "\xee" => 'ε', "\xef" => '∩',
+        "\xf0" => '≡', "\xf1" => '±', "\xf2" => '≥', "\xf3" => '≤', "\xf4" => '⌠', "\xf5" => '⌡', "\xf6" => '÷', "\xf7" => '≈',
+        "\xf8" => '°', "\xf9" => '∙', "\xfa" => '·', "\xfb" => '√', "\xfc" => 'ⁿ', "\xfd" => '²', "\xfe" => '■', "\xff" => ' ',
     ];
 
     // objects and resources -------------------------------------------------------------------------------------------
@@ -901,35 +916,8 @@ trait DumperFormatters
     {
         if ($escaping === self::ESCAPING_NONE) {
             $formatted = Ansi::color($quote . $string . $ellipsis . $quote, self::$colors['string']);
-        } elseif ($escaping === self::ESCAPING_CP437) {
-            $formatted = Ansi::color($quote . Cp437::toUtf8Printable($string) . $ellipsis . $quote, self::$colors['string']);
         } else {
-            $formatted = preg_replace_callback($pattern, static function (array $m) use ($escaping, $translations): string {
-                $ch = $m[0];
-                if (isset($translations[$ch])) {
-                    $ch = $translations[$ch];
-                } else {
-                    $ch = $escaping === self::ESCAPING_JSON
-                        ? '\u00' . Str::charToHex($ch)
-                        : '\x' . Str::charToHex($ch);
-                }
-
-                return Ansi::between($ch, self::$colors['escape'], self::$colors['string']);
-            }, $string);
-            if (self::$escapeAllNonAscii && $escaping !== self::ESCAPING_MYSQL) {
-                $formatted = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping): string {
-                    $ch = $m[0];
-                    if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
-                        /** @var string $code */
-                        $code = json_encode($ch);
-                        $ch = trim($code, '"');
-                    } else {
-                        $ch = '\u{' . dechex(Str::ord($ch)) . '}';
-                    }
-
-                    return Ansi::between($ch, self::$colors['escape'], self::$colors['string']);
-                }, $formatted);
-            }
+            $formatted = self::escapeStringChunk($string, $escaping, $pattern, $translations, self::$colors['string']);
 
             $formatted = Ansi::color($quote . $formatted . $ellipsis . $quote, self::$colors['string']);
         }
@@ -937,6 +925,67 @@ trait DumperFormatters
         // hexadecimal
         if ($binary && self::$binaryWithHexadecimal) {
             $formatted .= ' ' . self::info('// ' . Str::strToHex($string));
+        }
+
+        return $formatted;
+    }
+
+    public static function escapeRawString(
+        string $string,
+        int $escaping,
+        string $normalColor = Ansi::LGRAY,
+        string $background = Ansi::BLACK
+    ): string
+    {
+        $translations = self::getTranslations($escaping);
+        unset($translations["\n"], $translations["\r"], $translations["\t"], $translations["\e"]);
+        $pattern = Str::createCharPattern(array_keys($translations));
+
+        return self::escapeStringChunk($string, $escaping, $pattern, $translations, $normalColor, $background);
+    }
+
+    private static function escapeStringChunk(
+        string $string,
+        int $escaping,
+        string $pattern,
+        array $translations,
+        string $normalColor,
+        string $background = Ansi::BLACK
+    ): string
+    {
+        $formatted = preg_replace_callback($pattern, static function (array $m) use ($escaping, $translations, $normalColor, $background): string {
+            $ch = $m[0];
+
+            $escapeColor = $ch > chr(127)
+                ? self::$colors['escape_non_ascii']
+                : ($ch === chr(127) || ($ch < chr(32) && $ch !== "\n" && $ch !== "\r" & $ch !== "\t")
+                    ? self::$colors['escape_special']
+                    : self::$colors['escape_basic']);
+
+            if (isset($translations[$ch])) {
+                $ch = $translations[$ch];
+            } else {
+                $ch = $escaping === self::ESCAPING_JSON
+                    ? '\u00' . Str::charToHex($ch)
+                    : '\x' . Str::charToHex($ch);
+            }
+
+            return Ansi::between($ch, $escapeColor, $normalColor, $background);
+        }, $string);
+
+        if (self::$escapeAllNonAscii && $escaping !== self::ESCAPING_MYSQL) {
+            $formatted = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping, $normalColor, $background): string {
+                $ch = $m[0];
+                if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
+                    /** @var string $code */
+                    $code = json_encode($ch);
+                    $ch = trim($code, '"');
+                } else {
+                    $ch = '\u{' . dechex(Str::ord($ch)) . '}';
+                }
+
+                return Ansi::between($ch, self::$colors['escape_non_ascii'], $normalColor, $background);
+            }, $formatted);
         }
 
         return $formatted;
@@ -961,8 +1010,17 @@ trait DumperFormatters
             case self::ESCAPING_MYSQL:
                 $translations = self::$mysqlEscapes;
                 break;
-            case self::ESCAPING_ISO2047:
-                $translations = self::$asciiEscapes;
+            case self::ESCAPING_PGSQL:
+                $translations = self::$pgsqlEscapes;
+                break;
+            case self::ESCAPING_CHAR_NAMES:
+                $translations = self::$nameEscapes;
+                break;
+            case self::ESCAPING_ISO2047_SYMBOLS:
+                $translations = self::$isoEscapes;
+                break;
+            case self::ESCAPING_CP437:
+                $translations = self::$cp437Escapes;
                 break;
         }
 
