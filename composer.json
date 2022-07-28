@@ -53,7 +53,7 @@
         ],
         "tests:coverage": "php vendor/nette/tester/src/tester tests -c tests --colors 1 -p phpdbg --coverage tests/coverage.html --coverage-src src",
 
-        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
+        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
         "phpstan:all": [
             "php81 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
             "php80 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",

@@ -723,11 +723,23 @@ trait DumperFormatters
         return Ansi::color($memory, self::$colors['memory']);
     }
 
+    /**
+     * @param object $object
+     */
+    public static function objectInfo($object): string
+    {
+        $info = '';
+        if (self::$showInfo) {
+            $info = ' ' . self::info('// #' . self::objectHash($object));
+        }
+
+        return $info;
+    }
+
     // helpers ---------------------------------------------------------------------------------------------------------
 
     /**
      * @param object $object
-     * @return string
      */
     public static function objectHash($object): string
     {
