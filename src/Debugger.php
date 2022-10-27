@@ -279,7 +279,7 @@ class Debugger
      * @param string|int|float|bool|null $label
      * @return string|int|float|bool|null
      */
-    public static function label($label, ?string $name = null, ?string $color)
+    public static function label($label, ?string $name = null, ?string $color = null)
     {
         ob_start();
 
@@ -335,7 +335,7 @@ class Debugger
         ob_start();
 
         if ($callstack instanceof Callstack) {
-            // ok
+            // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
         } elseif (is_array($callstack)) {
             $callstack = Callstack::fromBacktrace($callstack);
         } else {

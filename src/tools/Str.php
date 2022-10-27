@@ -130,7 +130,7 @@ class Str
     /**
      * @param string[] $allowedChars
      */
-    public static function isBinary(string $string, array $allowedChars = ["\n", "\r", "\t"]): bool
+    public static function isBinary(string $string, array $allowedChars = ["\n", "\r", "\t"]): ?string
     {
         if ($allowedChars !== []) {
             $chars = array_diff(range("\x00", "\x1f"), $allowedChars);
@@ -139,7 +139,11 @@ class Str
             $pattern = '~[\x00-\x1f]~';
         }
 
-        return preg_match($pattern, $string) === 1;
+        if (preg_match($pattern, $string, $m) === 1) {
+            return $m[0];
+        }
+
+        return null;
     }
 
     /**

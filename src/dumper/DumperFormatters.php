@@ -7,6 +7,8 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// phpcs:disable Squiz.Arrays.ArrayDeclaration.IndexNoNewline
+
 namespace Dogma\Debug;
 
 use BackedEnum;
@@ -22,6 +24,7 @@ use function array_keys;
 use function array_map;
 use function array_pop;
 use function array_reverse;
+use function array_slice;
 use function array_values;
 use function basename;
 use function bin2hex;
@@ -51,6 +54,7 @@ use function json_encode;
 use function key;
 use function ltrim;
 use function md5;
+use function ord;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
@@ -80,7 +84,7 @@ use const STR_PAD_LEFT;
 trait DumperFormatters
 {
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $phpEscapes = [
         "\t" => '\t', // 09
         "\n" => '\n', // 0a
@@ -93,7 +97,7 @@ trait DumperFormatters
         '"' => '\"',
     ];
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $jsEscapes = [
         "\x00" => '\0',
         "\x08" => '\b',
@@ -106,7 +110,7 @@ trait DumperFormatters
         '"' => '\"',
     ];
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $jsonEscapes = [
         "\x08" => '\b',
         "\f" => '\f', // 0c
@@ -117,7 +121,7 @@ trait DumperFormatters
         '"' => '\"',
     ];
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $mysqlEscapes = [
         "\x00" => '\0',
         "\x08" => '\b',
@@ -130,7 +134,7 @@ trait DumperFormatters
         '"' => '""',
     ];
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $pgsqlEscapes = [
         "\x08" => '\b',
         "\f" => '\f', // 0c
@@ -142,15 +146,16 @@ trait DumperFormatters
         '"' => '""',
     ];
 
+    /** @var array<string, string> */
     private static $nameEscapes = [
         "\x00" => 'NUL', "\x01" => 'SOH', "\x02" => 'STX', "\x03" => 'ETX', "\x04" => 'EOT', "\x05" => 'ENQ', "\x06" => 'ACK', "\x07" => 'BEL',
-        "\x08" => 'BS', "\x09" => 'TAB', "\x0a" => 'LF', "\x0b" => 'VT', "\x0c" => 'FF', "\x0d" => 'CR', "\x0e" => 'SO', "\x0f" => 'SI',
+        "\x08" => 'BS',  "\x09" => 'TAB', "\x0a" => 'LF',  "\x0b" => 'VT',  "\x0c" => 'FF',  "\x0d" => 'CR',  "\x0e" => 'SO',  "\x0f" => 'SI',
         "\x10" => 'DLE', "\x11" => 'DC1', "\x12" => 'DC2', "\x13" => 'DC3', "\x14" => 'DC4', "\x15" => 'NAK', "\x16" => 'SYN', "\x17" => 'ETB',
-        "\x18" => 'CAN', "\x19" => 'EM', "\x1a" => 'SUB', "\x1b" => 'ESC', "\x1c" => 'FS', "\x1d" => 'GS', "\x1e" => 'RS', "\x1f" => 'US',
+        "\x18" => 'CAN', "\x19" => 'EM',  "\x1a" => 'SUB', "\x1b" => 'ESC', "\x1c" => 'FS',  "\x1d" => 'GS',  "\x1e" => 'RS',  "\x1f" => 'US',
         "\x7f" => 'DEL',
     ];
 
-    /** @var string[] */
+    /** @var array<string, string> */
     private static $isoEscapes = [
         "\x00" => '⎕', "\x01" => '⌈', "\x02" => '⊥', "\x03" => '⌋', "\x04" => '⌁', "\x05" => '⊠', "\x06" => '✓', "\x07" => '⍾',
         "\x08" => '⤺', "\x09" => '⪫', "\x0a" => '≡', "\x0b" => '⩛', "\x0c" => '↡', "\x0d" => '⪪', "\x0e" => '⊗', "\x0f" => '⊙',
@@ -160,6 +165,7 @@ trait DumperFormatters
         "\x7f" => '▨',
     ];
 
+    /** @var array<string, string> */
     private static $cp437Escapes = [
         "\x00" => '¤', "\x01" => '☺', "\x02" => '☻', "\x03" => '♥', "\x04" => '♦', "\x05" => '♣', "\x06" => '♠', "\x07" => '•',
         "\x08" => '◘', "\x09" => '○', "\x0a" => '◙', "\x0b" => '♂', "\x0c" => '♀', "\x0d" => '♪', "\x0e" => '♫', "\x0f" => '☼',
@@ -426,11 +432,11 @@ trait DumperFormatters
 
     public static function dumpStringUuid(string $string, string $info, string $key, int $depth): ?string
     {
-        static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{4})-?([0-9a-z]{12})}?~';
+        static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})}?~';
 
         $bytes = strlen($string);
         // phpcs:disable SlevomatCodingStandard.ControlStructures.AssignmentInCondition.AssignmentInCondition
-        if ((preg_match($uuidRe, $string, $m) && $uuidInfo = self::uuidInfo($m))
+        if ((preg_match($uuidRe, $string, $m) && $uuidInfo = self::uuidInfo(array_slice($m, 1)))
             || ($bytes === 32 && preg_match('~id$~i', $key) && $uuidInfo = self::binaryUuidInfo($string))
         ) {
             return self::string($string, $depth) . ' ' . self::info('// ' . $uuidInfo);
@@ -543,7 +549,7 @@ trait DumperFormatters
      */
     public static function key($key): string
     {
-        if ($key === '') {
+        if ($key === '' || (is_string($key) && (Str::isBinary($key) || preg_match('~\\s~', $key) !== 0))) {
             return self::string($key);
         } elseif (self::$colors['key'] !== null) {
             // todo: string key escaping
@@ -723,11 +729,23 @@ trait DumperFormatters
         return Ansi::color($memory, self::$colors['memory']);
     }
 
+    /**
+     * @param object $object
+     */
+    public static function objectInfo($object): string
+    {
+        $info = '';
+        if (self::$showInfo) {
+            $info = ' ' . self::info('// #' . self::objectHash($object));
+        }
+
+        return $info;
+    }
+
     // helpers ---------------------------------------------------------------------------------------------------------
 
     /**
      * @param object $object
-     * @return string
      */
     public static function objectHash($object): string
     {
@@ -847,7 +865,7 @@ trait DumperFormatters
             $ellipsis = Ansi::between('...', self::$colors['exceptions'], self::$colors['string']);
         }
 
-        $binary = Str::isBinary($string, array_keys(self::getTranslations(self::$stringsEscaping)));
+        $binary = Str::isBinary($string, array_keys(self::getTranslations(self::$stringsEscaping))) !== null;
         $split = false;
         if ($splitBy !== null) {
             $pos = strpos($string, $splitBy);
@@ -877,7 +895,7 @@ trait DumperFormatters
 
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
-            return self::stringChunk($string, $escaping, $pattern, $translations, false, $ellipsis, $apos ? "'" : '"');
+            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, false, $ellipsis, $apos ? "'" : '"');
         }
 
         // chunked
@@ -893,27 +911,53 @@ trait DumperFormatters
                 unset($chunks[key($chunks)]);
             }
         }
+
+        // format & deduplicate
+        $last = null;
+        $lastCount = 0;
+        $formatted = [];
+        $offsetChars = strlen((string) strlen($string));
         foreach ($chunks as $i => $chunk) {
             $e = $i === count($chunks) - 1 ? $ellipsis : '';
-            $chunks[$i] = self::stringChunk($chunk, $escaping, $pattern, $translations, $binary, $e);
+            $chunk = self::stringChunk($i * self::$binaryChunkLength, $chunk, $escaping, $pattern, $translations, $binary, $e, '"', $offsetChars);
+            if ($last === $chunk) {
+                $lastCount++;
+            } elseif ($lastCount > 1) {
+                $formatted[] = $last . ' ' . self::exceptions("... {$lastCount}×");
+                $lastCount = 1;
+            } elseif ($last !== null) {
+                $formatted[] = $last;
+                $lastCount = 1;
+            } else {
+                $lastCount = 1;
+            }
+            $last = $chunk;
         }
+        if ($lastCount > 1) {
+            $formatted[] = $last . ' ' . self::exceptions("... {$lastCount}×");
+        } else {
+            $formatted[] = $last;
+        }
+
         $sep = "\n" . self::indent($depth) . ' ' . self::symbol('.') . ' ';
         $prefix = $binary ? self::exceptions('binary:') . "\n" . self::indent($depth) . '   ' : '';
 
-        return $prefix . implode($sep, $chunks);
+        return $prefix . implode($sep, $formatted);
     }
 
     /**
      * @param string[] $translations
      */
     private static function stringChunk(
+        int $offset,
         string $string,
         int $escaping,
         string $pattern,
         array $translations,
         bool $binary,
         string $ellipsis = '',
-        string $quote = '"'
+        string $quote = '"',
+        int $offsetChars = 1
     ): string
     {
         if ($escaping === self::ESCAPING_NONE) {
@@ -926,7 +970,12 @@ trait DumperFormatters
 
         // hexadecimal
         if ($binary && self::$binaryWithHexadecimal) {
-            $formatted .= ' ' . self::info('// ' . Str::strToHex($string));
+            if ($offset >= 0) {
+                $offsetString = str_pad((string) $offset, $offsetChars, ' ', STR_PAD_LEFT);
+                $formatted .= ' ' . self::info('// ' . $offsetString . ': ' . Str::strToHex($string));
+            } else {
+                $formatted .= ' ' . self::info('// ' . Str::strToHex($string));
+            }
         }
 
         return $formatted;
@@ -946,6 +995,9 @@ trait DumperFormatters
         return self::escapeStringChunk($string, $escaping, $pattern, $translations, $normalColor, $background);
     }
 
+    /**
+     * @param array<string, string> $translations
+     */
     private static function escapeStringChunk(
         string $string,
         int $escaping,
@@ -976,7 +1028,7 @@ trait DumperFormatters
         }, $string);
 
         if (self::$escapeAllNonAscii && $escaping !== self::ESCAPING_MYSQL) {
-            $formatted = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping, $normalColor, $background): string {
+            $unicode = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping, $normalColor, $background): string {
                 $ch = $m[0];
                 if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
                     /** @var string $code */
@@ -988,6 +1040,24 @@ trait DumperFormatters
 
                 return Ansi::between($ch, self::$colors['escape_non_ascii'], $normalColor, $background);
             }, $formatted);
+
+            if ($unicode !== null) {
+                $formatted = $unicode;
+            } else {
+                // unicode escaping failed due to invalid encoding (or other than UTF-8 encoding)
+                $formatted = preg_replace_callback('~[\x80-\xFF]~', static function (array $m) use ($escaping, $normalColor, $background): string {
+                    $ch = $m[0];
+                    if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
+                        /** @var string $code */
+                        $code = json_encode($ch);
+                        $ch = trim($code, '"');
+                    } else {
+                        $ch = '\x' . dechex(ord($ch));
+                    }
+
+                    return Ansi::between($ch, self::$colors['escape_non_ascii'], $normalColor, $background);
+                }, $formatted);
+            }
         }
 
         return $formatted;

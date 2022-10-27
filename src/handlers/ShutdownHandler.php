@@ -153,7 +153,7 @@ class ShutdownHandler
                 }
                 pcntl_signal($signal, [self::class, 'signal']);
             }
-        } elseif (function_exists('sapi_windows_set_ctrl_handler')) {
+        } elseif (function_exists('sapi_windows_set_ctrl_handler') && Request::isCli()) {
             sapi_windows_set_ctrl_handler([self::class, 'winSignal'], true);
         } else {
             return;

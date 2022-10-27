@@ -67,40 +67,43 @@ Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.tr
 Dumper::$traceArgsDepth = 1;
 Dumper::$traceLength = 1;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-   <$a> => <0>,
-   <$b> => <0>,
+   <a>: <0>,
+   <b>: <0>,
 <)>');
 Dumper::$traceLength = 2;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-   <$a> => <0>,
-   <$b> => <0>,
+   <a>: <0>,
+   <b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>');
 Dumper::$traceLength = 3;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-   <$a> => <0>,
-   <$b> => <0>,
+   <a>: <0>,
+   <b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>');
 Dumper::$traceLength = 4;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-   <$a> => <0>,
-   <$b> => <0>,
+   <a>: <0>,
+   <b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>
 <^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><87>');
 
 // variadic params
+// todo: format variadic...
 Assert::same(Assert::normalize(d(0, 0, 1, 2, 3)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-   <$a> => <0>,
-   <$b> => <0>,
-   <...$c> => <[><1>, <2>, <3><]>, <// 3 items>
+   <a>: <0>,
+   <b>: <0>,
+   <c>: <1>,
+   <3>: <2>,
+   <4>: <3>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>
-<^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><96>');
+<^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><97>');
 
 // todo: trace code
 
@@ -160,7 +163,7 @@ Assert::same(Assert::normalize(a(4)), '<literal>: <true>
 <^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><23> -- <Dogma><\><Tests><\><Debug><\>c<(> <...> <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><18> -- <Dogma><\><Tests><\><Debug><\>b<(> <...> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><13> -- <Dogma><\><Tests><\><Debug><\>a<(> <...> <)>
-<^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><159>');
+<^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><162>');
 
 
 fromOutOfMemoryMessage:
@@ -222,7 +225,8 @@ Assert::same(
 <^--- 4 in ><sqlftw/sources/Parser/>Parser.php<:><255> -- <SqlFtw><\><Parser><\>Parser::parseTokenList<(> <???> <)> <135 ms> <6.38 MB>
 <^--- 3 in ><sqlftw/sources/Parser/>Parser.php<:><64> -- <SqlFtw><\><Parser><\>Parser::parse<(> <???> <)> <83.9 ms> <4.67 MB>
 <^--- 2 in ><sqlftw/tests/>Assert.php<:><113> -- <SqlFtw><\><Tests><\>Assert::validCommands<(> <???> <)> <70.3 ms> <4.11 MB>
-<^--- 1 in ><sqlftw/tests/>export-test.php<:><25> <27.4 ms> <2.73 MB>');
+<^--- 1 in ><sqlftw/tests/>export-test.php<:><25> -- <(> <???> <)> <27.4 ms> <2.73 MB>');
+// todo: better format {main}() in the last line
 
 // uncomment for visual check
 //Debugger::callstack(1000, null, 0, 50, $callstack);

@@ -10,9 +10,13 @@
 namespace Dogma\Debug;
 
 use Exception;
+use function dechex;
 use function microtime;
+use function ord;
+use function preg_replace_callback;
 use function str_ends_with;
 use function strlen;
+use function strpos;
 use function substr;
 
 class Packet
@@ -64,7 +68,7 @@ class Packet
     /** @var float|null */
     public $duration;
 
-    /** @var int|null */
+    /** @var int */
     public $processId;
 
     /** @var int|null */
@@ -88,14 +92,26 @@ class Packet
         if (str_ends_with($payload, "\n")) {
             throw new Exception('Payload should not end with new line.');
         }
-        if (Str::isBinary($payload, self::ALLOWED_CHARS)) {
-            Dumper::$binaryEscaping = Dumper::ESCAPING_CP437;
-            Debugger::dump($payload);
-            throw new Exception('Payload can not contain special characters.');
+        // todo: somehow some special chars are avoiding detection and escaping :E
+        $char = Str::isBinary($payload, self::ALLOWED_CHARS);
+        if ($char !== null) {
+            $hex = dechex(ord($char));
+            $pos = strpos($payload, $char);
+            Debugger::send(self::ERROR, "Payload can not contain special characters. Found \\x$hex at position $pos.");
+            $payload = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
+                return '\x' . Str::charToHex($m[0]);
+            }, $payload);
         }
-        if ($backtrace !== null && Str::isBinary($backtrace, self::ALLOWED_CHARS)) {
-            echo Dumper::varDump($backtrace);
-            throw new Exception('Backtrace can not contain special characters.');
+        if ($backtrace !== null) {
+            $char = Str::isBinary($backtrace, self::ALLOWED_CHARS);
+            if ($char !== null) {
+                $hex = dechex(ord($char));
+                $pos = strpos($payload, $char);
+                Debugger::send(self::ERROR, "Backtrace can not contain special characters. Found \\x$hex at position $pos.");
+                $backtrace = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
+                    return '\x' . Str::charToHex($m[0]);
+                }, $backtrace);
+            }
         }
         if (strlen($payload) > Debugger::$maxMessageLength) {
             $payload = substr($payload, 0, Debugger::$maxMessageLength) . Dumper::exceptions(' ... ');
@@ -105,7 +121,7 @@ class Packet
         $this->payload = $payload;
         $this->backtrace = $backtrace;
         $this->duration = $duration;
-        $this->bell = $bell;
+        $this->bell = (int) $bell;
 
         if ($type !== self::OUTPUT_WIDTH) {
             $this->time = microtime(true);

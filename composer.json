@@ -26,6 +26,15 @@
     },
     "scripts": {
         "da": "composer dump-autoload",
+        "c": "@check:run",
+        "ca": "@check:all",
+        "t": "@tests:run",
+        "ta": "@tests:all",
+        "tc": "@tests:coverage",
+        "ps": "@phpstan:run",
+        "psa": "@phpstan:all",
+        "cs": "@phpcs:run",
+        "sc": "@spell:run",
 
         "check:run": [
             "@lint:run",
@@ -42,8 +51,9 @@
             "@spell:run"
         ],
 
-        "tests:run": "php vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
+        "tests:run": "php vendor/nette/tester/src/tester tests/php71 -C --colors 1",
         "tests:all": [
+            "php82 vendor/nette/tester/src/tester tests -C --colors 1",
             "php81 vendor/nette/tester/src/tester tests -C --colors 1",
             "php80 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
             "php74 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
@@ -53,8 +63,9 @@
         ],
         "tests:coverage": "php vendor/nette/tester/src/tester tests -c tests --colors 1 -p phpdbg --coverage tests/coverage.html --coverage-src src",
 
-        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
+        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
         "phpstan:all": [
+            "php82 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
             "php81 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
             "php80 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
             "php74 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
@@ -65,6 +76,7 @@
 
         "lint:run": "php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
         "lint:all": [
+            "php82 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
             "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
             "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
             "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",

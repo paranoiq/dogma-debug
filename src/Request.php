@@ -197,7 +197,10 @@ class Request
     {
         if (self::commandMatches('~dogma-debug/tests/.*\.phpt~')) {
             self::$application = 'self-test';
-        } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~') || self::commandMatches('~phpstan analyze -c~')) {
+        } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~')
+            || self::commandMatches('~phpstan analyze -c~')
+            || self::commandMatches('~phpstan worker~')
+        ) {
             self::$application = 'phpstan';
         } elseif (self::commandMatches('~/nette/tester/src/tester~')) {
             self::$application = 'nette-tester';

@@ -11,7 +11,10 @@
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 
 use Dogma\Debug\Debugger;
+use Dogma\Debug\Diff;
 use Dogma\Debug\Dumper;
+use Dogma\Debug\ExceptionHandler;
+use Dogma\Debug\Packet;
 
 if (!function_exists('rd')) {
     /**
@@ -60,6 +63,28 @@ if (!function_exists('rd')) {
     function rvd($value, bool $colors = true)
     {
         return Debugger::varDump($value, $colors);
+    }
+
+    /**
+     * Remote dump exception (formatted same way as when thrown)
+     */
+    function re(Throwable $exception): Throwable
+    {
+        $message = ExceptionHandler::formatException($exception);
+
+        Debugger::send(Packet::EXCEPTION, $message);
+
+        return $exception;
+    }
+
+    /**
+     * Remote diff dump
+     */
+    function rdf(string $a, string $b): void
+    {
+        $message = ' diff: ' . Diff::cliDiff($a, $b);
+
+        Debugger::send(Packet::DUMP, $message);
     }
 
     /**

@@ -12,6 +12,7 @@
 
 namespace Dogma\Debug;
 
+use ReturnTypeWillChange;
 use mysqli;
 use function array_filter;
 use function func_get_args;
@@ -47,6 +48,7 @@ class FakeMysqli extends mysqli
         }));
     }
 
+    #[ReturnTypeWillChange]
     public function autocommit($enable)
     {
         $result = false;
@@ -71,6 +73,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function change_user($username, $password, $database)
     {
         $result = false;
@@ -107,6 +110,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function commit($flags = -1, $name = null)
     {
         $result = false;
@@ -119,6 +123,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function connect(
         $hostname = null,
         $username = null,
@@ -162,6 +167,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function get_charset()
     {
         $result = false;
@@ -186,6 +192,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function get_connection_stats()
     {
         $result = false;
@@ -210,6 +217,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function get_warnings()
     {
         $result = false;
@@ -234,6 +242,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function kill($process_id)
     {
         $result = false;
@@ -246,6 +255,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function multi_query($query)
     {
         $result = false;
@@ -282,6 +292,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function options($option, $value)
     {
         $result = false;
@@ -306,6 +317,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function prepare($query)
     {
         $result = false;
@@ -318,6 +330,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function query($query, $result_mode = MYSQLI_STORE_RESULT)
     {
         $result = false;
@@ -330,6 +343,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function real_connect(
         $hostname = null,
         $username = null,
@@ -350,6 +364,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function real_escape_string($string)
     {
         $result = '';
@@ -362,6 +377,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function reap_async_query()
     {
         $result = false;
@@ -374,6 +390,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function escape_string($string)
     {
         $result = false;
@@ -386,6 +403,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function real_query($query)
     {
         $result = false;
@@ -434,6 +452,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function select_db($database)
     {
         $result = false;
@@ -446,6 +465,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function set_charset($charset)
     {
         $result = false;
@@ -458,6 +478,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function set_opt($option, $value)
     {
         $result = false;
@@ -482,6 +503,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function stat()
     {
         $result = false;
@@ -494,6 +516,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function stmt_init()
     {
         $result = false;
@@ -506,6 +529,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function store_result($mode = null)
     {
         $result = false;
@@ -530,6 +554,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function use_result()
     {
         $result = false;
@@ -554,6 +579,7 @@ class FakeMysqli extends mysqli
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public static function poll(?array &$read, ?array &$error, ?array &$reject, $sec, $usec = null)
     {
         $result = false;

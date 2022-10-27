@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use PDO;
+use ReturnTypeWillChange;
 
 class FakePdo extends PDO
 {
@@ -92,6 +93,7 @@ class FakePdo extends PDO
         parent::__construct($dsn, $username, $password, $options);
     }
 
+    #[ReturnTypeWillChange]
     public function prepare($query, $options = [])
     {
         $result = false;
@@ -104,7 +106,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function beginTransaction()
     {
         $result = false;
@@ -117,7 +119,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function commit()
     {
         $result = false;
@@ -130,7 +132,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function rollBack()
     {
         $result = false;
@@ -143,6 +145,7 @@ class FakePdo extends PDO
         return $result;
     }
 
+    #[ReturnTypeWillChange]
     public function inTransaction()
     {
         $result = false;
@@ -155,7 +158,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function setAttribute($attribute, $value)
     {
         $result = false;
@@ -168,7 +171,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function getAttribute($attribute)
     {
         $result = null;
@@ -181,7 +184,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function exec($statement)
     {
         $result = false;
@@ -194,7 +197,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function query($query, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, ...$fetch_mode_args)
     {
         $result = false;
@@ -207,7 +210,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         $result = false;
@@ -220,7 +223,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function errorCode()
     {
         $result = null;
@@ -233,7 +236,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function errorInfo()
     {
         $result = [];
@@ -246,7 +249,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public function quote($string, $type = PDO::PARAM_INT)
     {
         $result = false;
@@ -271,7 +274,7 @@ class FakePdo extends PDO
         return $result;
     }
 
-    #[\ReturnTypeWillChange]
+    #[ReturnTypeWillChange]
     public static function getAvailableDrivers()
     {
         $result = [];

@@ -5,6 +5,7 @@ namespace Dogma\Tests\Debug;
 use Closure;
 use DateTime;
 use DateTimeZone;
+use Dogma\Debug\Ansi;
 use Dogma\Debug\Assert;
 use Dogma\Debug\Dumper;
 use function range;
@@ -108,6 +109,7 @@ Assert::dump(NAN, '<literal>: <NAN>');
 strings:
 Assert::dump('', '<literal>: <"">');
 Assert::dump('abcdef', '<literal>: <"abcdef"> <// 6 B>');
+Dumper::$escapeAllNonAscii = false;
 Assert::dump('áčř', '<literal>: <"áčř"> <// 6 B, 3 ch>');
 
 // hidden
@@ -131,7 +133,7 @@ Assert::dump('příliš žluťoučký kůň úpěl ďábelské ódy', '<literal>
 Dumper::$maxLength = 10000;
 
 // escaping
-Assert::dump('"', '<literal>: <"<\"<">');
+Assert::dump('"', '<literal>: <\'"\'>');
 Assert::dump("\n", '<literal>: <"<\n<">');
 
 Dumper::$escapeAllNonAscii = true;
@@ -145,33 +147,42 @@ Assert::dump('🙈', '<literal>: <"<\ud83d\ude48<"> <// 4 B, 1 ch>');
 // binary
 $bin = implode('', range("\x00", "\xff"));
 // spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ aa ae af ba bb bc bd cb cd ce da de df eb ec ee ef fb fc fd fe
-Assert::dump($bin, '<$bin>: <binary:>
-   <"¤☺☻♥♦♣♠•◘○◙♂♀♪♫☼"> <// 00 01 02 03  04 05 06 07  08 09 0a 0b  0c 0d 0e 0f>
- . <"►◄↕‼¶§▬↨↑↓→←∟↔▲▼"> <// 10 11 12 13  14 15 16 17  18 19 1a 1b  1c 1d 1e 1f>
- . <" !"#$%&\'()*+,-./"> <// 20 21 22 23  24 25 26 27  28 29 2a 2b  2c 2d 2e 2f>
- . <"0123456789:;<=>?"> <// 30 31 32 33  34 35 36 37  38 39 3a 3b  3c 3d 3e 3f>
- . <"@ABCDEFGHIJKLMNO"> <// 40 41 42 43  44 45 46 47  48 49 4a 4b  4c 4d 4e 4f>
- . <"PQRSTUVWXYZ[\]^_"> <// 50 51 52 53  54 55 56 57  58 59 5a 5b  5c 5d 5e 5f>
- . <"`abcdefghijklmno"> <// 60 61 62 63  64 65 66 67  68 69 6a 6b  6c 6d 6e 6f>
- . <"pqrstuvwxyz{|}~⌂"> <// 70 71 72 73  74 75 76 77  78 79 7a 7b  7c 7d 7e 7f>
- . <"ÇüéâäàåçêëèïîìÄÅ"> <// 80 81 82 83  84 85 86 87  88 89 8a 8b  8c 8d 8e 8f>
- . <"ÉæÆôöòûùÿÖÜ¢£¥₧ƒ"> <// 90 91 92 93  94 95 96 97  98 99 9a 9b  9c 9d 9e 9f>
- . <"áíóúñÑªº¿⌐¬½¼¡«»"> <// a0 a1 a2 a3  a4 a5 a6 a7  a8 a9 aa ab  ac ad ae af>
- . <"░▒▓│┤╡╢╖╕╣║╗╝╜╛┐"> <// b0 b1 b2 b3  b4 b5 b6 b7  b8 b9 ba bb  bc bd be bf>
- . <"└┴┬├─┼╞╟╚╔╩╦╠═╬╧"> <// c0 c1 c2 c3  c4 c5 c6 c7  c8 c9 ca cb  cc cd ce cf>
- . <"╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀"> <// d0 d1 d2 d3  d4 d5 d6 d7  d8 d9 da db  dc dd de df>
- . <"αßΓπΣσµτΦΘΩδ∞φε∩"> <// e0 e1 e2 e3  e4 e5 e6 e7  e8 e9 ea eb  ec ed ee ef>
- . <"≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ "> <// f0 f1 f2 f3  f4 f5 f6 f7  f8 f9 fa fb  fc fd fe ff> <// 256 B>');
+Dumper::$escapeAllNonAscii = false; // todo: conflicts with normal binary escaping
+Dumper::$binaryEscaping = Dumper::ESCAPING_CP437;
+Dumper::$colors['escape_basic'] = Ansi::LCYAN;
+Dumper::$colors['escape_special'] = Ansi::LCYAN;
+Dumper::$colors['escape_non_ascii'] = Ansi::LCYAN;
+Assert::dump($bin, <<<END
+<unknown>: <binary:>
+   <"¤☺☻♥♦♣♠•◘○◙♂♀♪♫☼"> <//   0: 00 01 02 03  04 05 06 07  08 09 0a 0b  0c 0d 0e 0f>
+ . <"►◄↕‼¶§▬↨↑↓→←∟↔▲▼"> <//  16: 10 11 12 13  14 15 16 17  18 19 1a 1b  1c 1d 1e 1f>
+ . <" !"#$%&'()*+,-./"> <//  32: 20 21 22 23  24 25 26 27  28 29 2a 2b  2c 2d 2e 2f>
+ . <"0123456789:;<=>?"> <//  48: 30 31 32 33  34 35 36 37  38 39 3a 3b  3c 3d 3e 3f>
+ . <"@ABCDEFGHIJKLMNO"> <//  64: 40 41 42 43  44 45 46 47  48 49 4a 4b  4c 4d 4e 4f>
+ . <"PQRSTUVWXYZ[\]^_"> <//  80: 50 51 52 53  54 55 56 57  58 59 5a 5b  5c 5d 5e 5f>
+ . <"`abcdefghijklmno"> <//  96: 60 61 62 63  64 65 66 67  68 69 6a 6b  6c 6d 6e 6f>
+ . <"pqrstuvwxyz{|}~⌂"> <// 112: 70 71 72 73  74 75 76 77  78 79 7a 7b  7c 7d 7e 7f>
+ . <"ÇüéâäàåçêëèïîìÄÅ"> <// 128: 80 81 82 83  84 85 86 87  88 89 8a 8b  8c 8d 8e 8f>
+ . <"ÉæÆôöòûùÿÖÜ¢£¥₧ƒ"> <// 144: 90 91 92 93  94 95 96 97  98 99 9a 9b  9c 9d 9e 9f>
+ . <"áíóúñÑªº¿⌐¬½¼¡«»"> <// 160: a0 a1 a2 a3  a4 a5 a6 a7  a8 a9 aa ab  ac ad ae af>
+ . <"░▒▓│┤╡╢╖╕╣║╗╝╜╛┐"> <// 176: b0 b1 b2 b3  b4 b5 b6 b7  b8 b9 ba bb  bc bd be bf>
+ . <"└┴┬├─┼╞╟╚╔╩╦╠═╬╧"> <// 192: c0 c1 c2 c3  c4 c5 c6 c7  c8 c9 ca cb  cc cd ce cf>
+ . <"╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀"> <// 208: d0 d1 d2 d3  d4 d5 d6 d7  d8 d9 da db  dc dd de df>
+ . <"αßΓπΣσµτΦΘΩδ∞φε∩"> <// 224: e0 e1 e2 e3  e4 e5 e6 e7  e8 e9 ea eb  ec ed ee ef>
+ . <"≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ "> <// 240: f0 f1 f2 f3  f4 f5 f6 f7  f8 f9 fa fb  fc fd fe ff> <// 256 B>
+END
+);
 
 
 arrays:
 Assert::dump([], '<literal>: <[]>');
 
 // short
+Dumper::$alwaysShowArrayKeys = false;
 Assert::dump([1, 2, 3, 4, 5], '<literal>: <[><1>, <2>, <3>, <4>, <5><]> <// 5 items>');
 
 // long
-Assert::dump(range(100000001, 100000010), '<range(100000001, 100000010)>: <[>
+Assert::dump(range(100000001, 100000010), '<"range(100000001, 100000010)">: <[>
    <100000001>,
    <100000002>,
    <100000003>,
@@ -262,22 +273,23 @@ $closure = Closure::fromCallable('date');
 Assert::dump($closure, '<$closure>: <Closure> function <date>(<$format>, <$timestamp>) <{><}>');
 
 $closure = Closure::fromCallable([$foo, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><22>
+Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><23>
    <static> <$x> = <42>;
 <}>');
 
 $closure = Closure::fromCallable([Bar::class, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><33>
+Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><34>
    <static> <$x> = <42>;
 <}>');
 
 
 callables:
-Assert::dump([$foo, 'bar'], '<[$foo, \'bar\']>: <Dogma><\><Tests><\><Debug><\><Foo>::<bar><()> <{>
+// todo: 0-level keys should not be quoted
+Assert::dump([$foo, 'bar'], '<"[$foo, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Foo>::<bar><()> <{>
    <static> <$x> = <42>;
 <}>');
 
-Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\><Debug><\><Bar>::<bar><()> <{>
+Assert::dump([Bar::class, 'bar'], '<"[Bar::class, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Bar>::<bar><()> <{>
    <static> <$x> = <42>;
 <}>');
 

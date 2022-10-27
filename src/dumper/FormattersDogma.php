@@ -25,6 +25,7 @@ use Dogma\Time\IntervalData\DateIntervalDataSet;
 use Dogma\Time\IntervalData\NightIntervalData;
 use Dogma\Time\IntervalData\NightIntervalDataSet;
 use Dogma\Time\Time;
+use Throwable;
 use function count;
 use function get_class;
 use function implode;
@@ -200,17 +201,31 @@ class FormattersDogma
 
     public static function dumpIntEnum(IntEnum $enum): string
     {
+        try {
+            @$const = $enum->getConstantName();
+        } catch (Throwable $e) {
+            // strange uninitialized enum bug : [
+            $const = '__UNKNOWN__';
+        }
+
         return Dumper::name(get_class($enum)) . Dumper::bracket('(')
             . Dumper::int((string) $enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
-            . Dumper::value2($enum->getConstantName())
+            . Dumper::value2($const)
             . Dumper::bracket(')');
     }
 
     public static function dumpStringEnum(StringEnum $enum): string
     {
+        try {
+            @$const = $enum->getConstantName();
+        } catch (Throwable $e) {
+            // strange uninitialized enum bug : [
+            $const = '__UNKNOWN__';
+        }
+
         return Dumper::name(get_class($enum)) . Dumper::bracket('(')
             . Dumper::string($enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
-            . Dumper::value2($enum->getConstantName())
+            . Dumper::value2($const)
             . Dumper::bracket(')');
     }
 

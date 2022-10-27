@@ -19,6 +19,7 @@ use RuntimeException;
 use function array_key_exists;
 use function array_slice;
 use function array_values;
+use function count;
 use function error_clear_last;
 use function error_get_last;
 use function file;

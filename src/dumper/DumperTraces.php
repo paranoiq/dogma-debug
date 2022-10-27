@@ -15,13 +15,14 @@ use function array_values;
 use function floor;
 use function implode;
 use function in_array;
+use function ltrim;
 use function preg_match;
 use function preg_replace;
+use function rtrim;
+use function str_contains;
 use function str_replace;
 use function str_split;
-use function strlen;
 use function strpos;
-use function strrpos;
 use function strtolower;
 use function substr;
 use function trim;
@@ -171,10 +172,21 @@ trait DumperTraces
             $currentArgs = $skipArgs;
         } elseif ($frame->args !== []) {
             $currentArgs = self::dumpArguments($frame->getNamedArgs());
+            if (!str_contains($currentArgs, "\n")) {
+                $currentArgs = ' ' . ltrim(rtrim($currentArgs, ',')) . ' ';
+            } else {
+                $currentArgs = "\n" . $currentArgs . "\n";
+            }
         }
 
         $same = $currentArgs === $prevArgs && $currentArgs !== $skipArgs && $currentArgs !== $unknownArgs && $currentArgs !== '';
-        $args = $same ? ' ' . self::exceptions('^ same') . ' ' : $currentArgs;
+        if ($same) {
+            $args = ' ' . self::exceptions('^ same') . ' ';
+        } elseif (in_array($frame->class . '::' . $frame->function, self::$doNotTraverse, true)) {
+            $args = ' ' . self::exceptions('skipped') . ' ';
+        } else {
+            $args = $currentArgs;
+        }
 
         $classMethod = '';
         if (self::$traceDetails && $frame->function !== null) {

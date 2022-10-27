@@ -134,7 +134,7 @@ class ExceptionHandler
         Debugger::send(Packet::EXCEPTION, $message);
     }
 
-    private static function formatException(Throwable $exception): string
+    public static function formatException(Throwable $exception): string
     {
         $first = true;
         $message = '';
@@ -156,7 +156,8 @@ class ExceptionHandler
                     }
                 }
                 if ($properties !== []) {
-                    $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, 1, get_class($exception)) . "\n" . Dumper::bracket('}');
+                    Dumper::$maxDepth = 3;
+                    $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, 0, get_class($exception)) . "\n" . Dumper::bracket('}');
                 }
 
                 $callstack = Callstack::fromThrowable($exception);
@@ -166,7 +167,7 @@ class ExceptionHandler
                 $message .= "\n" . Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
             } catch (Throwable $exception) {
                 Debugger::label('Exception formatting failed with:', null, 'r');
-                Debugger::varDump($exception);
+                Debugger::dump($exception, 4);
             }
 
             $first = false;

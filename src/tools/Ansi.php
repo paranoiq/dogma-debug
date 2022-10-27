@@ -354,7 +354,7 @@ final class Ansi
 
     public static function between($string, string $color, string $after, string $background = self::BLACK): string
     {
-        if (self::$off) {
+        if (self::$off || $color === $after) {
             return (string) $string;
         }
 

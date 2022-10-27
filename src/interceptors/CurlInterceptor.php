@@ -220,7 +220,7 @@ class CurlInterceptor
     private static $files = [];
 
     /** @var int[] */
-    private static $opt = [
+    private static $opt = [ // @phpstan-ignore-line write-only
         CURLOPT_PORT => 3,
         CURLOPT_TIMEOUT => 13,
         CURLOPT_INFILESIZE => 14,

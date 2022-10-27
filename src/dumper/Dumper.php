@@ -206,8 +206,8 @@ class Dumper
 
         'string' => Ansi::LCYAN, // "foo"
         'escape_basic' => Ansi::DCYAN, // basic escaped characters (whitespace and quotes)
-        'escape_special' => Ansi::LYELLOW, // special ascii characters (without whitespace)
-        'escape_non_ascii' => Ansi::DYELLOW, // characters outside ascii (\x80-\xff)
+        'escape_special' => Ansi::LMAGENTA, // special ascii characters (without whitespace)
+        'escape_non_ascii' => Ansi::DMAGENTA, // characters outside ascii (\x80-\xff)
 
         'resource' => Ansi::LRED, // stream
         'namespace' => Ansi::LRED, // Foo...
@@ -286,12 +286,12 @@ class Dumper
         [self::class, 'dumpEntityId'],
     ];
 
-    /** @var array<class-string> - classes that are not traversed. short dumps are used if configured */
+    /** @var array<string> - classes and methods (syntax: "Class::method") that are not traversed. short dumps are used if configured */
     public static $doNotTraverse = [];
 
     // internals -------------------------------------------------------------------------------------------------------
 
-    /** @var string[] */
+    /** @var array<string, bool> */
     private static $objects = [];
 
     /**
@@ -318,7 +318,7 @@ class Dumper
 
         if ($colors) {
             $dump = Str::replaceKeys($dump, [
-                '*RECURSION*' => self::exceptions('RECURSION'),
+                '*RECURSION*' => self::exceptions('recursion'),
                 '=> NULL' => '=> ' . self::null('null'),
                 '=> bool(true)' => '=> ' . self::bool('true'),
                 '=> bool(false)' => '=> ' . self::bool('false'),
@@ -369,7 +369,7 @@ class Dumper
     {
         self::$objects = [];
 
-        $maxDepthBefore = self::$maxDepth;
+        $oldDepth = self::$maxDepth;
         if ($maxDepth !== null) {
             self::$maxDepth = $maxDepth;
         }
@@ -405,7 +405,7 @@ class Dumper
             return $exp . $result . ($trace ? "\n" : '') . $trace;
         } finally {
             self::$traceLength = $traceLengthBefore;
-            self::$maxDepth = $maxDepthBefore;
+            self::$maxDepth = $oldDepth;
         }
     }
 
@@ -545,7 +545,7 @@ class Dumper
         if (isset($array[$marker])) {
             $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
 
-            return self::bracket('[') . ' ' . self::exceptions('RECURSION') . ' ' . self::bracket(']') . $info;
+            return self::bracket('[') . ' ' . self::exceptions('recursion') . ' ' . self::bracket(']') . $info;
         }
 
         // try to speculatively format the array to check if they can fit on one row, even when depth limit is reached
@@ -651,25 +651,12 @@ class Dumper
         self::$objects[$hash] = true;
         $class = get_class($object);
 
-        $info = '';
-        if (self::$showInfo) {
-            $info = ' ' . self::info('// #' . self::objectHash($object));
-        }
-
         if ($recursion) {
-            /** @var int|class-string $cl */
-            foreach (self::$shortObjectFormatters as $cl => $handler) {
-                if (is_int($cl) || is_a($object, $cl)) {
-                    $short = $handler($object);
-                    if ($short) {
-                        return $short;
-                    }
-                }
-            }
-
             return self::name($class) . ' ' . self::bracket('{') . ' '
-                . self::exceptions('RECURSION') . ' ' . self::bracket('}') . $info;
+                . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
         }
+
+        $info = self::objectInfo($object);
 
         $handlerResult = '';
         if (self::$useFormatters && $depth < self::$maxDepth + 1) {
@@ -986,7 +973,7 @@ class Dumper
         $n = 0;
         $items = [];
         foreach ($variables as $name => $value) {
-            $var = self::property($name);
+            $var = self::property((string) $name);
             $value = self::dumpValue($value, 1, $name);
 
             $item = $indent . $var . $sep . $value;
@@ -1002,7 +989,7 @@ class Dumper
             $n++;
         }
 
-        return "\n" . implode("\n", $items) . "\n";
+        return implode("\n", $items);
     }
 
     /**
