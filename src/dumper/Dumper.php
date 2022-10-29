@@ -137,6 +137,21 @@ class Dumper
     /** @var int - ordering of dumped properties of objects */
     public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
 
+    /** @var bool - show flag for dynamicly created properties */
+    //public static $showDynamicProperties = false;
+
+    /** @var bool - show property types (since 7.4) */
+    //public static $showPropertyTypes = false;
+
+    /** @var bool - show undefined typed properties (since 7.4) */
+    //public static $showUndefinedProperties = false;
+
+    /** @var bool - show readonly flag on properties (since 8.1) and classes (since 8.2) */
+    //public static $showReadonly = false;
+
+    /** @var bool - group null and undefined properties of object together */
+    public static $groupNullAndUndefined = false;
+
     /** @var string[] (regexp $long => replacement $short) - replacements of namespaces for shorter class names in dumps */
     public static $namespaceReplacements = [];
 
@@ -719,6 +734,7 @@ class Dumper
 
         $n = 0;
         $items = [];
+        $nulls = [];
         foreach ($properties as $name => $value) {
             $parts = explode("\0", $name);
             if (count($parts) === 3) {
@@ -729,12 +745,20 @@ class Dumper
                 $cls = null;
             }
             $access = self::access($cls === '*' ? 'protected' : ($cls === null ? 'public' : 'private'));
-            $value = self::dumpValue($value, $depth + 1, $name);
+            $valueDump = self::dumpValue($value, $depth + 1, $name);
+
+            if (self::$groupNullAndUndefined && $value === null) {
+                $nulls[] = $cls === null || $cls === '*' || $cls === $class
+                    ? self::info('$' . $name)
+                    : self::info($cls) . self::info('::$' . $name);
+                continue;
+            }
+
             $fullName = $cls === null || $cls === '*' || $cls === $class
                 ? self::property('$' . $name)
                 : self::name($cls) . self::property('::$' . $name);
 
-            $item = $indent . $access . ' ' . $fullName . $equal . $value;
+            $item = $indent . $access . ' ' . $fullName . $equal . $valueDump;
 
             $pos = strrpos($item, $infoPrefix);
             if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
@@ -752,6 +776,10 @@ class Dumper
         }
 
         ksort($items);
+
+        if ($nulls !== []) {
+            $items[] = $indent . implode(', ', $nulls) . $equal . self::null('null') . $semi;
+        }
 
         return implode("\n", $items);
     }

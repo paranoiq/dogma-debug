@@ -38,6 +38,7 @@ Debugger::$connection = Debugger::CONNECTION_FILE;
 Debugger::$maxMessageLength = 10000000000;
 
 Dumper::$escapeAllNonAscii = true;
+Dumper::$groupNullAndUndefined = true;
 
 // report PHP files, which has been modified to enable tracking
 Intercept::$logReplacements = false;
