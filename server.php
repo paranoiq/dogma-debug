@@ -31,9 +31,35 @@ System::setProcessName('Dogma Debug Server (php-cli)');
 echo Ansi::lgreen("Dogma-Debug by @paranoiq") . " - Remote console dumper/debugger\n\n";
 echo "Usage: " . Ansi::dyellow("php server.php [port] [address] [file]") . "\n\n";
 
-$port = (int) ($argv[1] ?? 1729);
-$address = $argv[2] ?? '127.0.0.1';
-$file = $argv[3] ?? __DIR__ . '/debugger.log';
+$config = [
+    'port' => 1729,
+    'host' => '127.0.0.1',
+    'log-file' => __DIR__ . '/debugger.log',
+    'keep-old-log' => false,
+];
+$key = null;
+foreach ($argv as $i => $arg) {
+    if ($i === 0) {
+        continue;
+    }
+    if ($key === 'port' || ($i === 0 && is_numeric($arg))) {
+        $config['port'] = (int) $arg;
+    } elseif ($key === 'host' || ($i === 1 && preg_match('~\d+.\d+.\d+.\d+~', $arg))) {
+        $config['host'] = $arg;
+    } elseif ($key === 'file' || ($i === 2 && preg_match('~.log$~', $arg))) {
+        $config['log-file'] = $arg;
+    } elseif ($arg === '--keep-old-log') {
+        $config['keep-old-log'] = true;
+    } elseif (array_key_exists(ltrim($arg, '-'), $config)) {
+        $key = ltrim($arg, '-');
+    } else {
+        exit("Unknown argument: $arg\n");
+    }
+}
 
-$server = new DebugServer($port, $address, $file);
+if (file_exists($config['log-file']) && !$config['keep-old-log']) {
+    unlink($config['log-file']);
+}
+
+$server = new DebugServer($config['port'], $config['host'], $config['log-file']);
 $server->run();
