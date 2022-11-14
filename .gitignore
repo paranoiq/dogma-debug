@@ -6,4 +6,5 @@ output
 log
 coverage.html
 coverage.xml
-debug.log
+debugger.log
+debug-config.php
