@@ -208,8 +208,14 @@ class ErrorHandler
         // start match
         if ($places === []) {
             foreach (self::$ignore as $m => $p) {
-                if (str_starts_with($typeMessage, $m)) {
-                    $places = $p;
+                if (str_starts_with($m, '~')) {
+                    if (preg_match($m, $typeMessage)) {
+                        $places = $p;
+                    }
+                } else {
+                    if (str_starts_with($typeMessage, $m)) {
+                        $places = $p;
+                    }
                 }
             }
         }
