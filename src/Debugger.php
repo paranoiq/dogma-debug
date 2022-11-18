@@ -121,7 +121,7 @@ class Debugger
     /** @var string Background color of request header, footer and process id label */
     public static $headerColor = Ansi::LYELLOW;
 
-    /** @var class-string[] Order of stream handler stats in request footer */
+    /** @var array<class-string<StreamWrapper>> Order of stream handler stats in request footer */
     public static $footerStreamWrappers = [
         FileStreamWrapper::class,
         PharStreamWrapper::class,
@@ -146,8 +146,9 @@ class Debugger
         ShutdownHandler::NAME => Ansi::DGREEN,
 
         // database handlers
-        RedisHandler::NAME => Ansi::DGREEN,
         SqlHandler::NAME => Ansi::DGREEN,
+        RedisHandler::NAME => Ansi::DGREEN,
+        AmqpHandler::NAME => Ansi::DGREEN,
 
         // intercept handlers
         AutoloadInterceptor::NAME => Ansi::DGREEN,
