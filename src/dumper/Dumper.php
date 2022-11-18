@@ -120,10 +120,13 @@ class Dumper
     /** @var int|null - length of binary string chunks (rows) */
     public static $binaryChunkLength = 16;
 
-    // array and object settings ---------------------------------------------------------------------------------------
+    // array settings --------------------------------------------------------------------------------------------------
 
     /** @var int - max depth of dumped structures */
     public static $maxDepth = 3;
+
+    /** @var int - max items shown in an array dump */
+    public static $arrayMaxLength = 100;
 
     /** @var int - max length or array formatted to a single line */
     public static $shortArrayMaxLength = 100;
@@ -133,6 +136,8 @@ class Dumper
 
     /** @var bool - show array keys even on lists with sequential indexes */
     public static $alwaysShowArrayKeys = false;
+
+    // object settings -------------------------------------------------------------------------------------------------
 
     /** @var int - ordering of dumped properties of objects */
     public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
@@ -587,7 +592,12 @@ class Dumper
             $items = [];
             try {
                 $array[$marker] = true;
+                $n = 0;
                 foreach ($array as $k => $value) {
+                    if (++$n > self::$arrayMaxLength) {
+                        $items[] = self::exceptions('...');
+                        break;
+                    }
                     if ($k === $marker) {
                         continue;
                     }
