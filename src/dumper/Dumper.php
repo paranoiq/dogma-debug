@@ -68,15 +68,15 @@ class Dumper
     use DumperTraces;
     use DumperFormatters;
 
-    public const ESCAPING_NONE = 0;
-    public const ESCAPING_PHP = 1;
-    public const ESCAPING_JS = 2;
-    public const ESCAPING_JSON = 3;
-    public const ESCAPING_MYSQL = 4;
-    public const ESCAPING_PGSQL = 5;
-    public const ESCAPING_CHAR_NAMES = 6;
-    public const ESCAPING_ISO2047_SYMBOLS = 7; // https://en.wikipedia.org/wiki/ISO_2047
-    public const ESCAPING_CP437 = 8; // https://en.wikipedia.org/wiki/Code_page_437
+    public const ESCAPING_NONE = 'none';
+    public const ESCAPING_PHP = 'php';
+    public const ESCAPING_JS = 'js';
+    public const ESCAPING_JSON = 'json';
+    public const ESCAPING_MYSQL = 'mysql';
+    public const ESCAPING_PGSQL = 'pgsql';
+    public const ESCAPING_CHAR_NAMES = 'names';
+    public const ESCAPING_ISO2047_SYMBOLS = 'symbols'; // https://en.wikipedia.org/wiki/ISO_2047
+    public const ESCAPING_CP437 = 'cp437'; // https://en.wikipedia.org/wiki/Code_page_437
 
     public const ORDER_ORIGINAL = 1;
     public const ORDER_ALPHABETIC = 2;

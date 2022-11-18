@@ -951,7 +951,7 @@ trait DumperFormatters
     private static function stringChunk(
         int $offset,
         string $string,
-        int $escaping,
+        string $escaping,
         string $pattern,
         array $translations,
         bool $binary,
@@ -983,7 +983,7 @@ trait DumperFormatters
 
     public static function escapeRawString(
         string $string,
-        int $escaping,
+        string $escaping,
         string $normalColor = Ansi::LGRAY,
         string $background = Ansi::BLACK
     ): string
@@ -1000,7 +1000,7 @@ trait DumperFormatters
      */
     private static function escapeStringChunk(
         string $string,
-        int $escaping,
+        string $escaping,
         string $pattern,
         array $translations,
         string $normalColor,
@@ -1066,7 +1066,7 @@ trait DumperFormatters
     /**
      * @return string[]
      */
-    private static function getTranslations(int $escaping): array
+    private static function getTranslations(string $escaping): array
     {
         $translations = [];
         switch ($escaping) {
