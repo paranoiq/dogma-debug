@@ -268,7 +268,7 @@ class CallstackFrame
             return null;
         }
 
-        $line = self::readLines($this->file, $this->line - 1, 1)[0];
+        $line = self::readLines($this->file, $this->line - 1, 1)[0] ?? '';
 
         return $line !== '' ? $line : null;
     }
