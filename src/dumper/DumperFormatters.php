@@ -893,6 +893,9 @@ trait DumperFormatters
         }
         $pattern = Str::createCharPattern(array_keys($translations));
 
+        if (self::$binaryChunkLength < 1) {
+            self::$binaryChunkLength = null;
+        }
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
             return self::stringChunk(-1, $string, $escaping, $pattern, $translations, false, $ellipsis, $apos ? "'" : '"');
@@ -1027,7 +1030,11 @@ trait DumperFormatters
             return Ansi::between($ch, $escapeColor, $normalColor, $background);
         }, $string);
 
-        if (self::$escapeAllNonAscii && $escaping !== self::ESCAPING_MYSQL) {
+        if (self::$escapeAllNonAscii
+            && $escaping !== self::ESCAPING_MYSQL // does not support unicode escape codes
+            && $escaping !== self::ESCAPING_CP437 // already escaped everything as unicode chars
+            && $escaping !== self::ESCAPING_ISO2047_SYMBOLS // control chars already escaped as unicode chars
+        ) {
             $unicode = preg_replace_callback('~[\x80-\x{10FFFF}]~u', static function (array $m) use ($escaping, $normalColor, $background): string {
                 $ch = $m[0];
                 if ($escaping === self::ESCAPING_JS || $escaping === self::ESCAPING_JSON) {
