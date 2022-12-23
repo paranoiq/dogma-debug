@@ -136,6 +136,19 @@ class ExceptionHandler
 
     public static function formatException(Throwable $exception): string
     {
+        static $filteredProperties = [
+            "\0Exception\0string",
+            "\0Exception\0trace",
+            "\0Exception\0previous",
+            "\0Error\0string",
+            "\0Error\0trace",
+            "\0Error\0previous",
+            "\0*\0file",
+            "\0*\0line",
+            "\0*\0message",
+            "xdebug_message",
+        ];
+
         $first = true;
         $message = '';
 
@@ -148,7 +161,7 @@ class ExceptionHandler
             try {
                 $properties = (array) $exception;
                 foreach ($properties as $name => $value) {
-                    if (in_array($name, ["\0Exception\0string", "\0Exception\0previous", "\0Exception\0trace", "\0*\0file", "\0*\0line", "\0*\0message", "xdebug_message"], true)) {
+                    if (in_array($name, $filteredProperties, true)) {
                         unset($properties[$name]);
                     }
                     if ($name === "\0*\0code" && $value === 0) {
