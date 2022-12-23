@@ -202,6 +202,10 @@ class Request
             || self::commandMatches('~phpstan worker~')
         ) {
             self::$application = 'phpstan';
+        } elseif (self::commandMatches('~vendor/bin/rector process~')
+            || self::commandMatches('~vendor/bin/rector worker~')
+        ) {
+            self::$application = 'rector';
         } elseif (self::commandMatches('~/nette/tester/src/tester~')) {
             self::$application = 'nette-tester';
         } elseif (self::commandMatches('~nette/tester/src/Runner/info.php~')) {
