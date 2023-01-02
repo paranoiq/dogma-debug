@@ -442,18 +442,19 @@ class Intercept
         callable $function,
         array $params,
         $defaultReturn,
-        bool $allowed = false
+        bool $allowed = false,
+        string $info = ''
     )
     {
         if ($allowed || $level === self::NONE || $level === self::SILENT) {
             return call_user_func_array($function, $params);
         } elseif ($level & self::LOG_CALLS) {
             $result = call_user_func_array($function, $params);
-            self::log($handler, $level, $function, $params, $result);
+            self::log($handler, $level, $function, $params, $result, $info);
 
             return $result;
         } elseif ($level & self::PREVENT_CALLS) {
-            self::log($handler, $level, $function, $params, $defaultReturn);
+            self::log($handler, $level, $function, $params, $defaultReturn, $info);
 
             return $defaultReturn;
         } else {
@@ -465,7 +466,7 @@ class Intercept
      * @param mixed[] $params
      * @param mixed|null $return
      */
-    public static function log(string $handler, int $level, string $function, array $params, $return): void
+    public static function log(string $handler, int $level, string $function, array $params, $return, string $info = ''): void
     {
         if (!self::$logAttempts || ($level & self::SILENT)) {
             return;
@@ -473,6 +474,10 @@ class Intercept
 
         $message = (($level & self::PREVENT_CALLS) ? ' Prevented ' : ' Called ')
             . Dumper::call($function, $params, $return);
+
+        if ($info !== '') {
+            $message .= Dumper::info($info);
+        }
 
         $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
