@@ -91,7 +91,7 @@ class DebugServer
     {
         System::switchTerminalToUtf8();
 
-        if ($this->useSockets) {
+        if ($this->useSockets && $this->socket) {
             $this->socketsConnect();
             echo "Listening on port " . Ansi::white($this->port) . " and watching " . Ansi::white($this->file) . "\n";
         } else {
@@ -99,7 +99,7 @@ class DebugServer
         }
 
         while (true) {
-            if ($this->useSockets) {
+            if ($this->useSockets && $this->socket) {
                 $newConnection = socket_accept($this->socket);
                 if ($newConnection) {
                     //socket_set_nonblock($newConnection);
@@ -249,24 +249,24 @@ class DebugServer
 
     private function socketsConnect(): void
     {
-        $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if ($sock === false) {
-            echo Ansi::lred("Could not create socket.\n");
-            exit(1);
+        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        if ($socket === false) {
+            echo Ansi::lred("Could not create socket.\n\n");
+            return;
         }
-        $this->socket = $sock;
-        if (@!socket_bind($this->socket, $this->address, $this->port)) {
-            echo Ansi::lred("Could not bind to address.\n");
-            exit(1);
+        if (@!socket_bind($socket, $this->address, $this->port)) {
+            echo Ansi::lred("Could not bind to address {$this->address}:{$this->port}.\n\n");
+            return;
         }
-        if (!socket_listen($this->socket, 20)) {
-            echo Ansi::lred("Could not listen on socket.\n");
-            exit(1);
+        if (!socket_listen($socket, 20)) {
+            echo Ansi::lred("Could not listen on socket {$this->address}:{$this->port}.\n\n");
+            return;
         }
-        if (!socket_set_nonblock($this->socket)) {
-            echo Ansi::lred("Could not set socket to non-blocking.\n");
-            exit(1);
+        if (!socket_set_nonblock($socket)) {
+            echo Ansi::lred("Could not set socket to non-blocking.\n\n");
+            return;
         }
+        $this->socket = $socket;
     }
 
 }
