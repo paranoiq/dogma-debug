@@ -432,7 +432,7 @@ trait DumperFormatters
 
     public static function dumpStringUuid(string $string, string $info, string $key, int $depth): ?string
     {
-        static $uuidRe = '~(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})}?~';
+        static $uuidRe = '~^(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})}?$~';
 
         $bytes = strlen($string);
         // phpcs:disable SlevomatCodingStandard.ControlStructures.AssignmentInCondition.AssignmentInCondition
