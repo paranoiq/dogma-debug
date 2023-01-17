@@ -374,7 +374,7 @@ class Intercept
 
         if (self::$exceptionCallable) {
             [$handler, [$class, $method]] = self::$exceptionCallable;
-            $result = preg_replace('~([ \t]*)(}\s*catch\s*\([^)]+\s+)(\\$[a-zA-Z0-9_]+)(\s*\)\s*{)~', "\\1\\2\\3\\4\n\\1\t\\\\$class::$method(\\3);", $code);
+            $result = preg_replace('~([ \t]*)(}\s*catch\s*\([^)]+\s+)(\\$[A-Za-z0-9_]+)(\s*\)\s*{)~', "\\1\\2\\3\\4\n\\1\t\\\\$class::$method(\\3);", $code);
             if ($result !== $code) {
                 $replaced[$handler][] = "catch (...)";
             }

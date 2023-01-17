@@ -142,7 +142,7 @@ class Dumper
     /** @var int - ordering of dumped properties of objects */
     public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
 
-    /** @var bool - show flag for dynamicly created properties */
+    /** @var bool - show flag for dynamically created properties */
     //public static $showDynamicProperties = false;
 
     /** @var bool - show property types (since 7.4) */
