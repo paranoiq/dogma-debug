@@ -232,7 +232,7 @@ class Debugger
         $dump = Dumper::dump($value, $maxDepth, $traceLength);
         self::send(Packet::DUMP, $dump);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $value;
     }
@@ -248,7 +248,7 @@ class Debugger
         $dump = Dumper::varDump($value, $colors);
         self::send(Packet::DUMP, $dump);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $value;
     }
@@ -271,7 +271,7 @@ class Debugger
         $dump = Dumper::dump($value, $maxDepth, $traceLength);
         self::send(Packet::DUMP, $dump);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $value;
     }
@@ -303,7 +303,7 @@ class Debugger
 
         self::send(Packet::LABEL, $message);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $label;
     }
@@ -317,7 +317,7 @@ class Debugger
 
         self::send(Packet::RAW, $message);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $message;
     }
@@ -346,7 +346,7 @@ class Debugger
 
         self::send(Packet::CALLSTACK, $trace);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
     public static function function(): void
@@ -368,7 +368,7 @@ class Debugger
 
         self::send(Packet::CALLSTACK, $message);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
     /**
@@ -416,7 +416,7 @@ class Debugger
 
         self::send(Packet::TIMER, $message);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
     /**
@@ -454,10 +454,24 @@ class Debugger
 
         self::send(Packet::MEMORY, $message);
 
-        self::checkAccidentalOutput(__FUNCTION__);
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
     // internals -------------------------------------------------------------------------------------------------------
+
+    /**
+     * Ensures that debugger actions have not accidental output
+     *
+     * @param class-string $class
+     */
+    public static function guarded(callable $callback, string $class, string $method)
+    {
+        ob_start();
+
+        $callback();
+
+        self::checkAccidentalOutput($class, $method);
+    }
 
     public static function send(
         int $type,
@@ -466,8 +480,19 @@ class Debugger
         ?float $duration = null
     ): void
     {
+        static $depth = 0;
+
         if (!self::$connected) {
             self::init();
+        }
+
+        try {
+            $depth++;
+            if ($depth <= 1 && Request::$application === 'phpunit' && PhpUnitHandler::$announceTestCaseName) {
+                PhpUnitHandler::announceTestCaseName();
+            }
+        } finally {
+            $depth--;
         }
 
         $message = str_replace(Packet::MARKER, "||||", $message);
@@ -662,13 +687,16 @@ class Debugger
         });
     }
 
-    private static function checkAccidentalOutput(string $function): void
+    /**
+     * @param class-string $class
+     */
+    private static function checkAccidentalOutput(string $class, string $method): void
     {
         $output = ob_get_clean();
         if ($output === "") {
             return;
         } elseif ($output === false) {
-            $message = Ansi::white(" Output buffer closed unexpectedly in Debugger::$function(). ", Ansi::DRED);
+            $message = Ansi::white(" Output buffer closed unexpectedly in {$class}::{$method}(). ", Ansi::DRED);
         } elseif (!self::$reportDebuggerAccidentalOutput) {
             return;
         } else {

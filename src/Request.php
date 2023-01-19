@@ -206,6 +206,8 @@ class Request
             || self::commandMatches('~vendor/bin/rector worker~')
         ) {
             self::$application = 'rector';
+        } elseif (self::commandMatches('~phpunit/phpunit/phpunit~')) {
+            self::$application = 'phpunit';
         } elseif (self::commandMatches('~/nette/tester/src/tester~')) {
             self::$application = 'nette-tester';
         } elseif (self::commandMatches('~nette/tester/src/Runner/info.php~')) {

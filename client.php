@@ -84,6 +84,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
     require_once __DIR__ . '/src/handlers/MemoryHandler.php';
     require_once __DIR__ . '/src/handlers/OutputHandler.php';
+    require_once __DIR__ . '/src/handlers/PhpUnitHandler.php';
     require_once __DIR__ . '/src/handlers/RedisHandler.php';
     require_once __DIR__ . '/src/handlers/RequestHandler.php';
     require_once __DIR__ . '/src/handlers/ResourcesHandler.php';
