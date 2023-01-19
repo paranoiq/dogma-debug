@@ -667,7 +667,7 @@ trait DumperFormatters
     public static function url(string $url): string
     {
         $url = (string) preg_replace('/([a-zA-Z0-9_-]+)=/', Ansi::dyellow('$1') . '=', $url);
-        $url = (string) preg_replace('/=([a-zA-Z0-9_-]+)/', '=' . Ansi::lcyan('$1'), $url);
+        $url = (string) preg_replace('/=([a-zA-Z0-9_.-]+)/', '=' . Ansi::lcyan('$1'), $url);
         $url = (string) preg_replace('/[\\/?&=]/', Ansi::dgray('$0'), $url);
 
         return $url;
