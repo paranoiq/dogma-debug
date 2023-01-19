@@ -16,6 +16,7 @@ use DateTime;
 use DateTimeInterface;
 use DateTimeZone;
 use mysqli;
+use ReflectionException;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
@@ -460,8 +461,13 @@ trait DumperFormatters
             return null;
         }
 
+        try {
+            $ref = new ReflectionFunction($string);
+        } catch (ReflectionException $e) {
+            return null;
+        }
+
         $info .= $info ? ', ' : '';
-        $ref = new ReflectionFunction($string);
         if ($ref->isUserDefined()) {
             $file = $ref->getFileName();
             $line = $ref->getStartLine();
