@@ -20,6 +20,7 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
+use WeakReference;
 use function array_filter;
 use function array_keys;
 use function array_map;
@@ -294,6 +295,7 @@ class Dumper
         // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
         UnitEnum::class => [self::class, 'dumpUnitEnum'],
+        WeakReference::class => [self::class, 'dumpWeakReference'],
         mysqli::class => [self::class, 'dumpMysqli'],
         DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
 

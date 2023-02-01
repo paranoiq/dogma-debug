@@ -20,6 +20,7 @@ use ReflectionException;
 use ReflectionFunction;
 use ReflectionObject;
 use UnitEnum;
+use WeakReference;
 use function abs;
 use function array_keys;
 use function array_map;
@@ -255,6 +256,14 @@ trait DumperFormatters
 
         return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name)
             . self::bracket('(') . $value . self::bracket(')');
+    }
+
+    public static function dumpWeakReference(WeakReference $weakReference, int $depth = 0): string
+    {
+        $object = $weakReference->get();
+
+        return self::name(get_class($weakReference)) . self::bracket('(')
+            . self::dumpValue($object, $depth) . self::bracket(')');
     }
 
     public static function dumpCallstack(Callstack $callstack, int $depth = 0): string

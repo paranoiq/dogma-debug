@@ -11,3 +11,12 @@ class BackedEnum {
     public $name;
     public $value;
 }
+
+class WeakReference {
+    /**
+     * @return object|null
+     */
+    public function get() {
+        return null;
+    }
+}
