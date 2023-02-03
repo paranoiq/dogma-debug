@@ -133,6 +133,9 @@ class Intercept
     /** @var array{string, array{class-string, string}}|null */
     private static $exceptionCallable;
 
+    /** @var bool */
+    private static $removeSensitiveParameter = false;
+
     /** @var bool|null */
     private static $strictTypes;
 
@@ -243,6 +246,18 @@ class Intercept
         }
 
         self::$exceptionCallable = [$handler, $callback];
+    }
+
+    /**
+     * Remove #[SensitiveParameter] attributes to allow debugging them
+     */
+    public static function removeSensitiveParameterAttributes(bool $remove): void
+    {
+        if (!self::enabled()) {
+            self::startStreamHandlers();
+        }
+
+        self::$removeSensitiveParameter = $remove;
     }
 
     /**
@@ -404,6 +419,10 @@ class Intercept
             }*/
 
             $code = $result;
+        }
+
+        if (self::$removeSensitiveParameter) {
+            $code = preg_replace('~#\\[\\\\?SensitiveParameter]~', '', $code);
         }
 
         return $code;
