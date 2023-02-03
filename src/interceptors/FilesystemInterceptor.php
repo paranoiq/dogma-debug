@@ -15,6 +15,7 @@ use function call_user_func_array;
 use function count;
 use function explode;
 use function fopen;
+use function gettype;
 use function in_array;
 use function is_resource;
 use function microtime;
@@ -184,6 +185,8 @@ class FilesystemInterceptor
             } else {
                 $file = $meta['uri'] ?? '';
             }
+        } elseif (gettype($file) === 'resource (closed)') {
+            $protocol = 'closed';
         } else {
             $parts = explode('://', $file);
             if (count($parts) > 1) {
