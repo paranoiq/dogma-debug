@@ -10,6 +10,7 @@
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 
+use Dogma\Debug\Ansi;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Diff;
 use Dogma\Debug\Dumper;
@@ -82,7 +83,7 @@ if (!function_exists('rd')) {
      */
     function rdf(string $a, string $b): void
     {
-        $message = ' diff: ' . Diff::cliDiff($a, $b);
+        $message = Ansi::white('diff:') . ' ' . Diff::cliDiff($a, $b);
 
         Debugger::send(Packet::DUMP, $message);
     }
