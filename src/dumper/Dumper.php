@@ -105,7 +105,7 @@ class Dumper
     /** @var int - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
     public static $binaryEscaping = self::ESCAPING_CP437;
 
-    /** @var int - string escaping for labels and raw output */
+    /** @var int - string escaping for labels and raw output (only escapes control characters) */
     public static $rawEscaping = self::ESCAPING_CP437;
 
     /** @var bool - whether to escape \n, \r, \t or keep them as they are (not relevant for ESCAPING_CP437) */

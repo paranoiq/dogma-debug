@@ -993,6 +993,13 @@ trait DumperFormatters
     {
         $translations = self::getTranslations($escaping);
         unset($translations["\n"], $translations["\r"], $translations["\t"], $translations["\e"]);
+        // only escape control characters
+        // todo: invalid unicode sequences?
+        foreach ($translations as $ord => $char) {
+            if ($ord >= 32 && $ord !== 127) {
+                unset($translations[$ord]);
+            }
+        }
         $pattern = Str::createCharPattern(array_keys($translations));
 
         return self::escapeStringChunk($string, $escaping, $pattern, $translations, $normalColor, $background);
@@ -1010,6 +1017,7 @@ trait DumperFormatters
         string $background = Ansi::BLACK
     ): string
     {
+        $formatted = $string;
         $formatted = preg_replace_callback($pattern, static function (array $m) use ($escaping, $translations, $normalColor, $background): string {
             $ch = $m[0];
 
@@ -1028,7 +1036,7 @@ trait DumperFormatters
             }
 
             return Ansi::between($ch, $escapeColor, $normalColor, $background);
-        }, $string);
+        }, $formatted);
 
         if (self::$escapeAllNonAscii
             && $escaping !== self::ESCAPING_MYSQL // does not support unicode escape codes
