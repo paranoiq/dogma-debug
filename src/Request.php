@@ -35,8 +35,42 @@ class Request
     /** @var string|null */
     public static $environment;
 
+    /** @var array<string, string> */
+    public static $appCommandMatches = [
+        '~dogma-debug/tests/.*\.phpt~' => 'self-test',
+        '~/phpstan/phpstan/phpstan~' => 'phpstan',
+        '~phpstan analyze -c~' => 'phpstan',
+        '~phpstan worker~' => 'phpstan',
+        '~vendor/bin/rector process~' => 'rector',
+        '~vendor/bin/rector worker~' => 'rector',
+        '~phpunit/phpunit/phpunit~' => 'phpunit',
+        '~/nette/tester/src/tester~' => 'nette-tester',
+        '~nette/tester/src/Runner/info.php~' => 'nette-tester',
+        '~tests/.*\.phpt~' => 'nette-test',
+        '~composer[^/]*.phar~' => 'composer',
+        '~update --dry-run~' => 'composer',
+        '~validate --no-check-publish~' => 'composer',
+        '~show --format=json -a --name-only~' => 'composer',
+        '~composer-require-checker~' => 'require-checker',
+        '~/squizlabs/php_codesniffer/bin/phpcs~' => 'phpcs',
+        '~/php-parallel-lint/php-parallel-lint/parallel-lint~' => 'parallel-lint',
+        '~/codeception/codeception/codecept~' => 'codeception',
+    ];
+
+    /** @var array<string, string> */
+    public static $appUrlMatches = [
+        '~/adminer/adminer~' => 'adminer',
+    ];
+
+    /** @var array<string, string> */
+    public static $appFileMatches = [
+        '~/var/www/roundcube/~' => 'roundcube',
+    ];
+
     public static function init(): void
     {
+        self::autodetectApps();
+
         self::$sapi = str_replace('handler', '', PHP_SAPI);
     }
 
@@ -195,39 +229,23 @@ class Request
      */
     public static function autodetectApps(): void
     {
-        if (self::commandMatches('~dogma-debug/tests/.*\.phpt~')) {
-            self::$application = 'self-test';
-        } elseif (self::commandMatches('~/phpstan/phpstan/phpstan~')
-            || self::commandMatches('~phpstan analyze -c~')
-            || self::commandMatches('~phpstan worker~')
-        ) {
-            self::$application = 'phpstan';
-        } elseif (self::commandMatches('~vendor/bin/rector process~')
-            || self::commandMatches('~vendor/bin/rector worker~')
-        ) {
-            self::$application = 'rector';
-        } elseif (self::commandMatches('~phpunit/phpunit/phpunit~')) {
-            self::$application = 'phpunit';
-        } elseif (self::commandMatches('~/nette/tester/src/tester~')) {
-            self::$application = 'nette-tester';
-        } elseif (self::commandMatches('~nette/tester/src/Runner/info.php~')) {
-            self::$application = 'nette-tester';
-        } elseif (self::commandMatches('~tests/.*\.phpt~')) {
-            self::$application = 'nette-test';
-        } elseif (self::commandMatchesAny(['~composer[^/]*.phar~', '~update --dry-run~', '~validate --no-check-publish~', '~show --format=json -a --name-only~'])) {
-            self::$application = 'composer';
-        } elseif (self::commandMatches('~composer-require-checker~')) {
-            self::$application = 'require-checker';
-        } elseif (self::commandMatches('~/squizlabs/php_codesniffer/bin/phpcs~')) {
-            self::$application = 'phpcs';
-        } elseif (self::commandMatches('~/php-parallel-lint/php-parallel-lint/parallel-lint~')) {
-            self::$application = 'parallel-lint';
-        } elseif (self::commandMatches('~/codeception/codeception/codecept~')) {
-            self::$application = 'codeception';
-        } elseif (self::urlMatches('~/adminer/adminer~')) {
-            self::$application = 'adminer';
-        } elseif (self::fileMatches('~/var/www/roundcube/~')) {
-            self::$application = 'roundcube';
+        foreach (self::$appCommandMatches as $pattern => $app) {
+            if (self::commandMatches($pattern)) {
+                self::$application = $app;
+                return;
+            }
+        }
+        foreach (self::$appUrlMatches as $pattern => $app) {
+            if (self::urlMatches($pattern)) {
+                self::$application = $app;
+                return;
+            }
+        }
+        foreach (self::$appFileMatches as $pattern => $app) {
+            if (self::fileMatches($pattern)) {
+                self::$application = $app;
+                return;
+            }
         }
     }
 
