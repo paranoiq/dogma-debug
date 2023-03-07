@@ -478,7 +478,7 @@ trait DumperFormatters
 
         $info .= $info ? ', ' : '';
         if ($ref->isUserDefined()) {
-            $file = $ref->getFileName();
+            $file = str_replace('\\', '/', $ref->getFileName());
             $line = $ref->getStartLine();
 
             // todo: trim file prefix
