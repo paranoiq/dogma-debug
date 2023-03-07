@@ -356,6 +356,7 @@ class Debugger
         $frame = Callstack::get(['~Debugger::function$~', '~^rf$~'])->last();
         $class = $frame->class ?? null;
         $function = $frame->function ?? null;
+        // todo: show args
 
         if ($class !== null) {
             $class = explode('\\', $class);

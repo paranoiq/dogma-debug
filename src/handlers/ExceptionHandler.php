@@ -156,7 +156,7 @@ class ExceptionHandler
             $message .= $first
                 ? Ansi::white(' Exception: ', Ansi::LRED)
                 : "\n" . Ansi::white(' Previous: ', Ansi::LRED);
-            $message .= ' ' . Dumper::name(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
+            $message .= ' ' . Dumper::class(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
 
             try {
                 $properties = (array) $exception;

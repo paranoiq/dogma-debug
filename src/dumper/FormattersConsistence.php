@@ -37,7 +37,7 @@ class FormattersConsistence
         $value = $enum->getValue();
         $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
 
-        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
             . $value . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2(implode('|', $keys))
             . Dumper::bracket(')');
@@ -49,7 +49,7 @@ class FormattersConsistence
         $value = $enum->getValue();
         $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
 
-        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
             . $value . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $key)
             . Dumper::bracket(')');

@@ -211,7 +211,7 @@ trait DumperFormatters
         $access = $property->isPrivate() ? 'private' : ($property->isProtected() ? 'protected' : 'public');
         $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($object)) : '';
 
-        return Dumper::name(get_class($object)) . self::bracket('(')
+        return Dumper::class(get_class($object)) . self::bracket('(')
             . self::access($access) . ' ' . self::property('id') . ' ' . self::symbol('=') . ' ' . self::value($id)
             . ' ' . self::exceptions('...') . ' ' . self::bracket(')') . $info;
     }
@@ -247,14 +247,14 @@ trait DumperFormatters
 
     public static function dumpUnitEnum(UnitEnum $enum): string
     {
-        return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name);
+        return self::class(get_class($enum)) . self::symbol('::') . self::class($enum->name);
     }
 
     public static function dumpBackedEnum(BackedEnum $enum): string
     {
         $value = is_int($enum->value) ? self::int((string) $enum->value) : self::string($enum->value);
 
-        return self::name(get_class($enum)) . self::symbol('::') . self::name($enum->name)
+        return self::class(get_class($enum)) . self::symbol('::') . self::class($enum->name)
             . self::bracket('(') . $value . self::bracket(')');
     }
 
@@ -262,13 +262,13 @@ trait DumperFormatters
     {
         $object = $weakReference->get();
 
-        return self::name(get_class($weakReference)) . self::bracket('(')
+        return self::class(get_class($weakReference)) . self::bracket('(')
             . self::dumpValue($object, $depth) . self::bracket(')');
     }
 
     public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
     {
-        return self::name(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
+        return self::class(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
     }
 
     public static function dumpDateTimeInterface(DateTimeInterface $dt): string
@@ -278,7 +278,7 @@ trait DumperFormatters
         $dst = $dt->format('I') ? ' ' . self::value2('DST') : '';
         $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($dt)) : '';
 
-        return self::name(get_class($dt)) . self::bracket('(')
+        return self::class(get_class($dt)) . self::bracket('(')
             . self::value($value) . self::value2($dt->format('P')) . $timeZone . $dst
             . self::bracket(')') . $info;
     }
@@ -308,7 +308,7 @@ trait DumperFormatters
         }
         $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($mysqli)) : '';
 
-        return self::name(get_class($mysqli)) . ' ' . self::bracket('{')
+        return self::class(get_class($mysqli)) . ' ' . self::bracket('{')
             . self::dumpVariables($properties, $depth + 1) . self::bracket('}') . $info;
     }
 
@@ -553,6 +553,26 @@ trait DumperFormatters
         return Ansi::color($symbol, self::$colors['symbol']);
     }
 
+    public static function parameter(string $parameter): string
+    {
+        return Ansi::color($parameter, self::$colors['parameter']);
+    }
+
+    public static function type(string $type): string
+    {
+        return Ansi::color($type, self::$colors['type']);
+    }
+
+    public static function operator(string $operator): string
+    {
+        return Ansi::color($operator, self::$colors['operator']);
+    }
+
+    public static function reference(string $reference): string
+    {
+        return Ansi::color($reference, self::$colors['reference']);
+    }
+
     public static function bracket(string $bracket): string
     {
         return Ansi::color($bracket, self::$colors['bracket']);
@@ -598,7 +618,7 @@ trait DumperFormatters
             : ($depth === 1 ? '   ' : '');
     }
 
-    public static function name(string $class): string
+    public static function class(string $class): string
     {
         if (self::$namespaceReplacements) {
             $class = preg_replace(array_keys(self::$namespaceReplacements), array_values(self::$namespaceReplacements), $class);
@@ -611,7 +631,7 @@ trait DumperFormatters
             return Ansi::color($name, self::$colors['namespace']);
         }, $names);
 
-        $names[] = Ansi::color($class, self::$colors['name']);
+        $names[] = Ansi::color($class, self::$colors['class']);
 
         return implode(Ansi::color('\\', self::$colors['backslash']), $names);
     }
@@ -635,9 +655,19 @@ trait DumperFormatters
         return Ansi::color($string, self::$colors['access']);
     }
 
+    public static function constant(string $string): string
+    {
+        return Ansi::color($string, self::$colors['constant']);
+    }
+
     public static function property(string $string): string
     {
         return Ansi::color($string, self::$colors['property']);
+    }
+
+    public static function function(string $string): string
+    {
+        return Ansi::color($string, self::$colors['function']);
     }
 
     public static function resource(string $string): string
@@ -696,7 +726,7 @@ trait DumperFormatters
             $key = is_int($key) ? null : $key;
             $formatted[] = Dumper::dumpValue($value, 0, $key);
         }
-        $params = implode(Ansi::color(', ', Dumper::$colors['function']), $formatted);
+        $params = implode(Ansi::color(', ', Dumper::$colors['call']), $formatted);
 
         if ($return === null) {
             $output = '';
@@ -710,7 +740,7 @@ trait DumperFormatters
                 if (is_int($k)) {
                     $output[] = Dumper::dumpValue($v);
                 } else {
-                    $output[] = Ansi::color($k . ':', Dumper::$colors['function']) . ' ' . Dumper::dumpValue($v);
+                    $output[] = Ansi::color($k . ':', Dumper::$colors['call']) . ' ' . Dumper::dumpValue($v);
                 }
             }
             $output = ' ' . implode(' ', $output);
@@ -728,9 +758,9 @@ trait DumperFormatters
     public static function func(string $name, string $params = '', string $end = '', string $return = ''): string
     {
         if ($params || $end || $return) {
-            return Ansi::color($name, Dumper::$colors['function']) . $params . Ansi::color($end, Dumper::$colors['function']) . $return;
+            return Ansi::color($name, Dumper::$colors['call']) . $params . Ansi::color($end, Dumper::$colors['call']) . $return;
         } else {
-            return Ansi::color($name, Dumper::$colors['function']);
+            return Ansi::color($name, Dumper::$colors['call']);
         }
     }
 

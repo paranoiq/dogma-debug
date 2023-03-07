@@ -233,26 +233,32 @@ class Dumper
         'resource' => Ansi::LRED, // stream
         'namespace' => Ansi::LRED, // Foo...
         'backslash' => Ansi::DGRAY, // // ...\...
-        'name' => Ansi::LRED, // ...Bar
+        'class' => Ansi::LRED, // ...Bar
         'access' => Ansi::DGRAY, // public private protected
-        'property' => Ansi::WHITE, // $foo
+        'constant' => Ansi::WHITE, // FOO
+        'property' => Ansi::DYELLOW, // $foo
+        'function' => Ansi::LRED, // function/method name
         'key' => Ansi::WHITE, // array keys. set null to use string/int formats
 
         'closure' => Ansi::LGRAY, // static function ($a) use ($b)
-        'parameter' => Ansi::WHITE, // $a, $b
+        'parameter' => Ansi::DYELLOW, // $a, $b
+        'type' => Ansi::LYELLOW, // int
+        'operator' => Ansi::LGRAY, // | &
+        'reference' => Ansi::LRED, // &
+        'bracket' => Ansi::WHITE, // [ ] { } ( )
+        'symbol' => Ansi::LGRAY, // , ; :: : => =
+        'doc' => Ansi::DGRAY, // /** ... */
+        'annotation' => Ansi::LGRAY, // @param
+        'indent' => Ansi::DGRAY, // |
+        'info' => Ansi::DGRAY, // // 5 items
 
         'path' => Ansi::DGRAY, // C:/foo/bar/...
         'file' => Ansi::LGRAY, // .../baz.php
         'line' => Ansi::DGRAY, // :42
 
-        'bracket' => Ansi::WHITE, // [ ] { } ( )
-        'symbol' => Ansi::LGRAY, // , ; :: : => =
-        'indent' => Ansi::DGRAY, // |
-        'info' => Ansi::DGRAY, // // 5 items
-
         'exceptions' => Ansi::LMAGENTA, // RECURSION, SKIPPED, *****, ... (max depth, max length, not traversed)
 
-        'function' => Ansi::LGREEN, // intercept or stream wrapper function call
+        'call' => Ansi::LGREEN, // intercept or stream wrapper function call
         'time' => Ansi::LBLUE, // operation time
         'memory' => Ansi::DBLUE, // allocated memory
     ];
@@ -348,7 +354,7 @@ class Dumper
 
             // classes & properties
             $dump = preg_replace_callback('~class ([a-zA-Z0-9\\\\_]+)#~', static function (array $match) {
-                return 'class ' . self::name($match[1]) . '#';
+                return 'class ' . self::class($match[1]) . '#';
             }, $dump);
             $dump = preg_replace_callback('~(public|private|protected) (\\$[a-zA-Z0-9_]+) =>~', static function (array $match) {
                 return $match[1] . ' ' . self::property($match[2]) . ' =>';
@@ -679,7 +685,7 @@ class Dumper
         $class = get_class($object);
 
         if ($recursion) {
-            return self::name($class) . ' ' . self::bracket('{') . ' '
+            return self::class($class) . ' ' . self::bracket('{') . ' '
                 . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
         }
 
@@ -720,7 +726,7 @@ class Dumper
                 }
             }
 
-            return self::name($class) . ' ' . self::bracket('{') . ' '
+            return self::class($class) . ' ' . self::bracket('{') . ' '
                 . self::exceptions('...') . ' ' . self::bracket('}') . $info;
         }
 
@@ -730,10 +736,10 @@ class Dumper
 
         $properties = self::dumpProperties((array) $object, $depth, $class);
         if ($properties !== '') {
-            return self::name($class) . ' ' . self::bracket('{') . $info
+            return self::class($class) . ' ' . self::bracket('{') . $info
                 . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
         } else {
-            return self::name($class) . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
+            return self::class($class) . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
         }
     }
 
@@ -771,7 +777,7 @@ class Dumper
 
             $fullName = $cls === null || $cls === '*' || $cls === $class
                 ? self::property('$' . $name)
-                : self::name($cls) . self::property('::$' . $name);
+                : self::class($cls) . self::property('::$' . $name);
 
             $item = $indent . $access . ' ' . $fullName . $equal . $valueDump;
 
@@ -850,14 +856,14 @@ class Dumper
                     $access = $method->isProtected() ? 'protected' : ($method->isPublic() ? 'public' : 'private');
                     $variables = self::dumpVariables($variables, $depth + 1, true);
                     $methods[$name] = $indent . self::access($access . ($method->isStatic() ? ' static' : '') . ' function ')
-                        . self::name($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
+                        . self::class($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
                 }
             }
             ksort($methods);
             $methods = implode("\n", $methods) . "\n";
         }
 
-        return self::name($class) . self::symbol('::') . self::name('class') . ' '
+        return self::class($class) . self::symbol('::') . self::class('class') . ' '
             . self::bracket('{') . "\n" . $items . $methods . self::bracket('}');
     }
 
@@ -889,7 +895,7 @@ class Dumper
             $firstLine = substr($firstLine, $start);
             // in case of Closure:fromCallable() we have a name
             $firstLine = preg_replace_callback('~function(\\s+)([a-zA-Z0-9_]+)(\\s*)\\(~', static function ($m): string {
-                return 'function' . $m[1] . self::name($m[2]) . $m[3] . '(';
+                return 'function' . $m[1] . self::class($m[2]) . $m[3] . '(';
             }, $firstLine);
             if ($firstLine === null) {
                 throw new LogicException('Should not happen');
@@ -916,7 +922,7 @@ class Dumper
 
             $name = str_contains($ref->getName(), '{closure}')
                 ? ''
-                : self::name($ref->getName());
+                : self::class($ref->getName());
 
             $head = "function $name($params) ";
             if ($variables !== []) {
@@ -927,7 +933,7 @@ class Dumper
             }
         }
 
-        $head = self::name('Closure') . ' ' . self::closure($head) . self::bracket('{');
+        $head = self::class('Closure') . ' ' . self::closure($head) . self::bracket('{');
         $variables = self::dumpVariables($variables, $depth, true);
 
         return $variables
@@ -945,12 +951,12 @@ class Dumper
 
         if (is_object($object)) {
             $ref = (new ReflectionObject($object))->getMethod($method);
-            $name = self::name(get_class($object)) . self::symbol('::')
-                . self::name($method) . self::bracket('()');
+            $name = self::class(get_class($object)) . self::symbol('::')
+                . self::class($method) . self::bracket('()');
         } else {
             $ref = (new ReflectionClass($object))->getMethod($method);
-            $name = self::name($object) . self::symbol('::')
-                . self::name($method) . self::bracket('()');
+            $name = self::class($object) . self::symbol('::')
+                . self::class($method) . self::bracket('()');
         }
 
         $variables = self::dumpVariables($ref->getStaticVariables(), $depth, true);

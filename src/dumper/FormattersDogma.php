@@ -64,7 +64,7 @@ class FormattersDogma
     {
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($date)) : '';
 
-        return Dumper::name(get_class($date)) . Dumper::bracket('(')
+        return Dumper::class(get_class($date)) . Dumper::bracket('(')
             . Dumper::value($date->format('Y-m-d')) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $date->getJulianDay())
             . Dumper::bracket(')') . $info;
@@ -75,7 +75,7 @@ class FormattersDogma
         $value = str_replace('.000000', '', $time->format('H:i:s.u'));
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($time)) : '';
 
-        return Dumper::name(get_class($time)) . Dumper::bracket('(')
+        return Dumper::class(get_class($time)) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $time->getMicroTime())
             . Dumper::bracket(')') . $info;
@@ -117,7 +117,7 @@ class FormattersDogma
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($dti) . $length) : '';
 
-        return Dumper::name(get_class($dti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($dti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
     public static function dumpTimeInterval(TimeInterval $ti): string
@@ -134,7 +134,7 @@ class FormattersDogma
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($ti) . $length) : '';
 
-        return Dumper::name(get_class($ti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($ti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
     /**
@@ -159,7 +159,7 @@ class FormattersDogma
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($interval) . $length) : '';
 
-        return Dumper::name(get_class($interval)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($interval)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
     /**
@@ -167,7 +167,7 @@ class FormattersDogma
      */
     public static function dumpDateOrNightIntervalData($interval, int $depth = 0): string
     {
-        return Dumper::name(get_class($interval)) . Dumper::bracket('(')
+        return Dumper::class(get_class($interval)) . Dumper::bracket('(')
             . Dumper::value($interval->getStart()->format()) . ' ' . Dumper::symbol('-') . ' '
             . Dumper::value($interval->getEnd()->format()) . Dumper::bracket(')') . Dumper::symbol(':')
             . ' ' . Dumper::dumpValue($interval->getData(), $depth);
@@ -194,7 +194,7 @@ class FormattersDogma
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($set) . ', ' . count($items) . ' items') : '';
 
-        return Dumper::name(get_class($set)) . Dumper::bracket('[') . "\n"
+        return Dumper::class(get_class($set)) . Dumper::bracket('[') . "\n"
             . implode("\n", $items) . "\n"
             . Dumper::indent($depth) . Dumper::bracket(']') . $info;
     }
@@ -208,7 +208,7 @@ class FormattersDogma
             $const = '__UNKNOWN__';
         }
 
-        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
             . Dumper::int((string) $enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($const)
             . Dumper::bracket(')');
@@ -223,7 +223,7 @@ class FormattersDogma
             $const = '__UNKNOWN__';
         }
 
-        return Dumper::name(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
             . Dumper::string($enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($const)
             . Dumper::bracket(')');
@@ -236,7 +236,7 @@ class FormattersDogma
             $names = 'empty';
         }
 
-        return Dumper::name(get_class($set)) . Dumper::bracket('(')
+        return Dumper::class(get_class($set)) . Dumper::bracket('(')
             . Dumper::int((string) $set->getValue()) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($names)
             . Dumper::bracket(')');
@@ -244,7 +244,7 @@ class FormattersDogma
 
     public static function dumpStringSet(StringSet $set): string
     {
-        return Dumper::name(get_class($set)) . Dumper::bracket('(')
+        return Dumper::class(get_class($set)) . Dumper::bracket('(')
             . Dumper::string($set->getValue()) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2(implode('|', $set->getConstantNames()))
             . Dumper::bracket(')');

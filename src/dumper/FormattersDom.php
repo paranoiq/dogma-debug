@@ -31,7 +31,7 @@ use function strrpos;
 use function substr;
 use function trim;
 
-trait FormattersDom
+class FormattersDom
 {
 
     public static function register(): void
@@ -53,7 +53,7 @@ trait FormattersDom
 
     public static function dumpDomDocument(DOMDocument $document, int $depth = 0): string
     {
-        return Dumper::name(get_class($document)) . Dumper::bracket('(')
+        return Dumper::class(get_class($document)) . Dumper::bracket('(')
             . Dumper::dumpValue($document->documentElement, $depth + 1)
             . Dumper::bracket(')');
     }
@@ -69,7 +69,7 @@ trait FormattersDom
 
         return $depth === 0
             ? $value
-            : Dumper::name(get_class($type)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
+            : Dumper::class(get_class($type)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
     }
 
     public static function dumpDomEntity(DOMEntity $entity, int $depth = 0): string
@@ -83,7 +83,7 @@ trait FormattersDom
 
         return $depth === 0
             ? $value
-            : Dumper::name(get_class($entity)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
+            : Dumper::class(get_class($entity)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
     }
 
     public static function dumpDomDocumentFragment(DOMDocumentFragment $fragment, int $depth = 0): string
@@ -104,7 +104,7 @@ trait FormattersDom
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($fragment) . ', ' . count($fragment->childNodes) . ' items') : '';
 
-        return Dumper::name(get_class($fragment)) . Dumper::bracket('(') . "\n"
+        return Dumper::class(get_class($fragment)) . Dumper::bracket('(') . "\n"
             . implode("\n", $nodes) . "\n"
             . Dumper::indent($depth) . Dumper::bracket(')') . $info;
     }
@@ -130,7 +130,7 @@ trait FormattersDom
 
         $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($nodeList) . ', ' . count($nodeList) . ' items') : '';
 
-        return Dumper::name(get_class($nodeList)) . Dumper::bracket('[') . "\n"
+        return Dumper::class(get_class($nodeList)) . Dumper::bracket('[') . "\n"
             . implode("\n", $nodes) . "\n"
             . Dumper::indent($depth) . Dumper::bracket(']') . $info;
     }
@@ -175,7 +175,7 @@ trait FormattersDom
             $foot = '';
         }
 
-        return Dumper::name(get_class($node)) . Dumper::bracket('(')
+        return Dumper::class(get_class($node)) . Dumper::bracket('(')
             . Dumper::value2('<') . Dumper::value($node->nodeName) . $attributes . Dumper::value2('>') . $head
             . implode("\n", $childNodes)
             . $foot . Dumper::value2('<') . Dumper::value($node->nodeName) . Dumper::value2('>')
@@ -188,7 +188,7 @@ trait FormattersDom
 
         return $depth !== 0
             ? $value
-            : Dumper::name(get_class($section)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($section)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($section));
     }
 
@@ -198,7 +198,7 @@ trait FormattersDom
 
         return $depth !== 0
             ? $value
-            : Dumper::name(get_class($comment)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($comment)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($comment));
     }
 
@@ -208,7 +208,7 @@ trait FormattersDom
 
         return $depth !== 0
             ? $value
-            : Dumper::name(get_class($text)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($text)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($text));
     }
 
@@ -218,7 +218,7 @@ trait FormattersDom
 
         return $depth !== 0
             ? $value
-            : Dumper::name(get_class($attribute)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($attribute)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($attribute));
     }
 
