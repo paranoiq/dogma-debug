@@ -18,7 +18,7 @@ use Dogma\Debug\CallstackFrame;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Dumper;
 use Dogma\Debug\FileStreamWrapper;
-use Dogma\Debug\FilesystemInterceptor;
+use Dogma\Debug\StreamInterceptor;
 use Dogma\Debug\FtpStreamWrapper;
 use Dogma\Debug\Http;
 use Dogma\Debug\HttpStreamWrapper;
@@ -96,12 +96,12 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/interceptors/DnsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/ErrorInterceptor.php';
     require_once __DIR__ . '/src/interceptors/ExecInterceptor.php';
-    require_once __DIR__ . '/src/interceptors/FilesystemInterceptor.php';
     require_once __DIR__ . '/src/interceptors/HeadersInterceptor.php';
     require_once __DIR__ . '/src/interceptors/MailInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SessionInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SettingsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/StreamInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/StreamWrapperInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SyslogInterceptor.php';
 
     if (extension_loaded('curl')) {
@@ -141,7 +141,7 @@ if (!class_exists(Debugger::class)) {
     $_dogma_debug_force_load_classes = [
         Str::class, Ansi::class, Http::class, Request::class, System::class, Intercept::class, Debugger::class, Dumper::class,
         FileStreamWrapper::class, HttpStreamWrapper::class, FtpStreamWrapper::class, PharStreamWrapper::class, PhpStreamWrapper::class, ZlibStreamWrapper::class,
-        FilesystemInterceptor::class,
+        StreamInterceptor::class,
     ];
     $x = [];
     array_map(static function ($class) use ($x): void {
@@ -151,7 +151,7 @@ if (!class_exists(Debugger::class)) {
     $x[] = new CallstackFrame(null, null);
     $x[] = new Callstack([]);
     $x[] = new Packet(Packet::OUTPUT_WIDTH, '');
-    $x[] = FilesystemInterceptor::enabled();
+    $x[] = StreamInterceptor::enabled();
     $x[] = FileStreamWrapper::enabled();
 
     Debugger::setStart($_dogma_debug_start);

@@ -16,7 +16,7 @@ namespace Dogma\Debug;
 class StreamWrapper
 {
 
-    public const NAME = 'stream';
+    public const NAME = 'wrapper';
 
     public const OPEN = 0x1;
     public const CLOSE = 0x2;

@@ -94,15 +94,15 @@ class AmqpHandler
      */
     public static function enableForAmqp(string $protocol = 'tcp', int $port = 5672): void
     {
-        if (!FilesystemInterceptor::enabled()) {
-            FilesystemInterceptor::interceptFileFunctions(Intercept::SILENT);
+        if (!StreamInterceptor::enabled()) {
+            StreamInterceptor::interceptFileFunctions(Intercept::SILENT);
             Debugger::dependencyInfo('FilesHandler activated by MqHandler::enableForAmqp() to track filesystem functions.');
         }
 
         $re = "~:$port$~";
-        FilesystemInterceptor::$redirect[$protocol]['fwrite'][$re] = [self::class, 'amqpFwrite'];
-        FilesystemInterceptor::$redirect[$protocol]['fread'][$re] = [self::class, 'amqpFread'];
-        FilesystemInterceptor::$redirect[$protocol]['fgets'][$re] = [self::class, 'amqpFgets'];
+        StreamInterceptor::$redirect[$protocol]['fwrite'][$re] = [self::class, 'amqpFwrite'];
+        StreamInterceptor::$redirect[$protocol]['fread'][$re] = [self::class, 'amqpFread'];
+        StreamInterceptor::$redirect[$protocol]['fgets'][$re] = [self::class, 'amqpFgets'];
 
         self::$traceFilters = [
             '~^Predis\\\\Connection\\\\StreamConnection~',

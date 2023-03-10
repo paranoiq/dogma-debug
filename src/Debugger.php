@@ -155,7 +155,7 @@ class Debugger
         AutoloadInterceptor::NAME => Ansi::DGREEN,
         CurlInterceptor::NAME => Ansi::DGREEN,
         DnsInterceptor::NAME => Ansi::DGREEN,
-        FilesystemInterceptor::NAME => Ansi::DGREEN,
+        StreamInterceptor::NAME => Ansi::DGREEN,
         MailInterceptor::NAME => Ansi::DGREEN,
         SessionInterceptor::NAME => Ansi::DGREEN,
         SettingsInterceptor::NAME => Ansi::DGREEN,
@@ -173,15 +173,15 @@ class Debugger
         ZlibStreamWrapper::PROTOCOL => Ansi::DGREEN,
 
         // stream transports
-        FilesystemInterceptor::PROTOCOL_TCP => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_UDP => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_UNIX => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_UDG => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_SSL => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_TLS => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_TLS_10 => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_TLS_11 => Ansi::DGREEN,
-        FilesystemInterceptor::PROTOCOL_TLS_12 => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_TCP => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_UDP => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_UNIX => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_UDG => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_SSL => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_TLS => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_TLS_10 => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_TLS_11 => Ansi::DGREEN,
+        StreamInterceptor::PROTOCOL_TLS_12 => Ansi::DGREEN,
     ];
 
     // internals -------------------------------------------------------------------------------------------------------

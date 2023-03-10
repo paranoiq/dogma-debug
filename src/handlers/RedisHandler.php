@@ -98,15 +98,15 @@ class RedisHandler
      */
     public static function enableForPredis(string $protocol = 'tcp', int $port = 6379): void
     {
-        if (!FilesystemInterceptor::enabled()) {
-            FilesystemInterceptor::interceptFileFunctions(Intercept::SILENT);
+        if (!StreamInterceptor::enabled()) {
+            StreamInterceptor::interceptFileFunctions(Intercept::SILENT);
             Debugger::dependencyInfo('FilesHandler activated by RedisHandler::enableForPredis() to track filesystem functions.');
         }
 
         $re = "~:$port$~";
-        FilesystemInterceptor::$redirect[$protocol]['fwrite'][$re] = [self::class, 'predisFwrite'];
-        FilesystemInterceptor::$redirect[$protocol]['fread'][$re] = [self::class, 'predisFread'];
-        FilesystemInterceptor::$redirect[$protocol]['fgets'][$re] = [self::class, 'predisFgets'];
+        StreamInterceptor::$redirect[$protocol]['fwrite'][$re] = [self::class, 'predisFwrite'];
+        StreamInterceptor::$redirect[$protocol]['fread'][$re] = [self::class, 'predisFread'];
+        StreamInterceptor::$redirect[$protocol]['fgets'][$re] = [self::class, 'predisFgets'];
 
         self::$traceFilters = [
             '~^Predis\\\\Connection\\\\StreamConnection~',
