@@ -32,7 +32,7 @@ use const PHP_SAPI;
  * (Callstack says "now you are in this file, on this line, inside this function",
  * where backtrace says "now you are in this file, on this line, and you are calling that function")
  *
- * This makes Callstack more easy to comprehend and more easy to filter (skip) some frames.
+ * This makes Callstack easier to comprehend and easier to filter (skip) some frames.
  *
  * For example: this backtrace:
  * [

@@ -14,6 +14,7 @@ namespace Dogma\Debug;
 
 use DateTime;
 use Socket;
+use Throwable;
 use function array_filter;
 use function array_shift;
 use function array_sum;
@@ -222,8 +223,9 @@ class Debugger
     private static $shutdownDone = false;
 
     /**
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
@@ -238,8 +240,9 @@ class Debugger
     }
 
     /**
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     public static function varDump($value, bool $colors = true)
     {
@@ -251,6 +254,20 @@ class Debugger
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $value;
+    }
+
+    /**
+     * @template T
+     * @param T&Throwable $exception
+     * @return T&Throwable
+     */
+    public static function dumpException(Throwable $exception): Throwable
+    {
+        $message = ExceptionHandler::formatException($exception);
+
+        self::send(Packet::EXCEPTION, $message);
+
+        return $exception;
     }
 
     public static function capture(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string

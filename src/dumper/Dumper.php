@@ -1019,7 +1019,6 @@ class Dumper
         $coma = self::symbol(',');
         $infoPrefix = self::infoPrefix();
 
-        $n = 0;
         $items = [];
         foreach ($variables as $name => $value) {
             $var = self::property((string) $name);
@@ -1035,7 +1034,6 @@ class Dumper
             }
 
             $items[] = $item;
-            $n++;
         }
 
         return implode("\n", $items);

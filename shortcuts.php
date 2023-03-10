@@ -14,15 +14,15 @@ use Dogma\Debug\Ansi;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Diff;
 use Dogma\Debug\Dumper;
-use Dogma\Debug\ExceptionHandler;
 use Dogma\Debug\Packet;
 
 if (!function_exists('rd')) {
     /**
      * Local dump
      *
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
@@ -34,8 +34,9 @@ if (!function_exists('rd')) {
     /**
      * Remote dump implemented with native var_dump() + some colors
      *
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     function lvd($value, bool $colors = true)
     {
@@ -47,8 +48,9 @@ if (!function_exists('rd')) {
     /**
      * Remote dump
      *
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
     {
@@ -58,8 +60,9 @@ if (!function_exists('rd')) {
     /**
      * Remote dump implemented with native var_dump() + some colors
      *
-     * @param mixed $value
-     * @return mixed
+     * @template T
+     * @param T $value
+     * @return T
      */
     function rvd($value, bool $colors = true)
     {
@@ -68,14 +71,14 @@ if (!function_exists('rd')) {
 
     /**
      * Remote dump exception (formatted same way as when thrown)
+     *
+     * @template T
+     * @param T&Throwable $exception
+     * @return T
      */
     function re(Throwable $exception): Throwable
     {
-        $message = ExceptionHandler::formatException($exception);
-
-        Debugger::send(Packet::EXCEPTION, $message);
-
-        return $exception;
+        return Debugger::dumpException($exception);
     }
 
     /**

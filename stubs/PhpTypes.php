@@ -2,6 +2,11 @@
 
 // for muting "defined in 8.1" error in Dumper
 
+class Socket
+{
+
+}
+
 class UnitEnum
 {
     public $name;
