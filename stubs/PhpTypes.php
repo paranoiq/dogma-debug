@@ -7,6 +7,16 @@ class Socket
 
 }
 
+class CurlHandle
+{
+
+}
+
+class CurlMultiHandle
+{
+
+}
+
 class UnitEnum
 {
     public $name;

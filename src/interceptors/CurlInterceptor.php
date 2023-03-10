@@ -11,7 +11,6 @@ namespace Dogma\Debug;
 
 use CurlHandle;
 use CurlMultiHandle;
-use function array_search;
 use function fread;
 use function fseek;
 use const CURLE_OK;

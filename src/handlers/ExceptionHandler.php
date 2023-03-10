@@ -7,6 +7,8 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// spell-check-ignore: 0code 0file 0line 0message 0previous 0string 0trace
+
 namespace Dogma\Debug;
 
 use Throwable;

@@ -8,6 +8,7 @@
  */
 
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.IndexNoNewline
+// spell-check-ignore: xaa xab xac xad xae xaf xba xbb xbc xbd xbe xbf xca xcb xcc xcd xce xcf xda xdb xdc xdd xde xdf xea xeb xec xed xee xef xfa xfb xfc xfd xfe xff ª µ º Ä Å Æ Ç É Ñ Ö Ü ß à á â ä å æ ç è é ê ë ì í î ï ñ ò ó ô ö ù ú û ü ÿ ƒ Γ Θ Σ Φ Ω α δ ε π σ τ φ ⁿ
 
 namespace Dogma\Debug;
 

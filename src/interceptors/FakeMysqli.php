@@ -12,8 +12,8 @@
 
 namespace Dogma\Debug;
 
-use ReturnTypeWillChange;
 use mysqli;
+use ReturnTypeWillChange;
 use function array_filter;
 use function func_get_args;
 use const MYSQLI_STORE_RESULT;

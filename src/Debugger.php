@@ -352,11 +352,9 @@ class Debugger
     {
         ob_start();
 
-        if ($callstack instanceof Callstack) {
-            // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
-        } elseif (is_array($callstack)) {
+        if (is_array($callstack)) {
             $callstack = Callstack::fromBacktrace($callstack);
-        } else {
+        } elseif ($callstack === null) {
             $callstack = Callstack::get(Dumper::$traceFilters);
         }
         $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeLines, $codeDepth);
@@ -797,9 +795,9 @@ class Debugger
             }
 
             // request body
-            if (RequestHandler::$requestBody) {
+            //if (RequestHandler::$requestBody) {
                 // todo
-            }
+            //}
         }
 
         return $header;

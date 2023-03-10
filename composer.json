@@ -16,7 +16,8 @@
     "require-dev": {
         "dogma/dogma": "*",
         "dogma/dogma-dev": "0.1.28",
-        "phpstan/phpstan": "1.4.10"
+        "phpstan/phpstan": "1.10.6",
+        "phpstan/phpstan-strict-rules": "^1.0"
     },
     "suggest": {
         "ext-sockets": "If you want to use socket connection (alternatives are log file or printing to stdout)",
@@ -63,15 +64,15 @@
         ],
         "tests:coverage": "php vendor/nette/tester/src/tester tests -c tests --colors 1 -p phpdbg --coverage tests/coverage.html --coverage-src src",
 
-        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
+        "phpstan:run": "php vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
         "phpstan:all": [
-            "php82 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
-            "php81 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon --memory-limit 256M",
-            "php80 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
-            "php74 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
-            "php73 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
-            "php72 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon",
-            "php71 vendor/phpstan/phpstan/phpstan analyze -c build/phpstan.neon"
+            "php82 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php81 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php80 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon",
+            "php74 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon",
+            "php73 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon",
+            "php72 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon",
+            "php71 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon"
         ],
 
         "lint:run": "php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
@@ -89,11 +90,11 @@
             "@phpcs:src",
             "@phpcs:tests"
         ],
-        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/phpcs-ruleset.xml -sp src client.php server.php",
-        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/phpcs-ruleset-tests.xml -sp tests",
-        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=build/phpcs-ruleset-tests.xml -sp src client.php server.php tests",
+        "phpcs:src": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/CodeSniffer/phpcs-ruleset.xml -sp src client.php server.php",
+        "phpcs:tests": "php vendor/squizlabs/php_codesniffer/bin/phpcs --standard=build/CodeSniffer/phpcs-ruleset-tests.xml -sp tests",
+        "phpcs:fix": "php vendor/squizlabs/php_codesniffer/bin/phpcbf --standard=build/CodeSniffer/phpcs-ruleset-tests.xml -sp src client.php server.php tests",
 
-        "spell:run": "php vendor/spell-checker/spell-checker/spell-checker.php -c build/spell-checker.neon --checkDictionaryFiles --memoryLimit 1024M --noLogo"
+        "spell:run": "php vendor/spell-checker/spell-checker/spell-checker.php -c build/spell-checker/spell-checker.neon --checkDictionaryFiles --memoryLimit 1024M --noLogo"
     },
     "scripts-descriptions": {
         "da": "Dump autoloader (shortcut)",

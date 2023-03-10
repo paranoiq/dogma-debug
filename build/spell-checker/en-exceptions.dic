@@ -12,6 +12,7 @@ udg
 unix
 tls
 tlsv1
+tty
 ip
 MX
 inode
@@ -52,6 +53,44 @@ BZ
 mget
 khmere
 freebsd
+amqp
+dbal
+ietf
+tsv
+dnt
+xss
+webkit
+ua
+att
+uidh
+pragma
+proto
+te
+csp
+deviceid
+sys
+oom
+iso
+
+# chars
+ack
+bel
+cr
+del
+dle
+enq
+eot
+esc
+etb
+etx
+fs
+lf
+nak
+nl
+nul
+si
+soh
+stx
 
 # php
 streamwrapper
@@ -62,6 +101,7 @@ autoloading
 fsync
 fdatasync
 datasync
+datetime
 lchgrp
 lchown
 SIG_DFL
@@ -151,8 +191,35 @@ cls
 sep
 tz
 ok
+str
+arg
+attrs
+vars
+vals
+username
+olds
+algos
+apos
+usec
+cb
 
 # en
+wtf
+mixin
+variadic
+polyfils
+visualisation
+uncomment
+uncatchable
+rewinded
+catchable
+middleware
+deduplicate
+autodetect
+hydrator
+persister
+referer
+enquiry
 runtime
 prepend
 chunked
@@ -181,11 +248,14 @@ mojibake
 
 # functions
 ld
+lvd
 rd
 rvd
 rl
 rc
 rb
+rdf
+rw
 dgray
 dred
 dyellow
@@ -194,6 +264,14 @@ dcyan
 dmagenta
 dblue
 lmagenta
+
+# names
+sqlftw
+adminer
+codecept
+codeception
+phpunit
+roundcube
 
 # random
 dt

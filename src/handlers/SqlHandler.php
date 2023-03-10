@@ -71,7 +71,7 @@ class SqlHandler
     /** @var array<string, callable> - Query filters for modifying logged SQL, indexed by connection name */
     public static $queryFilters = [
         '*' => [self::class, 'filterWhitespace'],
-        'doctrine' => [self::class, 'filterDoctrineSelects']
+        'doctrine' => [self::class, 'filterDoctrineSelects'],
     ];
 
     /** @var int[] */
@@ -190,7 +190,7 @@ class SqlHandler
     {
         require_once __DIR__ . '/DoctrineSqlLogger.php';
 
-        $logger = new DoctrineSqlLogger($connection) ;
+        $logger = new DoctrineSqlLogger($connection);
 
         $entityManager->getConnection()->getConfiguration()->setSQLLogger($logger);
 
@@ -262,7 +262,7 @@ class SqlHandler
 
         $tables = [];
         foreach (explode(', ', $m[1]) as $item) {
-            [$table ] = explode('.', $item);
+            $table = explode('.', $item)[0];
             $tables[] = $table . '.?';
         }
         $tables = array_unique($tables);

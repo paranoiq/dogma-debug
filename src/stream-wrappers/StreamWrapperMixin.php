@@ -837,7 +837,7 @@ trait StreamWrapperMixin
     private function previous(callable $function)
     {
         //static $restore = ['opendir', 'mkdir', 'rename', 'rmdir', 'touch', 'chown', 'chgrp', 'chmod', 'file_get_contents', 'fwrite', 'fseek', 'unlink', 'lstat', 'stat'];
-        // WFT PHP Warning: stream_wrapper_register(): class 'Dogma\Debug\FileStreamWrapper' is undefined in /vagrant-src/dogma-debug/src/stream-wrappers/FileStreamWrapper.php
+        // WTF PHP Warning: stream_wrapper_register(): class 'Dogma\Debug\FileStreamWrapper' is undefined in /vagrant-src/dogma-debug/src/stream-wrappers/FileStreamWrapper.php
         static $noRestore = ['fstat', 'feof', 'fread'];
 
         if (!in_array($function, $noRestore, true)) {

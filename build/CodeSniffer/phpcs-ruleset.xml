@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <ruleset name="Dogma-Debug">
-    <rule ref="../vendor/dogma/dogma-dev/src/CodeSniffer/ruleset.xml">
+    <config name="php_version" value="70100"/>
+    <rule ref="../../vendor/dogma/dogma-dev/src/CodeSniffer/ruleset.xml">
         <exclude name="PSR1.Methods.CamelCapsMethodName.NotCamelCaps"/><!-- used by interceptors decorating system functions -->
         <exclude name="SlevomatCodingStandard.TypeHints.DeclareStrictTypes.IncorrectWhitespaceBeforeDeclare"/>
         <exclude name="SlevomatCodingStandard.Classes.ClassMemberSpacing.IncorrectCountOfBlankLinesBetweenMembers"/><!-- does not cope with comments properly -->
+        <exclude name="SlevomatCodingStandard.Classes.ModernClassNameReference.ClassNameReferencedViaMagicConstant"/><!-- used together with __FUNCTION__ -->
     </rule>
 </ruleset>

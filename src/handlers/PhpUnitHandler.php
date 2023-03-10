@@ -12,6 +12,7 @@ namespace Dogma\Debug;
 use PHPUnit\Framework\TestCase;
 use function end;
 use function explode;
+use function is_a;
 use function str_starts_with;
 
 class PhpUnitHandler
@@ -28,7 +29,7 @@ class PhpUnitHandler
 
     public static function announceTestCaseName(): void
     {
-        Debugger::guarded(static function () {
+        Debugger::guarded(static function (): void {
             foreach (Callstack::get()->frames as $frame) {
                 if (is_a($frame->class, TestCase::class, true) && str_starts_with($frame->function, 'test')) {
                     if (self::$useFullTestCaseName) {
@@ -52,4 +53,5 @@ class PhpUnitHandler
             }
         }, __CLASS__, __FUNCTION__);
     }
+
 }

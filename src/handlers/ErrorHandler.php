@@ -174,9 +174,9 @@ class ErrorHandler
 
                 Debugger::send(Packet::ERROR, $message, $backtrace);
                 Debugger::setTermination('memory limit (' . Units::memory(Resources::memoryLimit()) . ')');
-            } else {
+            }// else {
                 // todo: ???
-            }
+            //}
         }
 
         return false;
