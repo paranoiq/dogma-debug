@@ -39,9 +39,6 @@ $config = [
 ];
 $key = null;
 foreach ($argv as $i => $arg) {
-    if ($i === 0) {
-        continue;
-    }
     if ($key === 'port' || ($i === 0 && is_numeric($arg))) {
         $config['port'] = (int) $arg;
     } elseif ($key === 'host' || ($i === 1 && preg_match('~\d+.\d+.\d+.\d+~', $arg))) {
@@ -52,6 +49,8 @@ foreach ($argv as $i => $arg) {
         $config['keep-old-log'] = true;
     } elseif (array_key_exists(ltrim($arg, '-'), $config)) {
         $key = ltrim($arg, '-');
+    } elseif ($i === 0) {
+        continue;
     } else {
         exit("Unknown argument: $arg\n");
     }

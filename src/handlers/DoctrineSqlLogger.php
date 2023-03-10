@@ -4,6 +4,8 @@ namespace Dogma\Debug;
 
 use Doctrine\DBAL\Logging\SQLLogger;
 use function implode;
+use function is_array;
+use function is_string;
 use function microtime;
 
 class DoctrineSqlLogger implements SQLLogger
@@ -25,12 +27,26 @@ class DoctrineSqlLogger implements SQLLogger
     }
 
     /**
-     * @param array|null $params
-     * @param array|null $types
+     * @param list<int|float|bool|string|string[]|int[]|float[]|null>|null $params
+     * @param list<string>|null $types
      */
     public function startQuery($sql, ?array $params = null, ?array $types = null): void
     {
-        $this->sql = $sql . (($params === null || $params === []) ? '' : (' [' . implode(', ', $params) . ']'));
+        $this->sql = $sql . (($params === null || $params === []) ? '' : (' -- [' . implode(', ', array_map(static function ($param) {
+            if (is_array($param)) {
+                return implode(',', $param);
+            } elseif (is_string($param)) {
+                return $param;
+            } elseif ($param === TRUE) {
+                return TRUE;
+            } elseif ($param === false) {
+                return 'FALSE';
+            } elseif ($param === NULL) {
+                return NULL;
+            } else {
+                return (string) $param;
+            }
+        }, $params)) . ']'));
         $this->start = microtime(true);
     }
 

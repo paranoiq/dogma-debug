@@ -100,13 +100,13 @@ class Dumper
     /** @var string - encoding of dumped strings (todo: output encoding should be always utf-8) */
     public static $inputEncoding = 'utf-8';
 
-    /** @var int - string escaping for strings without control characters (allowed only \n, \r, \t etc.) */
+    /** @var string - string escaping for strings without control characters (allowed only \n, \r, \t etc.) */
     public static $stringsEscaping = self::ESCAPING_PHP;
 
-    /** @var int - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
+    /** @var string - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
     public static $binaryEscaping = self::ESCAPING_CP437;
 
-    /** @var int - string escaping for labels and raw output (only escapes control characters) */
+    /** @var string - string escaping for labels and raw output (only escapes control characters) */
     public static $rawEscaping = self::ESCAPING_CP437;
 
     /** @var bool - whether to escape \n, \r, \t or keep them as they are (not relevant for ESCAPING_CP437) */
@@ -593,7 +593,6 @@ class Dumper
         do {
             $isList = range(0, $count - 1) === array_keys($array);
             $coma = self::symbol(',');
-            /** @var non-empty-string $infoPrefix */
             $infoPrefix = self::infoPrefix();
 
             $hasInfo = false;

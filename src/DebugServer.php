@@ -52,7 +52,7 @@ class DebugServer
     /** @var string */
     private $address;
 
-    /** @var resource|Socket */
+    /** @var resource|Socket|null */
     private $socket;
 
     /** @var string */
@@ -64,7 +64,7 @@ class DebugServer
     /** @var resource[]|Socket[] */
     private $connections = [];
 
-    /** @var array<int, string> */
+    /** @var array<int, int|string> */
     private $ids = [];
 
     /** @var bool */

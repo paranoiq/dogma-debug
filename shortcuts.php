@@ -109,8 +109,6 @@ if (!function_exists('rd')) {
 
     /**
      * Remote backtrace dump
-     *
-     * @param int[] $lines
      */
     function rb(?int $length = null, ?int $argsDepth = null, ?int $codeLines = null, ?int $codeDepth = null, $callstack = null): void
     {

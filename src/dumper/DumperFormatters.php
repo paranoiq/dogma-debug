@@ -478,7 +478,7 @@ trait DumperFormatters
 
         $info .= $info ? ', ' : '';
         if ($ref->isUserDefined()) {
-            $file = str_replace('\\', '/', $ref->getFileName());
+            $file = str_replace('\\', '/', $ref->getFileName() ?: '');
             $line = $ref->getStartLine();
 
             // todo: trim file prefix
@@ -601,6 +601,9 @@ trait DumperFormatters
         return Ansi::color($info, self::$colors['info']);
     }
 
+    /**
+     * @return non-empty-string
+     */
     public static function infoPrefix(): string
     {
         return ' ' . Ansi::colorStart(self::$colors['info']) . '// ';

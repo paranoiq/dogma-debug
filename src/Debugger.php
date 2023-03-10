@@ -122,7 +122,7 @@ class Debugger
     /** @var string Background color of request header, footer and process id label */
     public static $headerColor = Ansi::LYELLOW;
 
-    /** @var array<class-string<StreamWrapper>> Order of stream handler stats in request footer */
+    /** @var list<class-string<StreamWrapper>> Order of stream handler stats in request footer */
     public static $footerStreamWrappers = [
         FileStreamWrapper::class,
         PharStreamWrapper::class,
@@ -133,7 +133,7 @@ class Debugger
         ZlibStreamWrapper::class,
     ];
 
-    /** @var string[] Background colors of handler labels */
+    /** @var array<string, string> Background colors of handler labels */
     public static $handlerColors = [
         'default' => Ansi::DGREEN,
 
@@ -482,7 +482,7 @@ class Debugger
      *
      * @param class-string $class
      */
-    public static function guarded(callable $callback, string $class, string $method)
+    public static function guarded(callable $callback, string $class, string $method): void
     {
         ob_start();
 
@@ -852,6 +852,7 @@ class Debugger
         // includes io
         $events = 0;
         $time = 0.0;
+        /** @var class-string<StreamWrapper> $wrapper */
         foreach (self::$footerStreamWrappers as $wrapper) {
             $stats = $wrapper::getStats(true);
             $events += $stats['events']['total'];
@@ -863,6 +864,7 @@ class Debugger
         }
 
         // stream wrappers io
+        /** @var class-string<StreamWrapper> $wrapper */
         foreach (self::$footerStreamWrappers as $wrapper) {
             $ioStats = $wrapper::getStats();
             if ($ioStats['events']['fopen'] > 0) {

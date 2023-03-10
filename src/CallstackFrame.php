@@ -274,7 +274,7 @@ class CallstackFrame
     }
 
     /**
-     * @return string[]|null
+     * @return array<int,string>|null
      */
     public function getLinesAround(int $before, int $after): ?array
     {
@@ -380,7 +380,7 @@ class CallstackFrame
     }
 
     /**
-     * @return string[]
+     * @return array<int,string>
      */
     public static function readLines(string $file, int $start = 0, ?int $count = null): array
     {

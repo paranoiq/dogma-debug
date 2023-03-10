@@ -54,11 +54,11 @@ class Callstack
     // non-function names used as functions
     public const INCLUDES = ['include', 'include_once', 'require', 'require_once'];
 
-    /** @var CallstackFrame[] */
+    /** @var list<CallstackFrame> */
     public $frames;
 
     /**
-     * @param CallstackFrame[] $frames
+     * @param list<CallstackFrame> $frames
      */
     public function __construct(array $frames)
     {
@@ -66,22 +66,22 @@ class Callstack
     }
 
     /**
-     * @param string[] $filters
+     * @param list<string> $filters
      */
     public static function get(array $filters = [], bool $filter = true): self
     {
-        /** @var PhpBacktraceItem[] $trace */
+        /** @var list<PhpBacktraceItem> $trace */
         $trace = debug_backtrace();
 
         return self::fromBacktrace($trace, $filters, $filter);
     }
 
     /**
-     * @param string[] $filters
+     * @param list<string> $filters
      */
     public static function fromThrowable(Throwable $e, array $filters = [], bool $filter = true): self
     {
-        /** @var PhpBacktraceItem[] $trace */
+        /** @var list<PhpBacktraceItem> $trace */
         $trace = $e->getTrace();
         if ($trace) {
             $file = $e->getFile();
@@ -100,7 +100,7 @@ class Callstack
 
     /**
      * @param PhpBacktraceItem[] $trace
-     * @param string[] $filters
+     * @param list<string> $filters
      */
     public static function fromBacktrace(array $trace, array $filters = [], bool $filter = true): self
     {
@@ -167,7 +167,7 @@ class Callstack
     {
         $message = Str::normalizeLineEndings($message);
 
-        /** @var PhpBacktraceItem[] $frames */
+        /** @var list<PhpBacktraceItem> $frames */
         $frames = [];
         foreach (explode("\n", $message) as $line) {
             if (!preg_match('~\s+([0-9]+\\.[0-9]+)\s+([0-9]+)\s+([0-9]+)\\.\s+([^(]+)\\(\\)\s+(.*)~', $line, $m)) {
@@ -205,7 +205,7 @@ class Callstack
     }
 
     /**
-     * @param string[] $filters
+     * @param list<string> $filters
      */
     public function filter(array $filters): self
     {
