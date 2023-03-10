@@ -9,11 +9,13 @@
 
 namespace Dogma\Debug;
 
+use const SEEK_SET;
+
 /**
  * Common ancestor for stream handlers (file, phar, http)
  * Track stream handler and stream filter registrations
  */
-class StreamWrapper
+abstract class StreamWrapper
 {
 
     public const NAME = 'wrapper';
@@ -47,5 +49,87 @@ class StreamWrapper
     public const NONE = 0;
 
     protected const INCLUDE_FLAGS = 16512;
+
+    /**
+     * @return array{events: int[], data: int[], time: float[]}
+     */
+    abstract public static function getStats(bool $include = false): array;
+
+    // stream wrapper "interface". implemented by StreamWrapperMixin
+    // file handle -----------------------------------------------------------------------------------------------------
+
+    abstract public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool;
+
+    abstract public function stream_close(): void;
+
+    abstract public function stream_lock(int $operation): bool;
+
+    /**
+     * @return string|false
+     */
+    abstract public function stream_read(int $count, bool $buffer = false);
+
+    /**
+     * @return int|false
+     */
+    abstract public function stream_write(string $data);
+
+    abstract public function stream_truncate(int $newSize): bool;
+
+    abstract public function stream_flush(): bool;
+
+    abstract public function stream_seek(int $offset, int $whence = SEEK_SET): bool;
+
+    abstract public function stream_eof(): bool;
+
+    /**
+     * @return int|false
+     */
+    abstract public function stream_tell();
+
+    /**
+     * @return mixed[]|false
+     */
+    abstract public function stream_stat();
+
+    /**
+     * @param mixed $value
+     */
+    abstract public function stream_metadata(string $path, int $option, $value): bool;
+
+    abstract public function stream_set_option(int $option, int $arg1, ?int $arg2): bool;
+
+    /**
+     * @return resource|null
+     */
+    abstract public function stream_cast(int $castAs);
+
+    // directory handle ------------------------------------------------------------------------------------------------
+
+    abstract public function dir_opendir(string $path, int $options): bool;
+
+    /**
+     * @return string|false
+     */
+    abstract public function dir_readdir();
+
+    abstract public function dir_rewinddir(): bool;
+
+    abstract public function dir_closedir(): void;
+
+    // other -----------------------------------------------------------------------------------------------------------
+
+    abstract public function mkdir(string $path, int $permissions, int $options): bool;
+
+    abstract public function rmdir(string $path, int $options): bool;
+
+    abstract public function rename(string $pathFrom, string $pathTo): bool;
+
+    abstract public function unlink(string $path): bool;
+
+    /**
+     * @return mixed[]|false
+     */
+    abstract public function url_stat(string $path, int $flags);
 
 }
