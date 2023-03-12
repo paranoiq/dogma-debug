@@ -19,11 +19,14 @@ use mysqli;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
+use ReflectionProperty;
 use UnitEnum;
 use WeakReference;
 use function array_filter;
+use function array_key_exists;
 use function array_keys;
 use function array_map;
+use function array_merge;
 use function array_shift;
 use function array_slice;
 use function array_unshift;
@@ -63,6 +66,7 @@ use function uniqid;
 use function var_dump;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
+use const PHP_VERSION_ID;
 
 class Dumper
 {
@@ -143,20 +147,20 @@ class Dumper
     /** @var int - ordering of dumped properties of objects */
     public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
 
+    /** @var bool - show uninitialized typed properties (since 7.4) */
+    public static $showUninitializedProperties = true;
+
     /** @var bool - show flag for dynamically created properties */
-    //public static $showDynamicProperties = false;
+    //public static $showDynamicPropertiesFlag = false;
 
     /** @var bool - show property types (since 7.4) */
     //public static $showPropertyTypes = false;
 
-    /** @var bool - show undefined typed properties (since 7.4) */
-    //public static $showUndefinedProperties = false;
-
     /** @var bool - show readonly flag on properties (since 8.1) and classes (since 8.2) */
-    //public static $showReadonly = false;
+    //public static $showReadonlyPropertiesFlag = false;
 
     /** @var bool - group null and undefined properties of object together */
-    public static $groupNullAndUndefined = false;
+    public static $groupNullAndUninitialized = false;
 
     /** @var string[] (regexp $long => replacement $short) - replacements of namespaces for shorter class names in dumps */
     public static $namespaceReplacements = [];
@@ -692,7 +696,6 @@ class Dumper
 
         $handlerResult = '';
         if (self::$useFormatters && $depth < self::$maxDepth + 1) {
-            $class = get_class($object);
             $handler = self::$objectFormatters[$class] ?? null;
             if ($handler !== null) {
                 $handlerResult = $handler($object);
@@ -743,6 +746,7 @@ class Dumper
     }
 
     /**
+     * @param class-string $class
      * @param mixed[] $properties
      */
     public static function dumpProperties(array $properties, int $depth, string $class): string
@@ -752,9 +756,31 @@ class Dumper
         $semi = self::symbol(';');
         $infoPrefix = self::infoPrefix();
 
+        $uninitialized = new class() {
+
+        };
+        if (PHP_VERSION_ID >= 70400 && self::$showUninitializedProperties) {
+            $propRefs = self::collectProperties($class);
+            if (count($properties) !== count($propRefs)) {
+                foreach ($propRefs as $propRef) {
+                    if ($propRef->isPrivate()) {
+                        $key = "\0" . $propRef->getDeclaringClass()->getName() . "\0" . $propRef->name;
+                    } elseif ($propRef->isProtected()) {
+                        $key = "\0*\0" . $propRef->name;
+                    } else {
+                        $key = $propRef->name;
+                    }
+                    if (!array_key_exists($key, $properties)) {
+                        $properties[$key] = $uninitialized;
+                    }
+                }
+            }
+        }
+
         $n = 0;
         $items = [];
         $nulls = [];
+        $empty = [];
         foreach ($properties as $name => $value) {
             $parts = explode("\0", $name);
             if (count($parts) === 3) {
@@ -765,10 +791,17 @@ class Dumper
                 $cls = null;
             }
             $access = self::access($cls === '*' ? 'protected' : ($cls === null ? 'public' : 'private'));
-            $valueDump = self::dumpValue($value, $depth + 1, $name);
+            $valueDump = $value === $uninitialized
+                ? self::exceptions('uninitialized')
+                : self::dumpValue($value, $depth + 1, $name);
 
-            if (self::$groupNullAndUndefined && $value === null) {
+            if (self::$groupNullAndUninitialized && $value === null) {
                 $nulls[] = $cls === null || $cls === '*' || $cls === $class
+                    ? self::info('$' . $name)
+                    : self::info($cls) . self::info('::$' . $name);
+                continue;
+            } elseif (self::$groupNullAndUninitialized && $value === null) {
+                $empty[] = $cls === null || $cls === '*' || $cls === $class
                     ? self::info('$' . $name)
                     : self::info($cls) . self::info('::$' . $name);
                 continue;
@@ -776,7 +809,7 @@ class Dumper
 
             $fullName = $cls === null || $cls === '*' || $cls === $class
                 ? self::property('$' . $name)
-                : self::class($cls) . self::property('::$' . $name);
+                : self::class($cls) . '::' . self::property('$' . $name);
 
             $item = $indent . $access . ' ' . $fullName . $equal . $valueDump;
 
@@ -800,8 +833,30 @@ class Dumper
         if ($nulls !== []) {
             $items[] = $indent . implode(', ', $nulls) . $equal . self::null('null') . $semi;
         }
+        if ($empty !== []) {
+            $items[] = $indent . implode(', ', $empty) . $equal . self::exceptions('uninitialized') . $semi;
+        }
 
         return implode("\n", $items);
+    }
+
+    /**
+     * @param class-string $class
+     * @return list<ReflectionProperty>
+     */
+    private static function collectProperties(string $class): array
+    {
+        $propRefs = [];
+        $ref = new ReflectionClass($class);
+        do {
+            $propRefs[] = $ref->getProperties();
+            foreach ($ref->getTraits() as $trait) {
+                $propRefs[] = $trait->getProperties();
+            }
+            $ref = $ref->getParentClass();
+        } while ($ref !== false);
+
+        return array_merge([], ...$propRefs);
     }
 
     /**
