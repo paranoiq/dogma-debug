@@ -32,6 +32,7 @@ use ReflectionType;
 use ReflectionUnionType;
 use ReflectionZendExtension;
 use function array_filter;
+use function array_keys;
 use function array_map;
 use function get_class;
 use function implode;
@@ -42,6 +43,7 @@ use function is_string;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function str_replace;
 use function strtolower;
 use const PHP_VERSION_ID;
 
@@ -80,7 +82,7 @@ class FormattersReflection
         //Dumper::$objectFormatters[ReflectionFiber::class] = [self::class, 'dumpReflectionFiber'];
 
         Dumper::$objectFormatters[ReflectionProperty::class] = [self::class, 'dumpReflectionProperty'];
-        //Dumper::$objectFormatters[ReflectionParameter::class] = [self::class, 'dumpReflectionParameter'];
+        Dumper::$objectFormatters[ReflectionParameter::class] = [self::class, 'dumpReflectionParameter'];
 
         Dumper::$objectFormatters[ReflectionType::class] = [self::class, 'dumpReflectionType'];
 
@@ -92,7 +94,7 @@ class FormattersReflection
     public static function dumpReflectionExtension(ReflectionExtension $extension, int $depth = 0): string
     {
         /** @var bool $persistent */
-        $persistent = (bool) $extension->isPersistent();
+        $persistent = $extension->isPersistent(); // @phpstan-ignore-line returns bool!
         $type = $persistent ? ' (persistent)' : ($extension->isTemporary() ? ' (temporary)' : '');
 
         $result = Dumper::class(get_class($extension))
@@ -122,10 +124,10 @@ class FormattersReflection
             $result .= "\n" . Dumper::indent($depth + 1) . 'conflicting dependencies: ' . implode(', ', $conflicts);
         }
 
-        $iniValues = ini_get_all(strtolower($extension->getName()));
+        $iniValues = ini_get_all(strtolower($extension->getName())) ?: [];
         $iniEntries = $extension->getINIEntries();
         if ($iniEntries !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'ini entries: ' . Dumper::info('// local_value (global_value) access');
+            $result .= "\n" . Dumper::indent($depth + 1) . 'ini entries: ' . Dumper::info('// local_value ; access (global_value)');
             foreach ($iniEntries as $entry => $vals) {
                 $values = $iniValues[$entry];
                 $access = [];
@@ -151,10 +153,19 @@ class FormattersReflection
                 } elseif (is_numeric($local)) {
                     $local = (float) $local;
                 }
-                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($entry) . ': '
-                    . Dumper::dumpValue($local, $depth + 2)
-                    . ($global === $local ? '' : ' (' . Dumper::dumpValue($global, $depth + 2) . ')')
-                    . ' ' . Dumper::info(implode('|', $access));
+
+                [$localValue, $localInfo] = Dumper::splitInfo(Dumper::dumpValue($local, $depth + 2));
+                $globalValue = '';
+                if ($global === $local) {
+                    $globalValue = Dumper::dumpValue($global, $depth + 2);
+                }
+
+                $info = '; ' . ($localInfo !== '' ? $localInfo . ', ' : '')
+                    . implode('|', $access)
+                    . ($global === $local ? '' : ' (global: ' . $globalValue . ')');
+
+                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($entry) . ' = '
+                    . $localValue . ' ' . Dumper::info($info);
             }
         }
 
@@ -182,9 +193,7 @@ class FormattersReflection
             }
         }
 
-        $result .= "\n" . Dumper::indent($depth) . Dumper::bracket('}');
-
-        return $result;
+        return $result . "\n" . Dumper::indent($depth) . Dumper::bracket('}');
     }
 
     public static function dumpReflectionZendExtension(ReflectionZendExtension $extension, int $depth = 0): string
@@ -338,15 +347,13 @@ class FormattersReflection
             }
         }
 
-        $result .= "\n" . Dumper::indent($depth) . Dumper::bracket('}');
-
-        return $result;
+        return $result . "\n" . Dumper::indent($depth) . Dumper::bracket('}');
     }
 
     public static function dumpReflectionClassConstant(ReflectionClassConstant $constant, int $depth = 0): string
     {
         $doc = self::formatDocComment($constant->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(  PHP_VERSION_ID >= 80000 ? $constant->getAttributes() : [], $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $constant->getAttributes() : [], $depth);
 
         $result = $depth === 0 ? Dumper::class(get_class($constant)) . ' of ' . "\n" : '';
 
@@ -406,19 +413,14 @@ class FormattersReflection
 
         $params = [];
         foreach ($function->getParameters() as $param) {
-            $type = $param->getType();
-            if ($type !== null) {
-                $type = self::formatType($type) . ' ';
-            }
-            $reference = $param->isPassedByReference() ? Dumper::reference('&') : '';
-            $params[] = $type . $reference . Dumper::parameter('$' . $param->getName());
+            $params[] = self::dumpReflectionParameter($param, $depth + 1);
         }
-        $params  = implode(', ', $params);
+        $params = implode(', ', $params);
 
         $return = $function->hasReturnType() ? ': ' . self::formatType($function->getReturnType()) : '';
         if (PHP_VERSION_ID >= 80100) {
             // todo:
-            $function->getTentativeReturnType();
+            $type = $function->getTentativeReturnType();
         }
         if ($function->returnsReference()) {
             $return = Dumper::reference('&') . $return;
@@ -443,7 +445,7 @@ class FormattersReflection
         }
 
         // todo:
-        $function->getStaticVariables();
+        $vars = $function->getStaticVariables();
 
         return $result;
     }
@@ -463,7 +465,7 @@ class FormattersReflection
     public static function dumpReflectionProperty(ReflectionProperty $property, int $depth = 0): string
     {
         $doc = self::formatDocComment($property->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(  PHP_VERSION_ID >= 80000 ? $property->getAttributes() : [], $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $property->getAttributes() : [], $depth);
         $type = PHP_VERSION_ID >= 70400 ? $property->getType() : null;
         if ($type !== null) {
             $type = self::formatType($type) . ' ';
@@ -482,7 +484,7 @@ class FormattersReflection
             : '(undefined)';
 
         $result .= $doc . $attrs;
-        $result .= $access . $static . $readonly. $type . $class . $name . ' = ' . $value . ';';
+        $result .= $access . $static . $readonly . $type . $class . $name . ' = ' . $value . ';';
 
         $info = [];
         if ($property->isDefault()) {
@@ -502,26 +504,66 @@ class FormattersReflection
     public static function dumpReflectionParameter(ReflectionParameter $param, int $depth = 0): string
     {
         $result = $depth === 0 ? Dumper::class(get_class($param)) . ' of ' . "\n" : '';
-        $param->getDeclaringFunction();
-        $param->getPosition();
+        if ($depth === 0) {
+            $class = $param->getDeclaringClass();
+            $function = $param->getDeclaringFunction();
+            $position = $param->getPosition();
 
-        $param->getAttributes();
+            $result .= "parameter #{$position} of "
+                . ($class !== null ? Dumper::class($class->getName()) . '::' : '')
+                . Dumper::function($function->getName()) . "\n";
+        }
+
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $param->getAttributes() : [], $depth);
+        if ($attrs !== '') {
+            $result .= $attrs . "\n";
+        }
+
+        $promoted = PHP_VERSION_ID >= 80000 && $param->isPromoted();
+        if ($promoted) {
+            $property = null;
+            $class = $param->getDeclaringClass();
+            if ($class === null) {
+                throw new LogicException('Parameter should have declaring class, when it is promoted to property.');
+            }
+            foreach ($class->getProperties() as $prop) {
+                if ($prop->getName() === $param->getName()) {
+                    $property = $prop;
+                    break;
+                }
+            }
+            if ($property === null) {
+                throw new LogicException('Promoted property not found.');
+            }
+            $result .= $property->isPublic() ? 'public ' : ($property->isProtected() ? 'protected ' : 'private ');
+        }
 
         $type = $param->getType();
         if ($type !== null) {
-            $type = self::formatType($type) . ' ';
+            $result .= self::formatType($type) . ' ';
         }
-        $reference = $param->isPassedByReference() ? Dumper::reference('&') : '';
 
-        $param->isVariadic();
-        $param->isDefaultValueAvailable();
-        $param->getDefaultValue();
-        $param->isDefaultValueConstant();
-        $param->getDefaultValueConstantName();
+        if ($param->isPassedByReference()) {
+            $result .= Dumper::reference('&');
+        }
 
-        $param->isPromoted();
+        if ($param->isVariadic()) {
+            $result .= '...';
+        }
 
-        return $type . $reference . Dumper::parameter('$' . $param->getName());
+        $result .= Dumper::parameter('$' . $param->getName());
+
+        if ($param->isDefaultValueAvailable()) {
+            if ($param->isDefaultValueConstant()) {
+                $const = $param->getDefaultValueConstantName();
+                $result .= ' = ' . Dumper::constant($const);
+            } else {
+                $default = $param->getDefaultValue();
+                $result .= ' = ' . Dumper::dumpValue($default);
+            }
+        }
+
+        return $result;
     }
 
     public static function dumpReflectionType(ReflectionType $type, int $depth = 0): string
@@ -564,7 +606,7 @@ class FormattersReflection
             $result = '';
         }
 
-        if ($type->allowsNull()) {
+        if ($type->allowsNull() && preg_match('~null\\e\\[[0-9;]+m~', $result) === 0) {
             $result = Dumper::type('?') . $result;
         }
 
@@ -579,7 +621,7 @@ class FormattersReflection
         $attrs = [];
         foreach ($attributes as $attribute) {
             $args = [];
-            foreach ($attribute->getArguments() as $argument) {
+            foreach (PHP_VERSION_ID >= 80000 ? $attribute->getArguments() : [] as $argument) {
                 $args[] = Dumper::dumpValue($argument);
             }
 
@@ -587,7 +629,8 @@ class FormattersReflection
                 ? Dumper::bracket('(') . implode(', ', $args) . Dumper::bracket(')')
                 : '';
 
-            $attrs[] = Dumper::indent($depth) . Dumper::bracket('#[') . Dumper::nameDim($attribute->getName()) . $args . Dumper::bracket(']');
+            $attrs[] = Dumper::indent($depth) . Dumper::bracket('#[')
+                . Dumper::nameDim(PHP_VERSION_ID >= 80000 ? $attribute->getName() : '') . $args . Dumper::bracket(']');
         }
 
         return $attrs !== []
