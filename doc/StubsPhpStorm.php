@@ -1,6 +1,4 @@
-<?php declare(strict_types = 1);
-
-// for muting "defined in 8.1" error in Dumper
+<?php declare(strict_types=1);
 
 class Socket
 {
@@ -37,6 +35,53 @@ class WeakReference
     public function get() {
         return null;
     }
+}
+
+class ReflectionClass
+{
+    public function isReadonly(): bool
+    {
+        return false;
+    }
+}
+
+abstract class ReflectionFunctionAbstract
+{
+    public function getTentativeReturnType(): ?ReflectionType
+    {
+        return null;
+    }
+
+}
+
+class ReflectionAttribute
+{
+
+}
+
+class ReflectionEnum
+{
+
+}
+
+class ReflectionEnumUnitCase
+{
+
+}
+
+class ReflectionEnumBackedCase
+{
+
+}
+
+class ReflectionUnionType
+{
+
+}
+
+class ReflectionIntersectionType
+{
+
 }
 
 class ReflectionReference

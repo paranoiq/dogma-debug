@@ -19,11 +19,14 @@ use function array_unshift;
 use function count;
 use function debug_backtrace;
 use function explode;
+use function floatval;
 use function in_array;
+use function intval;
 use function preg_match;
 use function preg_replace;
 use function str_contains;
 use function str_replace;
+use function strval;
 use const PHP_SAPI;
 
 /**
@@ -189,15 +192,15 @@ class Callstack
 
             $frames[] = [
                 'file' => $file,
-                'line' => (int) $line,
-                'function' => (string) $function,
+                'line' => intval($line),
+                'function' => strval($function),
                 'class' => $class,
                 'object' => null,
                 'type' => $type,
                 'args' => false,
-                'number' => (int) ($number - 1),
-                'time' => (float) $time,
-                'memory' => (int) $memory,
+                'number' => intval($number) - 1,
+                'time' => floatval($time),
+                'memory' => intval($memory),
             ];
         }
 

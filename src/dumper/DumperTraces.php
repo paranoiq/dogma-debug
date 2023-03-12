@@ -24,6 +24,7 @@ use function str_replace;
 use function str_split;
 use function strpos;
 use function strtolower;
+use function strval;
 use function substr;
 use function trim;
 
@@ -59,6 +60,9 @@ trait DumperTraces
             return null;
         }
         $line = trim(substr($line, $start + 1));
+        if ($line === '') {
+            return null;
+        }
 
         if ($line[0] === '"' || $line[0] === "'" || $line[0] === '-' || preg_match('/^[0-9]/', $line)) {
             // literal
@@ -66,6 +70,7 @@ trait DumperTraces
         }
 
         $chars = str_split($line);
+        $i = 0;
         $pars = 1;
         $bras = 0;
         foreach ($chars as $i => $char) {
@@ -252,7 +257,7 @@ trait DumperTraces
         ];
         $path = preg_replace(array_keys($patterns), array_values($patterns), $path);
 
-        return $relative && $path[0] === '/' ? substr($path, 1) : $path;
+        return strval($relative && $path[0] === '/' ? substr($path, 1) : $path);
     }
 
     public static function trimPath(string $path): string

@@ -179,6 +179,9 @@ eof
 nonblock
 wc
 ns
+PHP_INI_PERDIR
+infile
+mysqli
 
 # ~en
 libs

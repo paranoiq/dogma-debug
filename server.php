@@ -43,7 +43,7 @@ foreach ($argv as $i => $arg) {
         $config['port'] = (int) $arg;
     } elseif ($key === 'host' || ($i === 1 && preg_match('~\d+.\d+.\d+.\d+~', $arg))) {
         $config['host'] = $arg;
-    } elseif ($key === 'file' || ($i === 2 && preg_match('~.log$~', $arg))) {
+    } elseif ($key === 'log-file' || ($i === 2 && preg_match('~.log$~', $arg))) {
         $config['log-file'] = $arg;
     } elseif ($arg === '--keep-old-log') {
         $config['keep-old-log'] = true;
@@ -52,7 +52,7 @@ foreach ($argv as $i => $arg) {
     } elseif ($i === 0) {
         continue;
     } else {
-        exit("Unknown argument: $arg\n");
+        exit("Unknown argument: {$arg}\n");
     }
 }
 

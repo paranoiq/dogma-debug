@@ -1,5 +1,7 @@
 <?php
 
+// spell-check-ignore: cfl cfn ev fid su ve
+
 $name = $argv[1];
 $file = fopen($name, 'r');
 if (!$file) {

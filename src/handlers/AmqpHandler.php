@@ -266,7 +266,7 @@ class AmqpHandler
                 $prefix .= Ansi::lred('error:') . ' ';
             }
             $data = $message;
-            $rows = is_array($data) ? count($data, COUNT_RECURSIVE) : 1;
+            $rows = is_array($data) ? count($data, COUNT_RECURSIVE) : 1; // @phpstan-ignore-line todo copied from RedisHandler
             $value = Dumper::dumpValue($data, 0, $key);
         } elseif ($message[0] === '{') {
             // json encoded

@@ -7,20 +7,17 @@ use Dogma\Debug\Dumper;
 
 require_once __DIR__ . '/../bootstrap.php';
 
-class ReadonlyProperties
+readonly class ReadonlyClass
 {
-    public int $a = 1;
-    protected int $b = 2;
-    private int $c = 3;
-    public readonly int $d;
-    protected readonly int $e;
-    private readonly int $f;
+    public int $a;
+    protected int $b;
+    private int $c;
 
     public function __construct()
     {
-        $this->d = 4;
-        $this->e = 5;
-        $this->f = 6;
+        $this->a = 1;
+        $this->b = 2;
+        $this->c = 3;
     }
 
     public function f(): int
@@ -30,15 +27,13 @@ class ReadonlyProperties
 
 }
 
-$readonly = new ReadonlyProperties();
+$readonly = new ReadonlyClass();
 
 Dumper::$propertyOrder = Dumper::ORDER_ORIGINAL;
 
-Assert::dump($readonly, '<$readonly>: <Dogma><\><Tests><\><Debug><\><ReadonlyProperties> <{> <// #?id>
+// todo: implement <readonly>
+Assert::dump($readonly, '<$readonly>: <Dogma><\><Tests><\><Debug><\><ReadonlyClass> <{> <// #?id>
    <public> <$a> = <1>;
    <protected> <$b> = <2>;
    <private> <$c> = <3>;
-   <public> <readonly> <$d> = <4>;
-   <protected> <readonly> <$e> = <5>;
-   <private> <readonly> <$f> = <6>;
 <}>');

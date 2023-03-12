@@ -89,6 +89,7 @@ trait DumperFormatters
 
     /** @var array<string, string> */
     private static $phpEscapes = [
+        "\0" => '\0', // 00
         "\t" => '\t', // 09
         "\n" => '\n', // 0a
         "\v" => '\v', // 0b
@@ -600,6 +601,21 @@ trait DumperFormatters
     public static function info(string $info): string
     {
         return Ansi::color($info, self::$colors['info']);
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    public static function splitInfo(string $string): array
+    {
+        $result = explode(self::infoPrefix(), $string);
+        if (count($result) === 1) {
+            $result[] = '';
+        } else {
+            $result[1] = (string) preg_replace("~\x1B\\[[0-9;]+m~", '', $result[1]);
+        }
+
+        return [$result[0], $result[1]];
     }
 
     /**

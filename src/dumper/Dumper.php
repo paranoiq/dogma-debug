@@ -7,6 +7,8 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// spell-check-ignore: xff
+
 namespace Dogma\Debug;
 
 use BackedEnum;
@@ -235,9 +237,9 @@ class Dumper
         'escape_non_ascii' => Ansi::DMAGENTA, // characters outside ascii (\x80-\xff)
 
         'resource' => Ansi::LRED, // stream
-        'namespace' => Ansi::LRED, // Foo...
+        'namespace' => Ansi::DCYAN, // Foo...
         'backslash' => Ansi::DGRAY, // // ...\...
-        'class' => Ansi::LRED, // ...Bar
+        'class' => Ansi::DCYAN, // ...Bar
         'access' => Ansi::DGRAY, // public private protected
         'constant' => Ansi::WHITE, // FOO
         'property' => Ansi::DYELLOW, // $foo
@@ -246,7 +248,7 @@ class Dumper
 
         'closure' => Ansi::LGRAY, // static function ($a) use ($b)
         'parameter' => Ansi::DYELLOW, // $a, $b
-        'type' => Ansi::LYELLOW, // int
+        'type' => Ansi::WHITE, // int
         'operator' => Ansi::LGRAY, // | &
         'reference' => Ansi::LRED, // &
         'bracket' => Ansi::WHITE, // [ ] { } ( )

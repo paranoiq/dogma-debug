@@ -174,7 +174,7 @@ class Str
     public static function ord(string $ch): int
     {
         $ord0 = ord($ch[0]);
-        if ($ord0 >= 0 && $ord0 <= 127) {
+        if ($ord0 <= 127) {
             return $ord0;
         }
         $ord1 = ord($ch[1]);

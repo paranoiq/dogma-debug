@@ -1,5 +1,7 @@
 <?php declare(strict_types = 1);
 
+// spell-check-ignore: xff
+
 namespace Dogma\Tests\Debug;
 
 use Closure;
@@ -147,7 +149,7 @@ Assert::dump('🙈', '<literal>: <"<\ud83d\ude48<"> <// 4 B, 1 ch>');
 
 // binary
 $bin = implode('', range("\x00", "\xff"));
-// spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ aa ae af ba bb bc bd cb cd ce da de df eb ec ee ef fb fc fd fe
+// spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ aa ae af ba bb bc bd cd ce da de df eb ec ee ef fb fc fd fe
 Dumper::$escapeAllNonAscii = false; // todo: conflicts with normal binary escaping
 Dumper::$binaryEscaping = Dumper::ESCAPING_CP437;
 Dumper::$colors['escape_basic'] = Ansi::LCYAN;
