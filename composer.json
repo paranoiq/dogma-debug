@@ -25,6 +25,16 @@
         "ext-intl": "Any of ext-mb|ext-intl|ext-iconv for unicode strings",
         "ext-iconv": "Any of ext-mb|ext-intl|ext-iconv for unicode strings"
     },
+    "replace": {
+        "sllh/composer-versions-check": "*",
+        "dealerdirect/phpcodesniffer-composer-installer": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "sllh/composer-versions-check": false,
+            "dealerdirect/phpcodesniffer-composer-installer": false
+        }
+    },
     "scripts": {
         "da": "composer dump-autoload",
         "c": "@check:run",
@@ -112,11 +122,5 @@
         "lint:run": "Run PHPLint",
         "lint:all": "Run PHPLint on all supported PHP versions (7.1 - 8.1)",
         "spell:run": "Run spell-checker"
-    },
-    "config": {
-        "allow-plugins": {
-            "sllh/composer-versions-check": false,
-            "dealerdirect/phpcodesniffer-composer-installer": false
-        }
     }
 }
