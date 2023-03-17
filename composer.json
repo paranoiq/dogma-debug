@@ -109,18 +109,18 @@
     "scripts-descriptions": {
         "da": "Dump autoloader (shortcut)",
         "check:run": "Run all checks (tests, phpstan, phpcs, phplint, spell-checker)",
-        "check:all": "Run all checks on all supported PHP versions (7.1 - 8.1)",
+        "check:all": "Run all checks on all supported PHP versions (7.1 - 8.2)",
         "tests:run": "Run tests",
-        "tests:all": "Run tests on all supported PHP versions (7.1 - 8.1)",
+        "tests:all": "Run tests on all supported PHP versions (7.1 - 8.2)",
         "tests:coverage": "Run tests with code coverage",
         "phpstan:run": "Run PHPStan check",
-        "phpstan:all": "Run PHPStan check on all supported PHP versions (7.1 - 8.1)",
+        "phpstan:all": "Run PHPStan check on all supported PHP versions (7.1 - 8.2)",
         "phpcs:run": "Run CS check",
         "phpcs:src": "Run CS check on /src",
         "phpcs:tests": "Run CS check on /tests",
         "phpcs:fix": "Run CS check with auto-fixing on /src and /tests",
         "lint:run": "Run PHPLint",
-        "lint:all": "Run PHPLint on all supported PHP versions (7.1 - 8.1)",
+        "lint:all": "Run PHPLint on all supported PHP versions (7.1 - 8.2)",
         "spell:run": "Run spell-checker"
     }
 }
