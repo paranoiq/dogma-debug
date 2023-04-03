@@ -116,6 +116,18 @@ class Intercept
     /** @var bool */
     public static $filterTrace = true;
 
+    /** @var int */
+    public static $traceLength = 1;
+
+    /** @var int */
+    public static $traceArgsDepth = 0;
+
+    /** @var int */
+    public static $traceCodeLines = 0;
+
+    /** @var int */
+    public static $traceCodeDepth = 0;
+
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var array<string, array{string, array{class-string, string}}> */
@@ -481,7 +493,7 @@ class Intercept
 
         $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
+        $trace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
 
         Debugger::send(Packet::INTERCEPT, $message, $trace);
     }
