@@ -299,12 +299,12 @@ $closure = Closure::fromCallable('date');
 Assert::dump($closure, '<$closure>: <Closure> function <date>(<$format>, <$timestamp>) <{><}>');
 
 $closure = Closure::fromCallable([$foo, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><24>
+Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><26>
    <static> <$x> = <42>;
 <}>');
 
 $closure = Closure::fromCallable([Bar::class, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><35>
+Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><37>
    <static> <$x> = <42>;
 <}>');
 
