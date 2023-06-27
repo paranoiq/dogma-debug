@@ -69,7 +69,7 @@ class FormattersReflection
         Dumper::$objectFormatters[ReflectionZendExtension::class] = [self::class, 'dumpReflectionZendExtension'];
 
         Dumper::$objectFormatters[ReflectionObject::class] = [self::class, 'dumpReflectionObject'];
-        //Dumper::$objectFormatters[ReflectionEnum::class] = [self::class, 'dumpReflectionEnum'];
+        Dumper::$objectFormatters[ReflectionEnum::class] = [self::class, 'dumpReflectionEnum'];
         Dumper::$objectFormatters[ReflectionClass::class] = [self::class, 'dumpReflectionClass'];
 
         Dumper::$objectFormatters[ReflectionClassConstant::class] = [self::class, 'dumpReflectionClassConstant'];
@@ -207,6 +207,11 @@ class FormattersReflection
     {
         /// todo
         return self::dumpReflectionClass($ref, $depth);
+    }
+
+    public static function dumpReflectionEnum(ReflectionEnum $enum, int $depth = 0): string
+    {
+        return self::dumpReflectionClass($enum, $depth);
     }
 
     public static function dumpReflectionClass(ReflectionClass $class, int $depth = 0): string
