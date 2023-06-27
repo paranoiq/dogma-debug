@@ -26,6 +26,20 @@ use const PHP_SAPI;
 class Request
 {
 
+    public const APPLICATION_SELF_TEST = 'self-test';
+    public const APPLICATION_PHPSTAN = 'phpstan';
+    public const APPLICATION_RECTOR = 'rector';
+    public const APPLICATION_PHPUNIT = 'phpunit';
+    public const APPLICATION_CODECEPTION = 'codeception';
+    public const APPLICATION_NETTE_TESTER = 'nette-tester';
+    public const APPLICATION_NETTE_TEST = 'nette-test';
+    public const APPLICATION_COMPOSER = 'composer';
+    public const APPLICATION_REQUIRE_CHECKER = 'require-checker';
+    public const APPLICATION_PHPCS = 'phpcs';
+    public const APPLICATION_PARALLEL_LINT = 'parallel-lint';
+    public const APPLICATION_ADMINER = 'adminer';
+    public const APPLICATION_ROUNDCUBE = 'roundcube';
+
     /** @var string */
     public static $sapi;
 
@@ -37,34 +51,34 @@ class Request
 
     /** @var array<string, string> */
     public static $appCommandMatches = [
-        '~dogma-debug/tests/.*\.phpt~' => 'self-test',
-        '~/phpstan/phpstan/phpstan~' => 'phpstan',
-        '~phpstan analyze -c~' => 'phpstan',
-        '~phpstan worker~' => 'phpstan',
-        '~vendor/bin/rector process~' => 'rector',
-        '~vendor/bin/rector worker~' => 'rector',
-        '~phpunit/phpunit/phpunit~' => 'phpunit',
-        '~/nette/tester/src/tester~' => 'nette-tester',
-        '~nette/tester/src/Runner/info.php~' => 'nette-tester',
-        '~tests/.*\.phpt~' => 'nette-test',
-        '~composer[^/]*.phar~' => 'composer',
-        '~update --dry-run~' => 'composer',
-        '~validate --no-check-publish~' => 'composer',
-        '~show --format=json -a --name-only~' => 'composer',
-        '~composer-require-checker~' => 'require-checker',
-        '~/squizlabs/php_codesniffer/bin/phpcs~' => 'phpcs',
-        '~/php-parallel-lint/php-parallel-lint/parallel-lint~' => 'parallel-lint',
-        '~/codeception/codeception/codecept~' => 'codeception',
+        '~dogma-debug/tests/.*\.phpt~' => self::APPLICATION_SELF_TEST,
+        '~/phpstan/phpstan/phpstan~' => self::APPLICATION_PHPSTAN,
+        '~phpstan analyze -c~' => self::APPLICATION_PHPSTAN,
+        '~phpstan worker~' => self::APPLICATION_PHPSTAN,
+        '~vendor/bin/rector process~' => self::APPLICATION_RECTOR,
+        '~vendor/bin/rector worker~' => self::APPLICATION_RECTOR,
+        '~phpunit/phpunit/phpunit~' => self::APPLICATION_PHPUNIT,
+        '~/codeception/codeception/codecept~' => self::APPLICATION_CODECEPTION,
+        '~/nette/tester/src/tester~' => self::APPLICATION_NETTE_TESTER,
+        '~nette/tester/src/Runner/info.php~' => self::APPLICATION_NETTE_TESTER,
+        '~tests/.*\.phpt~' => self::APPLICATION_NETTE_TEST,
+        '~composer[^/]*.phar~' => self::APPLICATION_COMPOSER,
+        '~update --dry-run~' => self::APPLICATION_COMPOSER,
+        '~validate --no-check-publish~' => self::APPLICATION_COMPOSER,
+        '~show --format=json -a --name-only~' => self::APPLICATION_COMPOSER,
+        '~composer-require-checker~' => self::APPLICATION_REQUIRE_CHECKER,
+        '~/squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
+        '~/php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
     ];
 
     /** @var array<string, string> */
     public static $appUrlMatches = [
-        '~/adminer/adminer~' => 'adminer',
+        '~/adminer/adminer~' => self::APPLICATION_ADMINER,
     ];
 
     /** @var array<string, string> */
     public static $appFileMatches = [
-        '~/var/www/roundcube/~' => 'roundcube',
+        '~/var/www/roundcube/~' => self::APPLICATION_ROUNDCUBE,
     ];
 
     public static function init(): void
