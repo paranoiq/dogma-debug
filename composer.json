@@ -15,7 +15,7 @@
     },
     "require-dev": {
         "dogma/dogma": "*",
-        "dogma/dogma-dev": "0.1.28",
+        "dogma/dogma-dev": "0.1.30",
         "phpstan/phpstan": "1.10.6",
         "phpstan/phpstan-strict-rules": "^1.0"
     },
@@ -25,13 +25,8 @@
         "ext-intl": "Any of ext-mb|ext-intl|ext-iconv for unicode strings",
         "ext-iconv": "Any of ext-mb|ext-intl|ext-iconv for unicode strings"
     },
-    "replace": {
-        "sllh/composer-versions-check": "*",
-        "dealerdirect/phpcodesniffer-composer-installer": "*"
-    },
     "config": {
         "allow-plugins": {
-            "sllh/composer-versions-check": false,
             "dealerdirect/phpcodesniffer-composer-installer": false
         }
     },
