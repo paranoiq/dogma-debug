@@ -18,7 +18,6 @@ use Throwable;
 use function array_filter;
 use function array_shift;
 use function array_sum;
-use function connection_aborted;
 use function connection_status;
 use function count;
 use function dirname;
@@ -31,7 +30,6 @@ use function fopen;
 use function fwrite;
 use function headers_list;
 use function http_response_code;
-use function ignore_user_abort;
 use function implode;
 use function is_array;
 use function is_file;
@@ -64,6 +62,7 @@ use function trim;
 use function unserialize;
 use const AF_INET;
 use const CONNECTION_ABORTED;
+use const CONNECTION_TIMEOUT;
 use const PHP_SAPI;
 use const PHP_SESSION_ACTIVE;
 use const PHP_VERSION;
@@ -198,7 +197,17 @@ class Debugger
     /** @var array<string, int> - previous states of memory indexed by name [bytes] */
     private static $memory = [];
 
-    /** @var string|null - textual description of termination reason - exit(...)|signal (...)|memory limit (...)|time limit (...) */
+    /**
+     * @var string|null - textual description of termination reason:
+     *   todo: "finished in <file:line>" // need to detect executed file and insert handler at the end
+     *   todo: "unhandled error" (error is dumped) // need to check other registered error handlers
+     *   "uncaught exception" (exception is dumped)
+     *   "exit (...)", todo: <file:line>
+     *   "signal (...)"
+     *   "memory limit (...)"
+     *   "time limit (...)"
+     *   "connection aborted"
+     */
     private static $terminatedBy;
 
     /** @var string - simplified name of the process/request */
@@ -910,8 +919,15 @@ class Debugger
             $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
         } elseif (self::$terminatedBy !== null) {
             $footer .= ' ' . Ansi::white(' ' . self::$terminatedBy . ' ', Ansi::LMAGENTA);
-        } elseif (PHP_SAPI !== 'cli' && !ignore_user_abort() && connection_aborted()) {
-            $reason = connection_status() === CONNECTION_ABORTED ? 'connection aborted' : 'connection timeout';
+        } elseif (connection_status() !== 0) {
+            $connectionStatus = connection_status();
+            if ($connectionStatus === CONNECTION_ABORTED) {
+                $reason = 'connection aborted';
+            } elseif ($connectionStatus === CONNECTION_TIMEOUT) {
+                $reason = 'time limit (' . Resources::timeLimit() . ' s)';
+            } else {
+                $reason = 'connection aborted & time limit (' . Resources::timeLimit() . ' s)';
+            }
             $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
         }
 

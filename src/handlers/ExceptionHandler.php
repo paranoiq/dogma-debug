@@ -91,7 +91,7 @@ class ExceptionHandler
 
         self::logFatal($e);
 
-        Debugger::setTermination('exception');
+        Debugger::setTermination('uncaught exception');
 
         exit(1);
     }

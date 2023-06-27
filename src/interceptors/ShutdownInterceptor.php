@@ -18,12 +18,10 @@ use function ignore_user_abort;
  *
  * PHP request shutdown steps:
  * - call all functions registered via register_shutdown_function()
- * - call all* __destruct() methods
+ * - call all* __destruct() methods (@see https://phpfashion.com/jak-probiha-shutdown-v-php-a-volani-destruktoru)
  * - empty all output buffers
  * - end all PHP extensions (e.g. sessions)
  * - turn off output layer (send HTTP headers, terminate output handlers etc.)
- *
- * @see https://phpfashion.com/jak-probiha-shutdown-v-php-a-volani-destruktoru
  */
 class ShutdownInterceptor
 {
