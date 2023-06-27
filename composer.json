@@ -27,7 +27,8 @@
     },
     "config": {
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": false
+            "dealerdirect/phpcodesniffer-composer-installer": false,
+            "sllh/composer-versions-check": false
         }
     },
     "scripts": {
