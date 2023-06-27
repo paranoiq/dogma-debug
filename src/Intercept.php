@@ -69,14 +69,11 @@ use function substr;
  *      mail()
  * - MysqliInterceptor:
  *      mysqli_*()
- * - todo: OutputInterceptor:
- *      todo: ob_*()
  * - ProcessInterceptor:
- *      pcntl_signal(), pcntl_async_signals(), pcntl_alarm()
+ *      pcntl_signal(), pcntl_async_signals(), pcntl_signal_dispatch(), pcntl_sigprocmask(), pcntl_sigwaitinfo(), pcntl_sigtimedwait()
  *      sapi_windows_set_ctrl_handler()
- *      exit(), die()
- *      ignore_user_abort()
- *      register_shutdown_function()
+ *      pcntl_alarm()
+ *      pcntl_fork(), pcntl_unshare(), pcntl_wait(), pcntl_waitpid()
  * - ResourcesInterceptor:
  *      register_tick_function(), unregister_tick_function()
  *      set_time_limit()
@@ -87,6 +84,10 @@ use function substr;
  * - SettingsInterceptor:
  *      ini_set(), ini_alter(), ini_restore()
  *      putenv()
+ * - ShutdownInterceptor:
+ *      exit(), die()
+ *      ignore_user_abort()
+ *      register_shutdown_function()
  * - SocketInterceptor:
  *      todo: socket_*()
  *      todo: fsockopen(), pfsockopen(), stream_socket_client(), stream_socket_server()...

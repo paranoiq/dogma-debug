@@ -9,21 +9,8 @@
 
 namespace Dogma\Debug;
 
-use LogicException;
-use function func_get_args;
-use function ignore_user_abort;
-
 /**
- * Tracks signals, exit() and die() and tries to determine what lead to process termination
- *
- * PHP request shutdown steps:
- * - call all functions registered via register_shutdown_function()
- * - call all* __destruct() methods
- * - empty all output buffers
- * - end all PHP extensions (e.g. sessions)
- * - turn off output layer (send HTTP headers, terminate output handlers etc.)
- *
- * @see https://phpfashion.com/jak-probiha-shutdown-v-php-a-volani-destruktoru
+ * Tracks signals and pcntl functions
  *
  * @see https://man7.org/linux/man-pages/man7/signal.7.html
  * @see https://stackoverflow.com/questions/3333276/signal-handling-on-windows
@@ -40,13 +27,7 @@ class ProcessInterceptor
     private static $interceptAlarm = Intercept::NONE;
 
     /** @var int */
-    private static $interceptExit = Intercept::NONE;
-
-    /** @var int */
-    private static $interceptShutdown = Intercept::NONE;
-
-    /** @var int */
-    private static $interceptAbort = Intercept::NONE;
+    private static $interceptChildren = Intercept::NONE;
 
     /**
      * Take control over pcntl_signal(), pcntl_async_signals() and sapi_windows_set_ctrl_handler()
@@ -55,10 +36,15 @@ class ProcessInterceptor
      */
     public static function interceptSignals(int $level = Intercept::LOG_CALLS): void
     {
-        self::$interceptSignals = $level;
         Intercept::registerFunction(self::NAME, 'pcntl_signal', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_async_signals', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_signal_dispatch', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_sigprocmask', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_sigwaitinfo', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_sigtimedwait', self::class);
+
         Intercept::registerFunction(self::NAME, 'sapi_windows_set_ctrl_handler', self::class);
+        self::$interceptSignals = $level;
     }
 
     /**
@@ -73,37 +59,21 @@ class ProcessInterceptor
     }
 
     /**
-     * Takes control over exit() and die()
+     * Intercept pcntl_fork(), pcntl_waitpid()
      *
      * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function interceptExit(int $level = Intercept::LOG_CALLS): void
+    public static function interceptChildren(int $level = Intercept::LOG_CALLS): void
     {
-        self::$interceptExit = $level;
-        Intercept::registerFunction(self::NAME, 'exit', [self::class, 'fakeExit']);
-        Intercept::registerFunction(self::NAME, 'die', [self::class, 'fakeExit']); // die() is just synonym of exit()
-    }
+        Intercept::registerFunction(self::NAME, 'pcntl_fork', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_unshare', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_wait', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_waitpid', self::class);
 
-    /**
-     * Take control over ignore_user_abort()
-     *
-     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
-     */
-    public static function interceptAbort(int $level = Intercept::LOG_CALLS): void
-    {
-        Intercept::registerFunction(self::NAME, 'ignore_user_abort', self::class);
-        self::$interceptAbort = $level;
-    }
-
-    /**
-     * Takes control over register_shutdown_function()
-     *
-     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
-     */
-    public static function interceptShutdown(int $level = Intercept::LOG_CALLS): void
-    {
-        self::$interceptShutdown = $level;
-        Intercept::registerFunction(self::NAME, 'register_shutdown_function', self::class);
+        // info: pcntl_wifexited, pcntl_wifstopped, pcntl_wifsignaled, pcntl_wexitstatus, pcntl_wifcontinued, pcntl_wtermsig, pcntl_wstopsig
+        //   pcntl_getpriority, pcntl_setpriority,
+        // err.: pcntl_get_last_error, pcntl_errno, pcntl_strerror
+        self::$interceptChildren = $level;
     }
 
     // decorators ------------------------------------------------------------------------------------------------------
@@ -121,6 +91,42 @@ class ProcessInterceptor
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$enable], true);
     }
 
+    public static function pcntl_signal_dispatch(): bool
+    {
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [], true);
+    }
+
+    /**
+     * @param list<int> $signals
+     * @param list<int> $old_signals
+     */
+    public static function pcntl_sigprocmask(int $mode, array $signals, &$old_signals): bool
+    {
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$mode, $signals, &$old_signals], true);
+    }
+
+    /**
+     * @param list<int> $signals
+     * @param array<string, int> $info
+     * @return int|false
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
+     */
+    public static function pcntl_sigwaitinfo(array $signals, &$info = [])
+    {
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info], true);
+    }
+
+    /**
+     * @param list<int> $signals
+     * @param array<string, int> $info
+     * @return int|false
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
+     */
+    public static function pcntl_sigtimedwait(array $signals, &$info = [], int $seconds = 0, int $nanoseconds = 0)
+    {
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info, $seconds, $nanoseconds], true);
+    }
+
     public static function sapi_windows_set_ctrl_handler(callable $callable, bool $add): bool
     {
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$callable, $add], true);
@@ -131,34 +137,34 @@ class ProcessInterceptor
         return Intercept::handle(self::NAME, self::$interceptAlarm, __FUNCTION__, [$seconds], 0);
     }
 
-    /**
-     * @param string|int $status
-     */
-    public static function fakeExit($status = ''): void
+    public static function pcntl_fork(): int
     {
-        Debugger::setTermination($status ? 'exit (' . $status . ')' : 'exit');
+        return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [], 0);
+    }
 
-        if (self::$interceptExit & Intercept::SILENT) {
-            exit($status);
-        } elseif (self::$interceptExit & Intercept::LOG_CALLS) {
-            Intercept::log(self::NAME, self::$interceptExit, 'exit', [$status], null);
-            exit($status);
-        } else {
-            throw new LogicException('Not implemented.');
-        }
+    public static function pcntl_unshare(int $flags): bool
+    {
+        return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [$flags], 0);
     }
 
     /**
-     * @param mixed ...$args
+     * @param int $status
+     * @param mixed[] $resource_usage
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
      */
-    public static function register_shutdown_function(?callable $callback, ...$args): ?bool
+    public static function pcntl_wait(&$status, int $flags = 0, &$resource_usage = []): int
     {
-        return Intercept::handle(self::NAME, self::$interceptShutdown, __FUNCTION__, func_get_args(), null);
+        return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [&$status, $flags, &$resource_usage], 0);
     }
 
-    public static function ignore_user_abort(?bool $ignore): int
+    /**
+     * @param int $status
+     * @param mixed[] $resource_usage
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
+     */
+    public static function pcntl_waitpid(int $process_id, &$status, int $flags = 0, &$resource_usage = []): int
     {
-        return Intercept::handle(self::NAME, self::$interceptAbort, __FUNCTION__, [$ignore], ignore_user_abort());
+        return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [$process_id, &$status, $flags, &$resource_usage], 0);
     }
 
 }

@@ -100,8 +100,10 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/interceptors/ExecInterceptor.php';
     require_once __DIR__ . '/src/interceptors/HeadersInterceptor.php';
     require_once __DIR__ . '/src/interceptors/MailInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/ProcessInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SessionInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SettingsInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/ShutdownInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SocketsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/StreamInterceptor.php';
     require_once __DIR__ . '/src/interceptors/StreamWrapperInterceptor.php';
