@@ -47,7 +47,8 @@ use function substr;
  * - BuffersInterceptor:
  *      flush(), ob_*() (except ob_gz_handler()), output_add_rewrite_var(), output_reset_rewrite_vars()
  * - CurlInterceptor:
- *      curl_*()
+ *      curl_*(),
+ *      todo: curl_share_*()
  * - DnsInterceptor:
  *      checkdnsrr(), dns_check_record(), dns_get_mx(), dns_get_record(), gethostbyaddr(), gethostbyname(), gethostbynamel(), gethostname(), getmxrr()
  * - ErrorInterceptor:
@@ -59,8 +60,8 @@ use function substr;
  *      proc_open(), proc_close(), proc_terminate(), proc_get_status()
  *      `...`
  * - FilesystemInterceptor:
- *      - fopen(), fclose(), flock(), fread(), fwrite(), ftruncate(), fflush(), fseek(), feof(), ftell(), fstat(), fgets()
- *      - stream_socket_client()
+ *      fopen(), fclose(), flock(), fread(), fwrite(), ftruncate(), fflush(), fseek(), feof(), ftell(), fstat(), fgets()
+ *      stream_socket_client()
  *      todo: all other fs functions...
  * - HeadersInterceptor:
  *      header(), header_remove(), header_register_callback(), http_response_code()

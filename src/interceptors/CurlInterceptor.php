@@ -331,7 +331,7 @@ class CurlInterceptor
         CURLOPT_PROXYUSERPWD => 'CURLOPT_PROXYUSERPWD',
         CURLOPT_RANGE => 'CURLOPT_RANGE',
         CURLOPT_INFILE => 'CURLOPT_INFILE',
-        //CURLOPT_READDATA => 'CURLOPT_READDATA',
+        //CURLOPT_READDATA => 'CURLOPT_READDATA', // same as INIFILE
         CURLOPT_POSTFIELDS => 'CURLOPT_POSTFIELDS',
         CURLOPT_REFERER => 'CURLOPT_REFERER',
         CURLOPT_FTPPORT => 'CURLOPT_FTPPORT',
@@ -339,8 +339,8 @@ class CurlInterceptor
         CURLOPT_COOKIE => 'CURLOPT_COOKIE',
         CURLOPT_HTTPHEADER => 'CURLOPT_HTTPHEADER',
         CURLOPT_SSLCERT => 'CURLOPT_SSLCERT',
-        //CURLOPT_SSLCERTPASSWD => 'CURLOPT_SSLCERTPASSWD',
-        //CURLOPT_SSLKEYPASSWD => 'CURLOPT_SSLKEYPASSWD',
+        //CURLOPT_SSLCERTPASSWD => 'CURLOPT_SSLCERTPASSWD', // same as KEYPASSWD
+        //CURLOPT_SSLKEYPASSWD => 'CURLOPT_SSLKEYPASSWD', // same as KEYPASSWD
         CURLOPT_KEYPASSWD => 'CURLOPT_KEYPASSWD',
         CURLOPT_QUOTE => 'CURLOPT_QUOTE',
         CURLOPT_WRITEHEADER => 'CURLOPT_WRITEHEADER',
@@ -349,7 +349,7 @@ class CurlInterceptor
         CURLOPT_STDERR => 'CURLOPT_STDERR',
         CURLOPT_POSTQUOTE => 'CURLOPT_POSTQUOTE',
         CURLOPT_INTERFACE => 'CURLOPT_INTERFACE',
-        //CURLOPT_KRB4LEVEL => 'CURLOPT_KRB4LEVEL',
+        //CURLOPT_KRB4LEVEL => 'CURLOPT_KRB4LEVEL', // same as KRBLEVEL
         CURLOPT_KRBLEVEL => 'CURLOPT_KRBLEVEL',
         CURLOPT_CAINFO => 'CURLOPT_CAINFO',
         CURLOPT_TELNETOPTIONS => 'CURLOPT_TELNETOPTIONS',
@@ -365,7 +365,7 @@ class CurlInterceptor
         CURLOPT_CAPATH => 'CURLOPT_CAPATH',
         CURLOPT_SHARE => 'CURLOPT_SHARE',
         CURLOPT_ACCEPT_ENCODING => 'CURLOPT_ACCEPT_ENCODING',
-        //CURLOPT_ENCODING => 'CURLOPT_ENCODING',
+        //CURLOPT_ENCODING => 'CURLOPT_ENCODING', // same as ACCEPT_ENCODING
         CURLOPT_PRIVATE => 'CURLOPT_PRIVATE',
         CURLOPT_HTTP200ALIASES => 'CURLOPT_HTTP200ALIASES',
         CURLOPT_NETRC_FILE => 'CURLOPT_NETRC_FILE',
@@ -455,6 +455,11 @@ class CurlInterceptor
         Intercept::registerFunction(self::NAME, 'curl_multi_setopt', self::class);
 
         // todo: curl_share_*
+        //Intercept::registerFunction(self::NAME, 'curl_share_init', self::class);
+        //Intercept::registerFunction(self::NAME, 'curl_share_setopt', self::class);
+        //Intercept::registerFunction(self::NAME, 'curl_share_close', self::class);
+        // curl_share_errno
+        // curl_share_strerror
 
         self::$intercept = $level;
     }
