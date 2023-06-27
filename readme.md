@@ -259,7 +259,7 @@ implemented interceptors for now:
 - `CurlInterceptor` - tracks usage of Curl extension functions
 - `DnsInterceptor` - tracks usage of DNS related functions
 - `ErrorInterceptor` - track usage of error/exception related functions
-- `FilesystemInterceptor` - tracks usage of file system related functions. useful on stream transport that do not support wrappers (`tcp`, `udp`, `unix`, `udg`, `ssl`, `tls`)
+- `StreamInterceptor` - tracks usage of file system related functions. useful on stream transport that do not support wrappers (`tcp`, `udp`, `unix`, `udg`, `ssl`, `tls`)
 - `HeadersInterceptor` - tracks usage of functions handling HTTP headers
 - `Mailinterceptor` - tracks usage of `mail()` function
 - `MysqliInterceptor` - tracks usage of mysqli functions and logs SQL queries

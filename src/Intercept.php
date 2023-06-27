@@ -59,10 +59,6 @@ use function substr;
  *      exec(), passthru(), shell_exec(), system()
  *      proc_open(), proc_close(), proc_terminate(), proc_get_status()
  *      `...`
- * - FilesystemInterceptor:
- *      fopen(), fclose(), flock(), fread(), fwrite(), ftruncate(), fflush(), fseek(), feof(), ftell(), fstat(), fgets()
- *      stream_socket_client()
- *      todo: all other fs functions...
  * - HeadersInterceptor:
  *      header(), header_remove(), header_register_callback(), http_response_code()
  *      setcookie(), setrawcookie()
@@ -93,6 +89,10 @@ use function substr;
  *      todo: socket_*()
  *      todo: fsockopen(), pfsockopen(), stream_socket_client(), stream_socket_server()...
  * - StreamInterceptor:
+ *      fopen(), fclose(), flock(), fread(), fwrite(), ftruncate(), fflush(), fseek(), feof(), ftell(), fstat(), fgets()
+ *      stream_socket_client()
+ *      todo: all other fs functions...
+ * - StreamWrapperInterceptor:
  *      stream_wrapper_register(), stream_wrapper_unregister(), stream_wrapper_restore()
  *      stream_filter_register(), stream_filter_remove(), stream_filter_append(), stream_filter_prepend()
  * - SyslogInterceptor:
