@@ -347,7 +347,7 @@ class FormattersReflection
             if ($traits !== [] || $class instanceof ReflectionEnum || $constants !== [] || $staticProperties !== [] || $instanceProperties !== [] || $staticMethods !== []) {
                 $result .= "\n" . $indent;
             }
-            foreach ($staticMethods as $method) {
+            foreach ($instanceMethods as $method) {
                 $result .= "\n" . $indent . self::dumpReflectionMethod($method, $depth + 1);
             }
         }
