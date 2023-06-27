@@ -93,6 +93,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/handlers/SqlHandler.php';
 
     require_once __DIR__ . '/src/interceptors/AutoloadInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/CurlInterceptor.php';
     require_once __DIR__ . '/src/interceptors/DnsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/ErrorInterceptor.php';
     require_once __DIR__ . '/src/interceptors/ExecInterceptor.php';
@@ -100,16 +101,11 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/interceptors/MailInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SessionInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SettingsInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/SocketsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/StreamInterceptor.php';
     require_once __DIR__ . '/src/interceptors/StreamWrapperInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SyslogInterceptor.php';
 
-    if (extension_loaded('curl')) {
-        require_once __DIR__ . '/src/interceptors/CurlInterceptor.php';
-    }
-    if (extension_loaded('sockets')) {
-        require_once __DIR__ . '/src/interceptors/SocketsInterceptor.php';
-    }
     if (extension_loaded('mysqli')) {
         require_once __DIR__ . '/src/interceptors/FakeMysqli.php';
         require_once __DIR__ . '/src/interceptors/MysqliInterceptor.php';
