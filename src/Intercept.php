@@ -44,6 +44,8 @@ use function substr;
  *      spl_autoload_*(), user function __autoload(), user function registered via ini directive 'unserialize_callback_func'
  *      todo: set_include_path(), get_include_path()
  *      todo: enable_dl(), dl() ???
+ * - BuffersInterceptor:
+ *      flush(), ob_*() (except ob_gz_handler()), output_add_rewrite_var(), output_reset_rewrite_vars()
  * - CurlInterceptor:
  *      curl_*()
  * - DnsInterceptor:

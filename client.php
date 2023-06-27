@@ -93,6 +93,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/handlers/SqlHandler.php';
 
     require_once __DIR__ . '/src/interceptors/AutoloadInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/BuffersInterceptor.php';
     require_once __DIR__ . '/src/interceptors/CurlInterceptor.php';
     require_once __DIR__ . '/src/interceptors/DnsInterceptor.php';
     require_once __DIR__ . '/src/interceptors/ErrorInterceptor.php';
