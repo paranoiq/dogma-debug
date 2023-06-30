@@ -27,6 +27,11 @@ class ExceptionHandler
 
     public const NAME = 'exception';
 
+    public const SOURCE_UNCATCHED = 'Uncatched';
+    public const SOURCE_LOGGED = 'Logged';
+    public const SOURCE_INSPECTED = 'Inspected';
+    public const SOURCE_DUMPED = 'Dumped';
+
     /** @var int */
     public static $traceLength = 1000;
 
@@ -60,7 +65,7 @@ class ExceptionHandler
         self::$logExceptions = $log;
         self::$notLogExceptions = $notLog;
 
-        Intercept::inspectCaughtExceptions(self::NAME, [self::class, 'log']);
+        Intercept::inspectCaughtExceptions(self::NAME, [self::class, 'logInspected']);
     }
 
     public static function enable(): void
@@ -89,14 +94,14 @@ class ExceptionHandler
         Debugger::$reserved = false;
         Debugger::init();
 
-        self::logFatal($e);
+        self::logUncatched($e);
 
         Debugger::setTermination('uncaught exception');
 
         exit(1);
     }
 
-    public static function logFatal(Throwable $exception): void
+    public static function logUncatched(Throwable $exception): void
     {
         // so io operations will work after PHP shutting down user handlers
         FileStreamWrapper::disable();
@@ -104,12 +109,22 @@ class ExceptionHandler
         HttpStreamWrapper::disable();
         FtpStreamWrapper::disable();
 
-        $message = self::formatException($exception);
+        $message = self::formatException($exception, ExceptionHandler::SOURCE_UNCATCHED);
 
         Debugger::send(Packet::EXCEPTION, $message);
     }
 
-    public static function log(Throwable $exception): void
+    public static function logInspected(Throwable $exception): void
+    {
+        self::log($exception, ExceptionHandler::SOURCE_INSPECTED);
+    }
+
+    public static function logLogged(Throwable $exception): void
+    {
+        self::log($exception, ExceptionHandler::SOURCE_LOGGED);
+    }
+
+    public static function log(Throwable $exception, string $source): void
     {
         $log = true;
         if (self::$logExceptions !== []) {
@@ -131,12 +146,12 @@ class ExceptionHandler
             return;
         }
 
-        $message = self::formatException($exception);
+        $message = self::formatException($exception, $source);
 
         Debugger::send(Packet::EXCEPTION, $message);
     }
 
-    public static function formatException(Throwable $exception): string
+    public static function formatException(Throwable $exception, string $source): string
     {
         static $filteredProperties = [
             "\0Exception\0string",
@@ -156,9 +171,9 @@ class ExceptionHandler
 
         while ($exception !== null) {
             $message .= $first
-                ? Ansi::white(' Exception: ', Ansi::LRED)
+                ? Ansi::white(" {$source} exception: ", Ansi::LRED)
                 : "\n" . Ansi::white(' Previous: ', Ansi::LRED);
-            $message .= ' ' . Dumper::class(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
+            $message .= ' ' . Dumper::name(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
 
             try {
                 $properties = (array) $exception;
@@ -181,7 +196,7 @@ class ExceptionHandler
                 }
                 $message .= "\n" . Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
             } catch (Throwable $exception) {
-                Debugger::label('Exception formatting failed with:', null, 'r');
+                Debugger::label($exception->getMessage(), 'Exception formatting failed with:', 'r');
                 Debugger::dump($exception, 4);
             }
 

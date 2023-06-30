@@ -272,7 +272,7 @@ class Debugger
      */
     public static function dumpException(Throwable $exception): Throwable
     {
-        $message = ExceptionHandler::formatException($exception);
+        $message = ExceptionHandler::formatException($exception, ExceptionHandler::SOURCE_DUMPED);
 
         self::send(Packet::EXCEPTION, $message);
 
