@@ -306,20 +306,28 @@ class Intercept
     {
         if (!FileStreamWrapper::enabled()) {
             FileStreamWrapper::enable();
-            Debugger::dependencyInfo('FileStreamHandler activated by Intercept::register() to allow code rewriting.');
+            $activated = FileStreamWrapper::class;
+            $by = __CLASS__ . '::' . __METHOD__;
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
         }
         if (!PharStreamWrapper::enabled()) {
             PharStreamWrapper::enable();
-            Debugger::dependencyInfo('PharStreamHandler activated by Intercept::register() to allow code rewriting.');
+            $activated = PharStreamWrapper::class;
+            $by = __CLASS__ . '::' . __METHOD__;
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
         }
         if (ini_get('allow_url_include')) {
             if (!HttpStreamWrapper::enabled()) {
                 HttpStreamWrapper::enable();
-                Debugger::dependencyInfo('HttpStreamHandler activated by Intercept::register() to allow code rewriting.');
+                $activated = HttpStreamWrapper::class;
+                $by = __CLASS__ . '::' . __METHOD__;
+                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
             }
             if (!FtpStreamWrapper::enabled()) {
                 FtpStreamWrapper::enable();
-                Debugger::dependencyInfo('FtpStreamHandler activated by Intercept::register() to allow code rewriting.');
+                $activated = FtpStreamWrapper::class;
+                $by = __CLASS__ . '::' . __METHOD__;
+                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
             }
         }
     }

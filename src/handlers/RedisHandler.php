@@ -100,7 +100,9 @@ class RedisHandler
     {
         if (!StreamInterceptor::enabled()) {
             StreamInterceptor::interceptFileFunctions(Intercept::SILENT);
-            Debugger::dependencyInfo('FilesHandler activated by RedisHandler::enableForPredis() to track filesystem functions.');
+            $activated = StreamInterceptor::class;
+            $by = __CLASS__ . '::' . __FUNCTION__;
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to track filesystem functions.");
         }
 
         $re = "~:$port$~";
