@@ -13,6 +13,7 @@ namespace Dogma\Debug;
 
 use CurlHandle;
 use CurlMultiHandle;
+use function array_search;
 use function fread;
 use function fseek;
 use const CURLE_OK;
@@ -221,7 +222,7 @@ class CurlInterceptor
     /** @var resource[] */
     private static $files = [];
 
-    /** @var int[] */
+    /** @var array<int, string> */
     private static $opt = [ // @phpstan-ignore-line write-only
         CURLOPT_PORT => 'CURLOPT_PORT',
         CURLOPT_TIMEOUT => 'CURLOPT_TIMEOUT',
@@ -423,6 +424,48 @@ class CurlInterceptor
         CURLOPT_MAX_SEND_SPEED_LARGE => 'CURLOPT_MAX_SEND_SPEED_LARGE',
     ];
 
+    /** @var array<int, string> */
+    private static $info = [
+        CURLINFO_RESPONSE_CODE => 'CURLINFO_RESPONSE_CODE',
+        CURLINFO_HTTP_CONNECTCODE => 'CURLINFO_HTTP_CONNECTCODE',
+        CURLINFO_HTTPAUTH_AVAIL => 'CURLINFO_HTTPAUTH_AVAIL',
+        CURLINFO_PROXYAUTH_AVAIL => 'CURLINFO_PROXYAUTH_AVAIL',
+        CURLINFO_OS_ERRNO => 'CURLINFO_OS_ERRNO',
+        CURLINFO_NUM_CONNECTS => 'CURLINFO_NUM_CONNECTS',
+        CURLINFO_SSL_ENGINES => 'CURLINFO_SSL_ENGINES',
+        CURLINFO_COOKIELIST => 'CURLINFO_COOKIELIST',
+        CURLINFO_FTP_ENTRY_PATH => 'CURLINFO_FTP_ENTRY_PATH',
+        CURLINFO_APPCONNECT_TIME => 'CURLINFO_APPCONNECT_TIME',
+        CURLINFO_CERTINFO => 'CURLINFO_CERTINFO',
+        CURLINFO_CONDITION_UNMET => 'CURLINFO_CONDITION_UNMET',
+        CURLINFO_RTSP_CLIENT_CSEQ => 'CURLINFO_RTSP_CLIENT_CSEQ',
+        CURLINFO_RTSP_CSEQ_RECV => 'CURLINFO_RTSP_CSEQ_RECV',
+        CURLINFO_RTSP_SERVER_CSEQ => 'CURLINFO_RTSP_SERVER_CSEQ',
+        CURLINFO_RTSP_SESSION_ID => 'CURLINFO_RTSP_SESSION_ID',
+        CURLINFO_EFFECTIVE_URL => 'CURLINFO_EFFECTIVE_URL',
+        //CURLINFO_HTTP_CODE => 'CURLINFO_HTTP_CODE',
+        CURLINFO_HEADER_SIZE => 'CURLINFO_HEADER_SIZE',
+        CURLINFO_REQUEST_SIZE => 'CURLINFO_REQUEST_SIZE',
+        CURLINFO_TOTAL_TIME => 'CURLINFO_TOTAL_TIME',
+        CURLINFO_NAMELOOKUP_TIME => 'CURLINFO_NAMELOOKUP_TIME',
+        CURLINFO_CONNECT_TIME => 'CURLINFO_CONNECT_TIME',
+        CURLINFO_PRETRANSFER_TIME => 'CURLINFO_PRETRANSFER_TIME',
+        CURLINFO_SIZE_UPLOAD => 'CURLINFO_SIZE_UPLOAD',
+        CURLINFO_SIZE_DOWNLOAD => 'CURLINFO_SIZE_DOWNLOAD',
+        CURLINFO_SPEED_DOWNLOAD => 'CURLINFO_SPEED_DOWNLOAD',
+        CURLINFO_SPEED_UPLOAD => 'CURLINFO_SPEED_UPLOAD',
+        CURLINFO_FILETIME => 'CURLINFO_FILETIME',
+        CURLINFO_SSL_VERIFYRESULT => 'CURLINFO_SSL_VERIFYRESULT',
+        CURLINFO_CONTENT_LENGTH_DOWNLOAD => 'CURLINFO_CONTENT_LENGTH_DOWNLOAD',
+        CURLINFO_CONTENT_LENGTH_UPLOAD => 'CURLINFO_CONTENT_LENGTH_UPLOAD',
+        CURLINFO_STARTTRANSFER_TIME => 'CURLINFO_STARTTRANSFER_TIME',
+        CURLINFO_CONTENT_TYPE => 'CURLINFO_CONTENT_TYPE',
+        CURLINFO_REDIRECT_TIME => 'CURLINFO_REDIRECT_TIME',
+        CURLINFO_REDIRECT_COUNT => 'CURLINFO_REDIRECT_COUNT',
+        CURLINFO_HEADER_OUT => 'CURLINFO_HEADER_OUT',
+        CURLINFO_PRIVATE => 'CURLINFO_PRIVATE',
+    ];
+
     /**
      * Take control over majority of curl_*() functions
      *
@@ -518,7 +561,9 @@ class CurlInterceptor
     public static function curl_getinfo($handle, ?int $option = null)
     {
         if ($option) {
-            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle, $option], '');
+            $info = ' // ' . (self::$info[$option] ?: '???');
+
+            return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle, $option], '', false, $info);
         } else {
             return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], []);
         }
