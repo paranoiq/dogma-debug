@@ -584,9 +584,9 @@ trait DumperFormatters
      * @param int|string $key
      * @return string
      */
-    public static function key($key): string
+    public static function key($key, bool $noQuote = false): string
     {
-        if ($key === '' || (is_string($key) && (Str::isBinary($key) || preg_match('~\\s~', $key) !== 0))) {
+        if ($key === '' || (is_string($key) && ((self::$alwaysQuoteStringKeys && !$noQuote) || Str::isBinary($key) || preg_match('~\\s~', $key) !== 0))) {
             return self::string($key);
         } elseif (self::$colors['key'] !== null) {
             // todo: string key escaping

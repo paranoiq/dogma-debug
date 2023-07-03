@@ -839,7 +839,7 @@ class Debugger
                     $parts = explode(': ', $header);
                     $name = array_shift($parts);
                     $value = implode(': ', $parts);
-                    $footer .= "   " . Dumper::key($name) . ': ' . Dumper::value($value) . "\n";
+                    $footer .= "   " . Dumper::key($name, true) . ': ' . Dumper::value($value) . "\n";
                 }
             }
         }

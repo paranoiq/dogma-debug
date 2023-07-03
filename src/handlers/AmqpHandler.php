@@ -194,7 +194,7 @@ class AmqpHandler
 
         if ($key !== null) {
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN)
-                . ' ' . Dumper::key($key) . Dumper::symbol(':') . ' ' . $response;
+                . ' ' . Dumper::key($key, true) . Dumper::symbol(':') . ' ' . $response;
         } else {
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN) . ' ' . $response;
         }

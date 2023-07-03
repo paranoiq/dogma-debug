@@ -205,7 +205,7 @@ class RedisHandler
 
         if ($key !== '') {
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN)
-                . ' ' . Dumper::key($key) . Dumper::symbol(':') . ' ' . $response;
+                . ' ' . Dumper::key($key, true) . Dumper::symbol(':') . ' ' . $response;
         } else {
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN) . ' ' . $response;
         }

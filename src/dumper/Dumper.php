@@ -152,6 +152,9 @@ class Dumper
     /** @var bool - show array keys even on lists with sequential indexes */
     public static $alwaysShowArrayKeys = false;
 
+    /** @var bool - always format string keys as strings */
+    public static $alwaysQuoteStringKeys = false;
+
     // object settings -------------------------------------------------------------------------------------------------
 
     /** @var int - ordering of dumped properties of objects */
@@ -436,11 +439,11 @@ class Dumper
             $exp = '';
             if (self::$dumpExpressions) {
                 if ($expression === true) {
-                    $exp = self::key('literal') . self::symbol(':') . ' ';
+                    $exp = self::key('literal', true) . self::symbol(':') . ' ';
                 } elseif ($expression === null) {
-                    $exp = self::key('unknown') . self::symbol(':') . ' ';
+                    $exp = self::key('unknown', true) . self::symbol(':') . ' ';
                 } else {
-                    $exp = self::key($expression) . self::symbol(':') . ' ';
+                    $exp = self::key($expression, true) . self::symbol(':') . ' ';
                 }
             }
 

@@ -164,7 +164,7 @@ class FormattersReflection
                     . implode('|', $access)
                     . ($global === $local ? '' : ' (global: ' . $globalValue . ')');
 
-                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($entry) . ' = '
+                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($entry, true) . ' = '
                     . $localValue . ' ' . Dumper::info($info);
             }
         }
@@ -173,7 +173,7 @@ class FormattersReflection
         if ($constants !== []) {
             $result .= "\n" . Dumper::indent($depth + 1) . 'constants: ';
             foreach ($constants as $name => $value) {
-                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($name) . ': ' . Dumper::dumpValue($value, $depth + 2);
+                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($name, true) . ': ' . Dumper::dumpValue($value, $depth + 2);
             }
         }
 
