@@ -27,12 +27,12 @@ $types = new PropertyTypes();
 
 Dumper::$propertyOrder = Dumper::ORDER_ORIGINAL;
 Assert::dump($types, '<$types>: <Dogma><\><Tests><\><Debug><\><PropertyTypes> <{> <// #?id>
-   <public> <$a> = <1>;
-   <protected> <$b> = <2>;
-   <private> <$c> = <3>;
-   <public> <$d> = <uninitialized>;
-   <protected> <$e> = <uninitialized>;
-   <private> <$f> = <uninitialized>;
+    <public> <$a> = <1>;
+    <protected> <$b> = <2>;
+    <private> <$c> = <3>;
+    <public> <$d> = <uninitialized>;
+    <protected> <$e> = <uninitialized>;
+    <private> <$f> = <uninitialized>;
 <}>');
 
 
@@ -54,10 +54,10 @@ $types = new PropertyTypesB();
 
 Dumper::$propertyOrder = Dumper::ORDER_ALPHABETIC;
 Assert::dump($types, '<$types>: <Dogma><\><Tests><\><Debug><\><PropertyTypesB> <{> <// #?id>
-   <public> <$a> = <uninitialized>;
-   <private> <Dogma><\><Tests><\><Debug><\><PropertyTypesA>::<$b> = <uninitialized>;
-   <private> <Dogma><\><Tests><\><Debug><\><PropertyTypesA>::<$c> = <1>;
-   <public> <$d> = <uninitialized>;
-   <private> <$e> = <uninitialized>;
-   <private> <$f> = <2>;
+    <public> <$a> = <uninitialized>;
+    <private> <Dogma><\><Tests><\><Debug><\><PropertyTypesA>::<$b> = <uninitialized>;
+    <private> <Dogma><\><Tests><\><Debug><\><PropertyTypesA>::<$c> = <1>;
+    <public> <$d> = <uninitialized>;
+    <private> <$e> = <uninitialized>;
+    <private> <$f> = <2>;
 <}>');

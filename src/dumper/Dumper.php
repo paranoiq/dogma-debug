@@ -95,6 +95,17 @@ class Dumper
     /** @var string[] - list of fields that are hidden from dumps */
     public static $hiddenFields = [];
 
+    // common settings -------------------------------------------------------------------------------------------------
+
+    /** @var int - max depth of dumped structures */
+    public static $maxDepth = 3;
+
+    /** @var bool - show indentation line */
+    public static $indentLines = true;
+
+    /** @var int - count of spaces for each indentation level (including indentation lines) */
+    public static $indentSpaces = 4;
+
     // scalars settings ------------------------------------------------------------------------------------------------
 
     /** @var bool|null - render long integers and floats with "_" dividing digits into groups of 3, null for auto on PHP >= 7.4 */
@@ -128,9 +139,6 @@ class Dumper
     public static $binaryChunkLength = 16;
 
     // array settings --------------------------------------------------------------------------------------------------
-
-    /** @var int - max depth of dumped structures */
-    public static $maxDepth = 3;
 
     /** @var int - max items shown in an array dump */
     public static $arrayMaxLength = 100;

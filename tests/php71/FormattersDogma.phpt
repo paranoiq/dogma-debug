@@ -114,7 +114,7 @@ $set = new DateIntervalSet([
     DateInterval::createFromString('2001-01-07 - 2001-01-08'),
 ]);
 Assert::dump($set, '<$set>: <Dogma><\><Time><\><Interval><\><DateIntervalSet><[>
-   <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-01> - <2001-01-02><)>, <// #?id, 2 days>
-   <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-04> - <2001-01-05><)>, <// #?id, 2 days>
-   <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-07> - <2001-01-08><)>, <// #?id, 2 days>
+    <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-01> - <2001-01-02><)>, <// #?id, 2 days>
+    <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-04> - <2001-01-05><)>, <// #?id, 2 days>
+    <Dogma><\><Time><\><Interval><\><DateInterval><(><2001-01-07> - <2001-01-08><)>, <// #?id, 2 days>
 <]> <// #?id, 3 items>');

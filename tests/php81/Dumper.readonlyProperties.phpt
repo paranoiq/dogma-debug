@@ -36,10 +36,10 @@ Dumper::$propertyOrder = Dumper::ORDER_ORIGINAL;
 
 // todo: implement <readonly>
 Assert::dump($readonly, '<$readonly>: <Dogma><\><Tests><\><Debug><\><ReadonlyProperties> <{> <// #?id>
-   <public> <$a> = <1>;
-   <protected> <$b> = <2>;
-   <private> <$c> = <3>;
-   <public> <$d> = <4>;
-   <protected> <$e> = <5>;
-   <private> <$f> = <6>;
+    <public> <$a> = <1>;
+    <protected> <$b> = <2>;
+    <private> <$c> = <3>;
+    <public> <$d> = <4>;
+    <protected> <$e> = <5>;
+    <private> <$f> = <6>;
 <}>');

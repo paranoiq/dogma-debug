@@ -633,9 +633,11 @@ trait DumperFormatters
 
     public static function indent(int $depth): string
     {
+        $baseIndent = str_repeat(' ', self::$indentSpaces - 1);
+
         return $depth > 1
-            ? '   ' . str_repeat(Ansi::color('|', self::$colors['indent']) . '  ', $depth - 1)
-            : ($depth === 1 ? '   ' : '');
+            ? ' ' . $baseIndent . str_repeat(Ansi::color(self::$indentLines ? '|' : ' ', self::$colors['indent']) . $baseIndent, $depth - 1)
+            : ($depth === 1 ? $baseIndent . ' ' : '');
     }
 
     public static function class(string $class): string

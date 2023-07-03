@@ -12,6 +12,6 @@ $d = 2;
 $fn = static fn ($a, $b): int => $a + $b + $c + $d;
 
 Assert::dump($fn, '<$fn>: <Closure> static fn (<$a>, <$b>): int <{>< // ><tests/php74/>Dumper.fn.phpt<:><12>
-   <static> <$c> = <1>;
-   <static> <$d> = <2>;
+    <static> <$c> = <1>;
+    <static> <$d> = <2>;
 <}>');

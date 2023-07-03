@@ -71,24 +71,24 @@ Assert::dump(65535, '<literal>: <65535> <// 2^16-1>');
 
 // bytes
 Assert::dump(["size" => 23], '<literal>: <[>
-   <size> => <23>,
+    <size> => <23>,
 <]> <// 1 item>');
 Assert::dump(["size" => 23000], '<literal>: <[>
-   <size> => <23000>, <// 22.5 kB>
+    <size> => <23000>, <// 22.5 kB>
 <]> <// 1 item>');
 Assert::dump(["size" => 23000000], '<literal>: <[>
-   <size> => <23000000>, <// 21.9 MB>
+    <size> => <23000000>, <// 21.9 MB>
 <]> <// 1 item>');
 Assert::dump(["size" => 23000000000], '<literal>: <[>
-   <size> => <23000000000>, <// 21.4 GB>
+    <size> => <23000000000>, <// 21.4 GB>
 <]> <// 1 item>');
 Assert::dump(["size" => 23000000000000], '<literal>: <[>
-   <size> => <23000000000000>, <// 20.9 TB>
+    <size> => <23000000000000>, <// 20.9 TB>
 <]> <// 1 item>');
 
 // flags
 Assert::dump(["flags" => 23], '<literal>: <[>
-   <flags> => <23>, <// 16|4|2|1>
+    <flags> => <23>, <// 16|4|2|1>
 <]> <// 1 item>');
 
 // timestamps
@@ -209,43 +209,43 @@ Assert::dump([1, 2, 3, 4, 5], '<literal>: <[><1>, <2>, <3>, <4>, <5><]> <// 5 it
 
 // long
 Assert::dump(range(100000001, 100000010), '<"range(100000001, 100000010)">: <[>
-   <100000001>,
-   <100000002>,
-   <100000003>,
-   <100000004>,
-   <100000005>,
-   <100000006>,
-   <100000007>,
-   <100000008>,
-   <100000009>,
-   <100000010>,
+    <100000001>,
+    <100000002>,
+    <100000003>,
+    <100000004>,
+    <100000005>,
+    <100000006>,
+    <100000007>,
+    <100000008>,
+    <100000009>,
+    <100000010>,
 <]> <// 10 items>');
 
 // nested
 Assert::dump([1, 2, 3, [4, 5, 6, 'long line long line long line long line long line long line long line long line long line']], '<literal>: <[>
-   <1>,
-   <2>,
-   <3>,
-   <[>
-   <|>  <4>,
-   <|>  <5>,
-   <|>  <6>,
-   <|>  <"long line long line long line long line long line long line long line long line long line">, <// 89 B>
-   <]>, <// 4 items>
+    <1>,
+    <2>,
+    <3>,
+    <[>
+    <|>   <4>,
+    <|>   <5>,
+    <|>   <6>,
+    <|>   <"long line long line long line long line long line long line long line long line long line">, <// 89 B>
+    <]>, <// 4 items>
 <]> <// 4 items>'
 );
 
 // keys
 Assert::dump([1 => 1, 2, 3, ['long line long line long line long line long line long line long line long line', 'foo' => 4, 'bar' => 5, 'baz' => 6]], '<literal>: <[>
-   <1> => <1>,
-   <2> => <2>,
-   <3> => <3>,
-   <4> => <[>
-   <|>  <0> => <"long line long line long line long line long line long line long line long line">, <// 79 B>
-   <|>  <foo> => <4>,
-   <|>  <bar> => <5>,
-   <|>  <baz> => <6>,
-   <]>, <// 4 items>
+    <1> => <1>,
+    <2> => <2>,
+    <3> => <3>,
+    <4> => <[>
+    <|>   <0> => <"long line long line long line long line long line long line long line long line">, <// 79 B>
+    <|>   <foo> => <4>,
+    <|>   <bar> => <5>,
+    <|>   <baz> => <6>,
+    <]>, <// 4 items>
 <]> <// 4 items>'
 );
 
@@ -253,31 +253,31 @@ Assert::dump([1 => 1, 2, 3, ['long line long line long line long line long line 
 objects:
 $dateTime = new DateTime('2001-02-03 04:05:06', new DateTimeZone('Europe/Prague'));
 Assert::dump($dateTime, '<$dateTime>: <DateTime> <{> <// #?id>
-   <public> <$date> = <"2001-02-03 04:05:06.000000">; <// 26 B>
-   <public> <$timezone> = <"Europe/Prague">; <// 13 B>
-   <public> <$timezone_type> = <3>;
+    <public> <$date> = <"2001-02-03 04:05:06.000000">; <// 26 B>
+    <public> <$timezone> = <"Europe/Prague">; <// 13 B>
+    <public> <$timezone_type> = <3>;
 <}>');
 
 $foo = new Foo();
 Assert::dump($foo, '<$foo>: <Dogma><\><Tests><\><Debug><\><Foo> <{> <// #?id>
-   <private> <$a> = <1>;
-   <protected> <$b> = <"bar">;
+    <private> <$a> = <1>;
+    <protected> <$b> = <"bar">;
 <}>');
 
 
 classes:
 Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
-   <private static> <$a> = <1>;
-   <protected static> <$b> = <"bar">;
+    <private static> <$a> = <1>;
+    <protected static> <$b> = <"bar">;
 <}>');
 
 Dumper::$dumpClassesWithStaticMethodVariables = true;
 Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
-   <private static> <$a> = <1>;
-   <protected static> <$b> = <"bar">;
-   <public static function ><bar><()> <{>
-   <|>  <static> <$x> = <42>;
-   <}>
+    <private static> <$a> = <1>;
+    <protected static> <$b> = <"bar">;
+    <public static function ><bar><()> <{>
+    <|>   <static> <$x> = <42>;
+    <}>
 <}>');
 
 
@@ -286,11 +286,11 @@ $closure = static function ($a, $b) use ($dateTime): int {
     return $a + $b + $dateTime->getTimestamp();
 };
 Assert::dump($closure, '<$closure>: <Closure> static function (<$a>, <$b>) use (<$dateTime>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><' . (__LINE__ - 3) . '>
-   <static> <$dateTime> = <DateTime> <{> <// #?id>
-   <|>  <public> <$date> = <"2001-02-03 04:05:06.000000">; <// 26 B>
-   <|>  <public> <$timezone> = <"Europe/Prague">; <// 13 B>
-   <|>  <public> <$timezone_type> = <3>;
-   <}>;
+    <static> <$dateTime> = <DateTime> <{> <// #?id>
+    <|>   <public> <$date> = <"2001-02-03 04:05:06.000000">; <// 26 B>
+    <|>   <public> <$timezone> = <"Europe/Prague">; <// 13 B>
+    <|>   <public> <$timezone_type> = <3>;
+    <}>;
 <}>');
 
 // todo $this
@@ -300,36 +300,36 @@ Assert::dump($closure, '<$closure>: <Closure> function <date>(<$format>, <$times
 
 $closure = Closure::fromCallable([$foo, 'bar']);
 Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><26>
-   <static> <$x> = <42>;
+    <static> <$x> = <42>;
 <}>');
 
 $closure = Closure::fromCallable([Bar::class, 'bar']);
 Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><37>
-   <static> <$x> = <42>;
+    <static> <$x> = <42>;
 <}>');
 
 
 callables:
 // todo: 0-level keys should not be quoted
 Assert::dump([$foo, 'bar'], '<"[$foo, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Foo>::<bar><()> <{>
-   <static> <$x> = <42>;
+    <static> <$x> = <42>;
 <}>');
 
 Assert::dump([Bar::class, 'bar'], '<"[Bar::class, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Bar>::<bar><()> <{>
-   <static> <$x> = <42>;
+    <static> <$x> = <42>;
 <}>');
 
 
 stream:
 $file = tmpfile();
 Assert::dump($file, '<$file>: <(stream ?id)> <{>
-   <$blocked> = <true>;
-   <$eof> = <false>;
-   <$mode> = <"r+b">;
-   <$seekable> = <true>;
-   <$stream_type> = <"STDIO">;
-   <$timed_out> = <false>;
-   <$unread_bytes> = <0>;
-   <$uri> = <"?path?file">; <// ?bytes B, ?path?file>
-   <$wrapper_type> = <"plainfile">; <// 9 B>
+    <$blocked> = <true>;
+    <$eof> = <false>;
+    <$mode> = <"r+b">;
+    <$seekable> = <true>;
+    <$stream_type> = <"STDIO">;
+    <$timed_out> = <false>;
+    <$unread_bytes> = <0>;
+    <$uri> = <"?path?file">; <// ?bytes B, ?path?file>
+    <$wrapper_type> = <"plainfile">; <// 9 B>
 <}>');

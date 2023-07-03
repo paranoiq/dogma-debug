@@ -39,15 +39,15 @@ $heartsString = SuitString::Hearts;
 plain:
 Dumper::$useFormatters = false;
 Assert::dump($hearts, '<$hearts>: <Dogma><\><Tests><\><Debug><\><Suit> <{> <// #?id>
-   <public> <$name> = <"Hearts">; <// 6 B>
+    <public> <$name> = <"Hearts">; <// 6 B>
 <}>');
 Assert::dump($heartsInt, '<$heartsInt>: <Dogma><\><Tests><\><Debug><\><SuitInt> <{> <// #?id>
-   <public> <$name> = <"Hearts">; <// 6 B>
-   <public> <$value> = <1>;
+    <public> <$name> = <"Hearts">; <// 6 B>
+    <public> <$value> = <1>;
 <}>');
 Assert::dump($heartsString, '<$heartsString>: <Dogma><\><Tests><\><Debug><\><SuitString> <{> <// #?id>
-   <public> <$name> = <"Hearts">; <// 6 B>
-   <public> <$value> = <"H">;
+    <public> <$name> = <"Hearts">; <// 6 B>
+    <public> <$value> = <"H">;
 <}>');
 
 
