@@ -13,10 +13,46 @@ namespace Dogma\Debug;
 
 use CurlHandle;
 use CurlMultiHandle;
-use function array_search;
 use function fread;
 use function fseek;
 use const CURLE_OK;
+use const CURLINFO_APPCONNECT_TIME;
+use const CURLINFO_CERTINFO;
+use const CURLINFO_CONDITION_UNMET;
+use const CURLINFO_CONNECT_TIME;
+use const CURLINFO_CONTENT_LENGTH_DOWNLOAD;
+use const CURLINFO_CONTENT_LENGTH_UPLOAD;
+use const CURLINFO_CONTENT_TYPE;
+use const CURLINFO_COOKIELIST;
+use const CURLINFO_EFFECTIVE_URL;
+use const CURLINFO_FILETIME;
+use const CURLINFO_FTP_ENTRY_PATH;
+use const CURLINFO_HEADER_OUT;
+use const CURLINFO_HEADER_SIZE;
+use const CURLINFO_HTTP_CONNECTCODE;
+use const CURLINFO_HTTPAUTH_AVAIL;
+use const CURLINFO_NAMELOOKUP_TIME;
+use const CURLINFO_NUM_CONNECTS;
+use const CURLINFO_OS_ERRNO;
+use const CURLINFO_PRETRANSFER_TIME;
+use const CURLINFO_PRIVATE;
+use const CURLINFO_PROXYAUTH_AVAIL;
+use const CURLINFO_REDIRECT_COUNT;
+use const CURLINFO_REDIRECT_TIME;
+use const CURLINFO_REQUEST_SIZE;
+use const CURLINFO_RESPONSE_CODE;
+use const CURLINFO_RTSP_CLIENT_CSEQ;
+use const CURLINFO_RTSP_CSEQ_RECV;
+use const CURLINFO_RTSP_SERVER_CSEQ;
+use const CURLINFO_RTSP_SESSION_ID;
+use const CURLINFO_SIZE_DOWNLOAD;
+use const CURLINFO_SIZE_UPLOAD;
+use const CURLINFO_SPEED_DOWNLOAD;
+use const CURLINFO_SPEED_UPLOAD;
+use const CURLINFO_SSL_ENGINES;
+use const CURLINFO_SSL_VERIFYRESULT;
+use const CURLINFO_STARTTRANSFER_TIME;
+use const CURLINFO_TOTAL_TIME;
 use const CURLM_OK;
 use const CURLOPT_ACCEPT_ENCODING;
 use const CURLOPT_ACCEPTTIMEOUT_MS;
@@ -223,7 +259,7 @@ class CurlInterceptor
     private static $files = [];
 
     /** @var array<int, string> */
-    private static $opt = [ // @phpstan-ignore-line write-only
+    private static $opt = [
         CURLOPT_PORT => 'CURLOPT_PORT',
         CURLOPT_TIMEOUT => 'CURLOPT_TIMEOUT',
         CURLOPT_INFILESIZE => 'CURLOPT_INFILESIZE',

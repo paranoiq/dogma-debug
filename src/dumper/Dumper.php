@@ -81,7 +81,7 @@ class Dumper
     public const ESCAPING_JSON = 'json';
     public const ESCAPING_MYSQL = 'mysql';
     public const ESCAPING_PGSQL = 'pgsql';
-    public const ESCAPING_CHAR_NAMES = 'names';
+    public const ESCAPING_CHAR_NAMES = 'names'; // NUL, SOH, STX etc.
     public const ESCAPING_ISO2047_SYMBOLS = 'symbols'; // https://en.wikipedia.org/wiki/ISO_2047
     public const ESCAPING_CP437 = 'cp437'; // https://en.wikipedia.org/wiki/Code_page_437
 
@@ -168,6 +168,9 @@ class Dumper
 
     /** @var bool - show property types (since 7.4) */
     //public static $showPropertyTypes = false;
+
+    /** @var bool - show undefined typed properties (since 7.4) */
+    //public static $showUndefinedProperties = false;
 
     /** @var bool - show readonly flag on properties (since 8.1) and classes (since 8.2) */
     //public static $showReadonlyPropertiesFlag = false;

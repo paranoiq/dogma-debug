@@ -222,7 +222,7 @@ class FormattersReflection
         // todo: colors
         $abstract = $class->isAbstract() ? 'abstract ' : '';
         $final = $class->isFinal() ? 'final ' : '';
-        $readonly = PHP_VERSION_ID >= 80200 && $class->isReadonly() ? 'readonly ' : '';
+        $readonly = PHP_VERSION_ID >= 80200 && $class->isReadOnly() ? 'readonly ' : '';
         $type = $class->isInterface() ? 'interface' : ($class->isTrait() ? 'trait' : ($class instanceof ReflectionEnum ? 'enum' : 'class'));
         $name = Dumper::class($class->getName());
 

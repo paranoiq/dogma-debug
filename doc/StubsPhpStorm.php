@@ -37,14 +37,6 @@ class WeakReference
     }
 }
 
-class ReflectionClass
-{
-    public function isReadonly(): bool
-    {
-        return false;
-    }
-}
-
 abstract class ReflectionFunctionAbstract
 {
     public function getTentativeReturnType(): ?ReflectionType

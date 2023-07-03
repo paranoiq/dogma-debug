@@ -52,14 +52,15 @@ class Request
     /** @var array<string, string> */
     public static $appCommandMatches = [
         '~dogma-debug/tests/.*\.phpt~' => self::APPLICATION_SELF_TEST,
-        '~/phpstan/phpstan/phpstan~' => self::APPLICATION_PHPSTAN,
+        '~phpstan/phpstan/phpstan~' => self::APPLICATION_PHPSTAN,
+        '~vendor/bin/phpstan~' => self::APPLICATION_PHPSTAN,
         '~phpstan analyze -c~' => self::APPLICATION_PHPSTAN,
         '~phpstan worker~' => self::APPLICATION_PHPSTAN,
         '~vendor/bin/rector process~' => self::APPLICATION_RECTOR,
         '~vendor/bin/rector worker~' => self::APPLICATION_RECTOR,
         '~phpunit/phpunit/phpunit~' => self::APPLICATION_PHPUNIT,
-        '~/codeception/codeception/codecept~' => self::APPLICATION_CODECEPTION,
-        '~/nette/tester/src/tester~' => self::APPLICATION_NETTE_TESTER,
+        '~codeception/codeception/codecept~' => self::APPLICATION_CODECEPTION,
+        '~nette/tester/src/tester~' => self::APPLICATION_NETTE_TESTER,
         '~nette/tester/src/Runner/info.php~' => self::APPLICATION_NETTE_TESTER,
         '~tests/.*\.phpt~' => self::APPLICATION_NETTE_TEST,
         '~composer[^/]*.phar~' => self::APPLICATION_COMPOSER,
@@ -67,8 +68,8 @@ class Request
         '~validate --no-check-publish~' => self::APPLICATION_COMPOSER,
         '~show --format=json -a --name-only~' => self::APPLICATION_COMPOSER,
         '~composer-require-checker~' => self::APPLICATION_REQUIRE_CHECKER,
-        '~/squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
-        '~/php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
+        '~squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
+        '~php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
     ];
 
     /** @var array<string, string> */

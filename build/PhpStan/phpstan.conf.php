@@ -6,8 +6,10 @@ $paths = [];
 if (PHP_VERSION_ID < 70400) {
     // ctrl-c handler
     $ignore[] = '~Constant PHP_WINDOWS_EVENT_CTRL_(C|BREAK) not found~';
+    $ignore[] = '~Used constant PHP_WINDOWS_EVENT_CTRL_(C|BREAK) not found~';
     $ignore[] = '~Used function sapi_windows_set_ctrl_handler not found~';
-    $ignore[] = '~expects callable-string, \'sapi_windows_set…\' given~';
+    $ignore[] = '~expects callable\(\): mixed&string, \'sapi_windows_set…\' given~';
+    $ignore[] = '~expects callable\(\): mixed&string, \'pcntl_unshare\' given~';
 
     // property types
     $ignore[] = '~Call to an undefined method ReflectionProperty::getType~';
@@ -16,14 +18,6 @@ if (PHP_VERSION_ID < 70400) {
     // weak ref
     $ignore[] = '~WeakReference~';
     $ignore[] = '~ReflectionReference~';
-    /*$ignore[] = '~Class WeakReference not found~';
-    $ignore[] = '~has invalid type WeakReference~';
-    $ignore[] = '~Call to method get\\(\\) on an unknown class WeakReference~';
-    $ignore[] = '~has invalid type ReflectionReference~';
-    $ignore[] = '~does not accept non-empty-array<\'ReflectionReference\'\\|class-string, callable\\(\\): mixed>~';
-    $ignore[] = '~WeakReference: array{\'Dogma\\Debug\\Dumper\', \'dumpWeakReference\'}~';
-    $ignore[] = '~Class ReflectionReference not found~';
-    */
 }
 if (PHP_VERSION_ID < 80000) {
     // Socket
@@ -51,15 +45,6 @@ if (PHP_VERSION_ID < 80000) {
     // enums
     $ignore[] = '~(Unit|Backed)Enum~';
     $ignore[] = '~ReflectionEnum(UnitCase|BackedCase)?~';
-    /*$ignore[] = '~unknown class (Unit|Backed)Enum~';
-    $ignore[] = '~has invalid type (Unit|Backed)Enum~';
-    $ignore[] = '~Class (Unit|Backed)Enum not found~';
-    $ignore[] = '~Class ReflectionEnum not found~';
-    $ignore[] = '~Class ReflectionEnum(Unit|Backed)Case not found~';
-    $ignore[] = '~has invalid type ReflectionEnum(Unit|Backed)Case~';
-    $ignore[] = '~Call to method .* on an unknown class ReflectionEnum~';
-    $ignore[] = '~does not accept default value of type array{BackedEnum: array{\'Dogma\\Debug\\Dumper\', \'dumpBackedEnum\'}~';
-    */
 }
 if (PHP_VERSION_ID < 80100) {
     // readonly properties
@@ -74,12 +59,13 @@ if (PHP_VERSION_ID < 80100) {
     // fibers
     $ignore[] = '~has invalid type ReflectionFiber~';
 }
-if (PHP_VERSION_ID < 80200) {
-    $ignore[] = '~Call to an undefined method ReflectionClass::isReadonly~';
-}
 
 if (PHP_VERSION_ID >= 80000) {
     $ignore[] = '~Parameter #1 \\$socket of function socket_.* expects Socket, resource\\|Socket given~';
+}
+
+if (PHP_VERSION_ID <= 80400) { // todo: 80300 - bug in 8.3 alpha?
+    $ignore[] = '~Call to an undefined method ReflectionClass::isReadOnly~';
 }
 
 // include

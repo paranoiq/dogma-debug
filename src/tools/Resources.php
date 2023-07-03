@@ -192,6 +192,7 @@ class Resources
             // used cpu time
             /** @var int[] $u */
             $u = getrusage();
+
             return $u['ru_utime.tv_sec'] + ($u['ru_utime.tv_usec'] / 1000000)
                 + $u['ru_stime.tv_sec'] + ($u['ru_stime.tv_usec'] / 1000000);
         }

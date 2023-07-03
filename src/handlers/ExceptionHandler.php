@@ -27,7 +27,7 @@ class ExceptionHandler
 
     public const NAME = 'exception';
 
-    public const SOURCE_UNCATCHED = 'Uncatched';
+    public const SOURCE_UNCAUGHT = 'Uncaught';
     public const SOURCE_LOGGED = 'Logged';
     public const SOURCE_INSPECTED = 'Inspected';
     public const SOURCE_DUMPED = 'Dumped';
@@ -94,14 +94,14 @@ class ExceptionHandler
         Debugger::$reserved = false;
         Debugger::init();
 
-        self::logUncatched($e);
+        self::logUncaught($e);
 
         Debugger::setTermination('uncaught exception');
 
         exit(1);
     }
 
-    public static function logUncatched(Throwable $exception): void
+    public static function logUncaught(Throwable $exception): void
     {
         // so io operations will work after PHP shutting down user handlers
         FileStreamWrapper::disable();
@@ -109,19 +109,19 @@ class ExceptionHandler
         HttpStreamWrapper::disable();
         FtpStreamWrapper::disable();
 
-        $message = self::formatException($exception, ExceptionHandler::SOURCE_UNCATCHED);
+        $message = self::formatException($exception, self::SOURCE_UNCAUGHT);
 
         Debugger::send(Packet::EXCEPTION, $message);
     }
 
     public static function logInspected(Throwable $exception): void
     {
-        self::log($exception, ExceptionHandler::SOURCE_INSPECTED);
+        self::log($exception, self::SOURCE_INSPECTED);
     }
 
     public static function logLogged(Throwable $exception): void
     {
-        self::log($exception, ExceptionHandler::SOURCE_LOGGED);
+        self::log($exception, self::SOURCE_LOGGED);
     }
 
     public static function log(Throwable $exception, string $source): void
@@ -173,7 +173,7 @@ class ExceptionHandler
             $message .= $first
                 ? Ansi::white(" {$source} exception: ", Ansi::LRED)
                 : "\n" . Ansi::white(' Previous: ', Ansi::LRED);
-            $message .= ' ' . Dumper::name(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
+            $message .= ' ' . Dumper::class(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
 
             try {
                 $properties = (array) $exception;
