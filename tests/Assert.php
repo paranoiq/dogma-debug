@@ -48,6 +48,7 @@ class Assert extends DogmaAssert
         $string = preg_replace('~"[^"]+([A-Za-z]+(\\.[a-z]+)?\\.phpt?)">; <// [0-9]+ B>~U', '"?path\\1">; <// ?bytes B>', $string);
         $string = preg_replace('~"[^"]+\\.tmp">~', '"?path?file">', $string);
         $string = preg_replace('~<// [0-9]+ B, [</:A-Za-z0-9]+?\\.tmp>~', '<// ?bytes B, ?path?file>', $string);
+        $string = preg_replace('~[/:A-Za-z0-9-]+\\.php:\\d+~', '?path?file:?line', $string);
 
         $string = preg_replace('~\\(stream ([0-9]+)\\)~', '(stream ?id)', $string);
 

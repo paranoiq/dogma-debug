@@ -128,7 +128,7 @@ Assert::dump($color, '<$color>: <"00FF7F"> <// <<     <>');
 
 // callables
 Assert::dump('strlen', '<literal>: <"strlen"> <// 6 B, callable from ext-core>');
-// todo: Assert::dump('rd', '<literal>: <"rd"> <// callable defined in ...>');
+Assert::dump('rd', '<literal>: <"rd"> <// callable defined in ?path?file:?line>');
 
 // limit
 Dumper::$maxLength = 10;
@@ -208,7 +208,7 @@ Dumper::$alwaysShowArrayKeys = false;
 Assert::dump([1, 2, 3, 4, 5], '<literal>: <[><1>, <2>, <3>, <4>, <5><]> <// 5 items>');
 
 // long
-Assert::dump(range(100000001, 100000010), '<"range(100000001, 100000010)">: <[>
+Assert::dump(range(100000001, 100000010), '<range(100000001, 100000010)>: <[>
     <100000001>,
     <100000002>,
     <100000003>,
@@ -310,12 +310,11 @@ Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): i
 
 
 callables:
-// todo: 0-level keys should not be quoted
-Assert::dump([$foo, 'bar'], '<"[$foo, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Foo>::<bar><()> <{>
+Assert::dump([$foo, 'bar'], '<[$foo, \'bar\']>: <Dogma><\><Tests><\><Debug><\><Foo>::<bar><()> <{>
     <static> <$x> = <42>;
 <}>');
 
-Assert::dump([Bar::class, 'bar'], '<"[Bar::class, \'bar\']">: <Dogma><\><Tests><\><Debug><\><Bar>::<bar><()> <{>
+Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\><Debug><\><Bar>::<bar><()> <{>
     <static> <$x> = <42>;
 <}>');
 
