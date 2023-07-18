@@ -85,6 +85,12 @@ class Dumper
     public const ESCAPING_ISO2047_SYMBOLS = 'symbols'; // https://en.wikipedia.org/wiki/ISO_2047
     public const ESCAPING_CP437 = 'cp437'; // https://en.wikipedia.org/wiki/Code_page_437
 
+    public const JSON_KEEP_AS_IS = 0;
+    public const JSON_PRETTIFY = 1;
+    //public const JSON_HIGHLIGHT = 2;
+    //public const JSON_PRETTIFY_AND_HIGHLIGHT = 3;
+    public const JSON_DECODE = 4;
+
     public const ORDER_ORIGINAL = 1;
     public const ORDER_ALPHABETIC = 2;
     public const ORDER_VISIBILITY_ALPHABETIC = 3;
@@ -106,10 +112,12 @@ class Dumper
     /** @var int - count of spaces for each indentation level (including indentation lines) */
     public static $indentSpaces = 4;
 
-    // scalars settings ------------------------------------------------------------------------------------------------
+    // numeric settings ------------------------------------------------------------------------------------------------
 
     /** @var bool|null - render long integers and floats with "_" dividing digits into groups of 3, null for auto on PHP >= 7.4 */
     public static $numbersWithUnderscore = false;
+
+    // string settings -------------------------------------------------------------------------------------------------
 
     /** @var int - max length of dumped strings */
     public static $maxLength = 10000;
@@ -137,6 +145,9 @@ class Dumper
 
     /** @var int|null - length of binary string chunks (rows) */
     public static $binaryChunkLength = 16;
+
+    /** @var int - how to format strings detected as valid JSON */
+    public static $jsonStrings = self::JSON_PRETTIFY;
 
     // array settings --------------------------------------------------------------------------------------------------
 
@@ -286,7 +297,7 @@ class Dumper
     /** @var bool - turn on/of user formatters for dumps */
     public static $useFormatters = true;
 
-    /** @var array<callable> - user formatters for int values. optionally indexed by key regexp */
+    /** @var array<int|string, callable> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
         '~filemode|permissions~i' => [self::class, 'dumpIntPermissions'],
         '~time|\\Wts~i' => [self::class, 'dumpIntTime'],
@@ -295,12 +306,12 @@ class Dumper
         [self::class, 'dumpIntPowersOfTwo'],
     ];
 
-    /** @var array<callable> - user formatters for float values. optionally indexed by key regexp */
+    /** @var array<int|string, callable> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
         '~time~i' => [self::class, 'dumpFloatTime'],
     ];
 
-    /** @var array<callable> - user formatters for string values. optionally indexed by key regexp */
+    /** @var array<int|string, callable> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
         [self::class, 'dumpStringHidden'], // must be first!
         '/path(?!ext)/i' => [self::class, 'dumpStringPathList'],
@@ -308,6 +319,7 @@ class Dumper
         [self::class, 'dumpStringUuid'],
         [self::class, 'dumpStringColor'],
         [self::class, 'dumpStringCallable'],
+        [self::class, 'dumpStringJson'],
     ];
 
     /** @var array<string, callable> - user formatters for resources */

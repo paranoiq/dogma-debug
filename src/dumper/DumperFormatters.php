@@ -53,6 +53,7 @@ use function is_object;
 use function is_resource;
 use function is_scalar;
 use function is_string;
+use function json_decode;
 use function json_encode;
 use function key;
 use function ltrim;
@@ -71,6 +72,7 @@ use function str_pad;
 use function str_repeat;
 use function str_replace;
 use function str_split;
+use function str_starts_with;
 use function stream_context_get_params;
 use function stream_get_meta_data;
 use function strlen;
@@ -80,6 +82,7 @@ use function strtolower;
 use function strtoupper;
 use function substr;
 use function trim;
+use const JSON_PRETTY_PRINT;
 use const PATH_SEPARATOR;
 use const PHP_VERSION_ID;
 use const STR_PAD_LEFT;
@@ -501,6 +504,30 @@ trait DumperFormatters
 
             return self::string($string, $depth) . ' ' . self::info("// $info");
         }
+    }
+
+    public static function dumpStringJson(string $string, string $info, string $key, int $depth): ?string
+    {
+        if (self::$jsonStrings === self::JSON_KEEP_AS_IS) {
+            return null;
+        }
+
+        $trimmed = trim($string);
+        if (!str_starts_with($trimmed, '{') && !str_starts_with($trimmed, '[')) {
+            return null;
+        }
+
+        $data = json_decode($string);
+        if ($data === null) {
+            return null;
+        }
+        if (self::$jsonStrings === self::JSON_DECODE) {
+            return self::exceptions('json:') . ' ' . self::dump($data) . ' ' . self::info("// $info");
+        }
+
+        $json = json_encode($data, JSON_PRETTY_PRINT);
+
+        return self::exceptions('prettified:') . ' ' . $json . ' ' . self::info("// $info");
     }
 
     // component formatters --------------------------------------------------------------------------------------------
