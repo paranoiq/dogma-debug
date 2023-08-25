@@ -11,6 +11,7 @@
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
 
 use Dogma\Debug\Ansi;
+use Dogma\Debug\Callstack;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Diff;
 use Dogma\Debug\Dumper;
@@ -72,8 +73,8 @@ if (!function_exists('rd')) {
     /**
      * Remote dump exception (formatted same way as when thrown)
      *
-     * @template T
-     * @param T&Throwable $exception
+     * @template T of Throwable
+     * @param T $exception
      * @return T
      */
     function re(Throwable $exception): Throwable
@@ -102,13 +103,15 @@ if (!function_exists('rd')) {
     /**
      * Remotely print function/method name
      */
-    function rf(): void
+    function rf(bool $withLocation = false, bool $withDepth = false, ?string $function = null): void
     {
-        Debugger::function();
+        Debugger::function($withLocation, $withDepth, $function);
     }
 
     /**
      * Remote backtrace dump
+     * @phpstan-import-type PhpBacktraceItem from Callstack
+     * @param Callstack|PhpBacktraceItem[]|null $callstack
      */
     function rb(?int $length = null, ?int $argsDepth = null, ?int $codeLines = null, ?int $codeDepth = null, $callstack = null): void
     {
