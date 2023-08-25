@@ -373,22 +373,33 @@ class Debugger
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
-    public static function function(): void
+    public static function function(bool $withLocation = false, bool $withDepth = false, ?string $function = null): void
     {
+        static $x = false;
         ob_start();
 
-        $frame = Callstack::get(['~Debugger::function$~', '~^rf$~'])->last();
+        $callstack = Callstack::get(['~Debugger::function$~', '~^rf$~']);
+        $frame = $callstack->last();
         $class = $frame->class ?? null;
-        $function = $frame->function ?? null;
+        $function = $function ?? $frame->function ?? null;
         // todo: show args
+
+        $depth = '';
+        if ($withDepth) {
+            $depth = str_repeat('| ', $callstack->getDepth());
+        }
+        $location = '';
+        if ($withLocation) {
+            $location = Dumper::fileLine($frame->file, $frame->line);
+        }
 
         if ($class !== null) {
             $class = explode('\\', $class);
             $class = end($class);
 
-            $message = Ansi::white(" $class::$function() ", Ansi::DRED);
+            $message = Ansi::white(" {$depth}{$class}::{$function}() ", Ansi::DCYAN) . ' in ' . $location;
         } else {
-            $message = Ansi::white(" $function() ", Ansi::DRED);
+            $message = Ansi::white(" {$depth}{$function}() ", Ansi::DCYAN) . ' in ' . $location;
         }
 
         self::send(Packet::CALLSTACK, $message);

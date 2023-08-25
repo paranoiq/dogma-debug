@@ -117,6 +117,8 @@ class Intercept
     /** @var bool Report when app code tries to call overloaded functions */
     public static $logAttempts = true;
 
+    // trace settings --------------------------------------------------------------------------------------------------
+
     /** @var bool */
     public static $filterTrace = true;
 

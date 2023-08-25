@@ -241,4 +241,11 @@ class Callstack
         return $this->frames[1] ?? null;
     }
 
+    public function getDepth(): int
+    {
+        $depth = count($this->frames) - 1;
+
+        return $depth < 0 ? 0 : $depth;
+    }
+
 }
