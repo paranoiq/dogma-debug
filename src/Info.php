@@ -24,7 +24,7 @@ class Info
         /** @var string $result */
         $result = ob_get_clean();
 
-        Debugger::send(Packet::DUMP, trim($result));
+        Debugger::send(Message::DUMP, trim($result));
     }
 
 }

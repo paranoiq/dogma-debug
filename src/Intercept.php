@@ -447,7 +447,7 @@ class Intercept
                 $items = Str::join($items, ', ', ' and ');
                 $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default'])
                     . ' ' . Ansi::lmagenta("Overloaded $items in: ") . Dumper::file($file);
-                Debugger::send(Packet::INTERCEPT, $message);
+                Debugger::send(Message::INTERCEPT, $message);
             }
         }
 
@@ -457,7 +457,7 @@ class Intercept
 
             /*if ($code !== $result) {
                 $message = Ansi::lmagenta("Inserted ticks in: ") . Dumper::file($file);
-                Debugger::send(Packet::INTERCEPT, $message);
+                Debugger::send(Message::INTERCEPT, $message);
             }*/
 
             $code = $result;
@@ -525,7 +525,7 @@ class Intercept
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
 
-        Debugger::send(Packet::INTERCEPT, $message, $trace);
+        Debugger::send(Message::INTERCEPT, $message, $trace);
     }
 
 }

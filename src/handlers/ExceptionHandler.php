@@ -111,7 +111,7 @@ class ExceptionHandler
 
         $message = self::formatException($exception, self::SOURCE_UNCAUGHT);
 
-        Debugger::send(Packet::EXCEPTION, $message);
+        Debugger::send(Message::EXCEPTION, $message);
     }
 
     public static function logInspected(Throwable $exception): void
@@ -148,7 +148,7 @@ class ExceptionHandler
 
         $message = self::formatException($exception, $source);
 
-        Debugger::send(Packet::EXCEPTION, $message);
+        Debugger::send(Message::EXCEPTION, $message);
     }
 
     public static function formatException(Throwable $exception, string $source): string

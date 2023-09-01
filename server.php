@@ -22,7 +22,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/System.php';
     require_once __DIR__ . '/src/tools/Units.php';
-    require_once __DIR__ . '/src/Packet.php';
+    require_once __DIR__ . '/src/Message.php';
     require_once __DIR__ . '/src/DebugServer.php';
 }
 

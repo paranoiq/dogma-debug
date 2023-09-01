@@ -22,7 +22,7 @@ use Dogma\Debug\FtpStreamWrapper;
 use Dogma\Debug\Http;
 use Dogma\Debug\HttpStreamWrapper;
 use Dogma\Debug\Intercept;
-use Dogma\Debug\Packet;
+use Dogma\Debug\Message;
 use Dogma\Debug\PharStreamWrapper;
 use Dogma\Debug\PhpStreamWrapper;
 use Dogma\Debug\Request;
@@ -62,7 +62,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Units.php';
     require_once __DIR__ . '/src/tools/VirtualFile.php';
 
-    require_once __DIR__ . '/src/Packet.php';
+    require_once __DIR__ . '/src/Message.php';
     require_once __DIR__ . '/src/Request.php';
     require_once __DIR__ . '/src/CallstackFrame.php';
     require_once __DIR__ . '/src/Callstack.php';
@@ -149,7 +149,7 @@ if (!class_exists(Debugger::class)) {
     }, $_dogma_debug_force_load_classes);
     $x[] = new CallstackFrame(null, null);
     $x[] = new Callstack([]);
-    $x[] = new Packet(Packet::OUTPUT_WIDTH, '');
+    $x[] = Message::create(Message::OUTPUT_WIDTH, '');
     $x[] = StreamInterceptor::enabled();
     $x[] = FileStreamWrapper::enabled();
 

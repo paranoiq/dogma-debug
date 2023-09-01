@@ -174,7 +174,7 @@ class ResourcesHandler
 
         $time = Units::time($resources->time - Debugger::getStart());
         $memory = Units::memory($resources->phpMemory);
-        Debugger::send(Packet::ERROR, Ansi::dyellow("Running $time, $memory"));
+        Debugger::send(Message::ERROR, Ansi::dyellow("Running $time, $memory"));
     }
 
 }

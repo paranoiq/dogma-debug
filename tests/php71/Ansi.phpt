@@ -5,11 +5,11 @@ namespace Dogma\Tests\Debug;
 use Dogma\Debug\Ansi;
 use Dogma\Debug\Assert;
 use Dogma\Debug\Debugger;
-use Dogma\Debug\Packet;
+use Dogma\Debug\Message;
 
 require_once __DIR__ . '/../bootstrap.php';
 
-Debugger::send(Packet::DUMP,
+Debugger::send(Message::DUMP,
     Ansi::white('white') . "\n"
     . Ansi::lgray('light gray') . "\n"
     . Ansi::dgray('dark gray') . "\n"

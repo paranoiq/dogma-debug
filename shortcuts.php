@@ -15,7 +15,7 @@ use Dogma\Debug\Callstack;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Diff;
 use Dogma\Debug\Dumper;
-use Dogma\Debug\Packet;
+use Dogma\Debug\Message;
 
 if (!function_exists('rd')) {
     /**
@@ -89,7 +89,7 @@ if (!function_exists('rd')) {
     {
         $message = Ansi::white('diff:') . ' ' . Diff::cliDiff($a, $b);
 
-        Debugger::send(Packet::DUMP, $message);
+        Debugger::send(Message::DUMP, $message);
     }
 
     /**

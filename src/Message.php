@@ -11,15 +11,20 @@ namespace Dogma\Debug;
 
 use Exception;
 use function dechex;
+use function explode;
+use function floatval;
+use function intval;
+use function ltrim;
 use function microtime;
 use function ord;
 use function preg_replace_callback;
+use function rtrim;
 use function str_ends_with;
 use function strlen;
 use function strpos;
 use function substr;
 
-class Packet
+class Message
 {
 
     public const INTRO = 1;
@@ -44,8 +49,6 @@ class Packet
     public const OUTPUT_WIDTH = 100;
 
     private const ALLOWED_CHARS = ["\n", "\r", "\t", "\e"];
-
-    public const MARKER = "\x01\x07\x02\x09";
 
     /** @var int */
     public $type;
@@ -83,10 +86,35 @@ class Packet
     public function __construct(
         int $type,
         string $payload,
+        ?string $backtrace,
+        ?float $duration,
+        int $bell,
+        float $time,
+        int $counter,
+        int $processId,
+        ?int $threadId
+    ) {
+        $this->type = $type;
+        $this->payload = $payload;
+        $this->backtrace = $backtrace;
+        $this->duration = $duration;
+        $this->bell = $bell;
+        $this->time = $time;
+        $this->counter = $counter;
+        $this->processId = $processId;
+        $this->threadId = $threadId;
+    }
+
+    /**
+     * @param int|bool $bell
+     */
+    public static function create(
+        int $type,
+        string $payload,
         ?string $backtrace = null,
         ?float $duration = null,
-        bool $bell = false
-    )
+        $bell = 0
+    ): self
     {
         // todo: temporary
         if (str_ends_with($payload, "\n")) {
@@ -117,21 +145,22 @@ class Packet
             $payload = substr($payload, 0, Debugger::$maxMessageLength) . Dumper::exceptions(' ... ');
         }
 
-        $this->type = $type;
-        $this->payload = $payload;
-        $this->backtrace = $backtrace;
-        $this->duration = $duration;
-        $this->bell = (int) $bell;
-
         if ($type !== self::OUTPUT_WIDTH) {
-            $this->time = microtime(true);
-            $this->counter = ++self::$count;
-            [$this->processId, $this->threadId] = System::getIds();
+            $time = microtime(true);
+            $counter = ++self::$count;
+            [$processId, $threadId] = System::getProcessAndThreadId();
+        } else {
+            $time = 0.0;
+            $counter = 0;
+            $processId = 0;
+            $threadId = null;
         }
+
+        return new self($type, $payload, $backtrace, $duration, intval($bell), $time, $counter, $processId, $threadId);
     }
 
     /**
-     * Serialized packet structure is marked by ASCII control characters:
+     * Serialized message structure is marked by ASCII control characters:
      * - "Start of Heading" \x01
      *   - int $type, int $bell, int $counter, float $time, float $duration, int $processId, int $threadId separated by "Unit Separator" \x1F
      * - "Start of Text" \x02
@@ -140,10 +169,32 @@ class Packet
      *   - formatted backtrace
      * - "End of Transmission" \x04
      */
-    public function serialize(): string
+    public function encode(): string
     {
         return "\x01$this->type\x1F$this->bell\x1F$this->counter\x1F$this->time\x1F$this->duration\x1F$this->processId\x1F$this->threadId"
             . "\x02$this->payload\x03$this->backtrace\x04";
+    }
+
+    public static function decode(string $data): self
+    {
+        $parts = explode("\x02", $data);
+        $head = ltrim($parts[0], "\x01");
+        $rest = $parts[1] ?? '';
+
+        $parts = explode("\x1F", $head);
+        $type = (intval($parts[0])) ?: self::DUMP;
+        $bell = intval($parts[1] ?? 0);
+        $counter = intval($parts[2] ?? 0);
+        $time = floatval($parts[3] ?? microtime(true));
+        $duration = floatval($parts[4] ?? 0.0);
+        $processId = intval($parts[5] ?? 0);
+        $threadId = isset($parts[6]) ? intval($parts[6]) : null;
+
+        $parts = explode("\x03", $rest);
+        $payload = $parts[0];
+        $backtrace = rtrim($parts[1] ?? '', "\x04");
+
+        return new self($type, $payload, $backtrace, $duration, $bell, $time, $counter, $processId, $threadId);
     }
 
 }

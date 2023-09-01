@@ -79,7 +79,7 @@ FOO;
                 . '  ' . Ansi::lgreen(substr($row, 78, 3));
         }
 
-        Debugger::send(Packet::DUMP, $result);
+        Debugger::send(Message::DUMP, $result);
     }
 
 }

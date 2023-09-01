@@ -151,7 +151,7 @@ class AmqpHandler
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
-        Debugger::send(Packet::AMQP, $message, $trace, $duration);
+        Debugger::send(Message::AMQP, $message, $trace, $duration);
     }
 
     /**
@@ -202,7 +202,7 @@ class AmqpHandler
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
-        Debugger::send(Packet::AMQP, $message, $trace, $duration);
+        Debugger::send(Message::AMQP, $message, $trace, $duration);
     }
 
     /**

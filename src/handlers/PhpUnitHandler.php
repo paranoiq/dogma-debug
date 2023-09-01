@@ -46,7 +46,7 @@ class PhpUnitHandler
 
                     $message = Ansi::white(" Test case {$testCaseName}: ", Ansi::DGREEN);
 
-                    Debugger::send(Packet::CALLSTACK, $message);
+                    Debugger::send(Message::CALLSTACK, $message);
 
                     self::$currentTestCaseName = $testCaseName;
                 }

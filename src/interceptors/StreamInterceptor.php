@@ -157,7 +157,7 @@ class StreamInterceptor
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
-        Debugger::send(Packet::INTERCEPT, $message, $trace, $duration);
+        Debugger::send(Message::INTERCEPT, $message, $trace, $duration);
     }
 
     /**

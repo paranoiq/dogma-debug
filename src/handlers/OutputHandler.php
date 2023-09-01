@@ -108,7 +108,7 @@ class OutputHandler
         $callstack = $callstack ?? Callstack::get(Dumper::$traceFilters);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
-        Debugger::send(Packet::STD_IO, $message, $backtrace);
+        Debugger::send(Message::STD_IO, $message, $backtrace);
 
         return false;
     }

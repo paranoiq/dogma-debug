@@ -367,7 +367,7 @@ class Dumper
 
         if ($dump === false) {
             $message = Ansi::white(" Output buffer closed unexpectedly in Dumper::varDump(). ", Ansi::DRED);
-            Debugger::send(Packet::ERROR, $message);
+            Debugger::send(Message::ERROR, $message);
 
             return '';
         }

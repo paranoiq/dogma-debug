@@ -22,7 +22,6 @@ use function filesize;
 use function fopen;
 use function fread;
 use function fseek;
-use function serialize;
 use function socket_accept;
 use function socket_bind;
 use function socket_close;
@@ -34,7 +33,6 @@ use function socket_set_nonblock;
 use function socket_write;
 use function str_replace;
 use function strlen;
-use function unserialize;
 use function usleep;
 use const AF_INET;
 use const SOCK_STREAM;
@@ -58,6 +56,11 @@ class DebugServer
     /** @var string */
     private $file;
 
+    /** @var bool */
+    private $groupInfo = true;
+
+    // internals -------------------------------------------------------------------------------------------------------
+
     /** @var int */
     private $position = 0;
 
@@ -67,10 +70,7 @@ class DebugServer
     /** @var array<int, int|string> */
     private $ids = [];
 
-    /** @var bool */
-    private $groupInfo = true;
-
-    /** @var Packet|null */
+    /** @var Message|null */
     private $lastRequest;
 
     /** @var float */
@@ -165,32 +165,26 @@ class DebugServer
     private function processRequests(string $content, int $i): bool
     {
         $outro = false;
-        foreach (explode(Packet::MARKER, $content) as $message) {
-            if ($message === '') {
+        foreach (explode("\x04", $content) as $data) {
+            if ($data === '') {
                 continue;
             }
 
-            /** @var Packet|false $packet */
-            $packet = unserialize($message, ['allowed_classes' => [Packet::class]]);
-            // broken serialization - probably too big packet split to chunks
-            if (!$packet instanceof Packet) {
-                echo ">>>" . $message . Ansi::RESET_FORMAT . "<<<";
-                continue;
-            }
+            $message = Message::decode($data);
 
             // handle server -> client communication
-            if ($packet->type === Packet::OUTPUT_WIDTH) {
-                $response = serialize(new Packet(Packet::OUTPUT_WIDTH, (string) System::getTerminalWidth()));
-                socket_write($this->connections[$i], $response . Packet::MARKER);
+            if ($message->type === Message::OUTPUT_WIDTH) {
+                $response = Message::create(Message::OUTPUT_WIDTH, (string) System::getTerminalWidth())->encode();
+                socket_write($this->connections[$i], $response);
                 //stream_socket_sendto($this->sock, $response, 0, $connection);
                 continue;
             }
 
-            $this->ids[$i] = $packet->processId;
+            $this->ids[$i] = $message->processId;
 
-            $this->renderPacket($packet);
+            $this->renderMessage($message);
 
-            if ($packet->type === Packet::OUTRO) {
+            if ($message->type === Message::OUTRO) {
                 $outro = true;
             }
         }
@@ -198,53 +192,53 @@ class DebugServer
         return $outro;
     }
 
-    public function renderPacket(Packet $packet): void
+    public function renderMessage(Message $message): void
     {
         // delete previous backtrace to save space
         if ($this->groupInfo
             && $this->lastRequest
-            && $packet->backtrace
-            && $this->lastRequest->backtrace === $packet->backtrace
-            && $this->lastRequest->type === $packet->type
+            && $message->backtrace
+            && $this->lastRequest->backtrace === $message->backtrace
+            && $this->lastRequest->type === $message->type
         ) {
             echo Ansi::DELETE_ROW;
             echo Ansi::UP;
-            $this->durationSum += $packet->duration;
+            $this->durationSum += $message->duration;
         } else {
-            $this->durationSum = $packet->duration;
+            $this->durationSum = $message->duration;
         }
 
         // process id
-        if (count($this->connections) > 1 && $packet->type !== Packet::INTRO && $packet->type !== Packet::OUTRO) {
-            echo "\n" . Ansi::white(" #$packet->processId ", Ansi::DYELLOW) . ' ';
+        if (count($this->connections) > 1 && $message->type !== Message::INTRO && $message->type !== Message::OUTRO) {
+            echo "\n" . Ansi::white(" #$message->processId ", Ansi::DYELLOW) . ' ';
         } else {
             echo "\n";
         }
 
         // payload
-        echo $packet->payload;
-        if ($packet->bell) {
+        echo $message->payload;
+        if ($message->bell) {
             echo "\x07";
         }
 
         // duration
-        if ($packet->duration > 0.000000000001) {
-            echo ' ' . Ansi::dblue('(' . Units::time($packet->duration) . ')');
+        if ($message->duration > 0.000000000001) {
+            echo ' ' . Ansi::dblue('(' . Units::time($message->duration) . ')');
         }
 
         // backtrace
-        if ($packet->backtrace) {
-            echo "\n" . $packet->backtrace;
+        if ($message->backtrace) {
+            echo "\n" . $message->backtrace;
         }
 
         // duration sum for similar request from same place
-        if ($packet->backtrace && $this->durationSum !== $packet->duration) {
+        if ($message->backtrace && $this->durationSum !== $message->duration) {
             if ($this->durationSum > 0.000000000001) {
                 echo ' ' . Ansi::dblue('(total ' . Units::time($this->durationSum) . ')');
             }
         }
 
-        $this->lastRequest = $packet;
+        $this->lastRequest = $message;
     }
 
     private function socketsConnect(): void

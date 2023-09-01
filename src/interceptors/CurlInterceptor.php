@@ -583,7 +583,7 @@ class CurlInterceptor
             fseek(self::$files[$id], 0);
             // todo: better response visualisation
             if (!(self::$intercept & Intercept::SILENT)) {
-                Debugger::send(Packet::DUMP, Ansi::white("response:") . ' ' . Dumper::dumpString($contents));
+                Debugger::send(Message::DUMP, Ansi::white("response:") . ' ' . Dumper::dumpString($contents));
             }
         }
 

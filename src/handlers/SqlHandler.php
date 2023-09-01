@@ -130,7 +130,7 @@ class SqlHandler
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
 
-        Debugger::send(Packet::SQL, $message, $backtrace, $duration);
+        Debugger::send(Message::SQL, $message, $backtrace, $duration);
     }
 
     /**

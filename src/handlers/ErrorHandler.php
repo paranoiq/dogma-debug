@@ -152,7 +152,7 @@ class ErrorHandler
             }
         } catch (Throwable $e) {
             $trace = Dumper::info('^--- ') . Dumper::fileLine($e->getFile(), $e->getLine());
-            Debugger::send(Packet::ERROR, $e->getMessage(), $trace);
+            Debugger::send(Message::ERROR, $e->getMessage(), $trace);
             return false;
         }
     }
@@ -172,7 +172,7 @@ class ErrorHandler
                 $callstack = Callstack::fromOutOfMemoryMessage($output);
                 $backtrace = Dumper::formatCallstack($callstack, 1000, null, 5, 1);
 
-                Debugger::send(Packet::ERROR, $message, $backtrace);
+                Debugger::send(Message::ERROR, $message, $backtrace);
                 Debugger::setTermination('memory limit (' . Units::memory(Resources::memoryLimit()) . ')');
             }// else {
                 // todo: ???
@@ -257,7 +257,7 @@ class ErrorHandler
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, 1000, null, 5, 1);
 
-        Debugger::send(Packet::ERROR, $message, $backtrace);
+        Debugger::send(Message::ERROR, $message, $backtrace);
     }
 
     private static function typeDescription(int $type): string

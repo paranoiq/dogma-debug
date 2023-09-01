@@ -193,12 +193,12 @@ class ShutdownHandler
         $name = array_search($signal, self::$signals, true) ?: $signal;
 
         if (!in_array($signal, self::$nonTerminating, true)) {
-            //Debugger::send(Packet::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
+            //Debugger::send(Message::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
 
             Debugger::setTermination("signal ($name)");
             exit;
         } elseif (!in_array($signal, self::$ignore, true)) {
-            Debugger::send(Packet::ERROR, Ansi::white(" Signal $name received. ", Ansi::DMAGENTA));
+            Debugger::send(Message::ERROR, Ansi::white(" Signal $name received. ", Ansi::DMAGENTA));
         }
     }
 
@@ -212,7 +212,7 @@ class ShutdownHandler
 
         Debugger::setTermination("signal($name)");
 
-        //Debugger::send(Packet::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
+        //Debugger::send(Message::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
         exit;
     }
 

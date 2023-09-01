@@ -205,7 +205,7 @@ trait StreamWrapperMixin
             $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
             self::runNativeIfNeeded(static function () use ($message, $backtrace): void {
-                Debugger::send(Packet::STREAM_IO, $message, $backtrace);
+                Debugger::send(Message::STREAM_IO, $message, $backtrace);
             });
 
             self::$workingDirectory = $cwd;
@@ -243,7 +243,7 @@ trait StreamWrapperMixin
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         self::runNativeIfNeeded(static function () use ($message, $backtrace, $duration): void {
-            Debugger::send(Packet::STREAM_IO, $message, $backtrace, $duration);
+            Debugger::send(Message::STREAM_IO, $message, $backtrace, $duration);
         });
     }
 

@@ -9,9 +9,11 @@
 
 namespace Dogma\Debug;
 
+use Thread;
 use function cli_set_process_title;
 use function exec;
 use function explode;
+use function extension_loaded;
 use function file_put_contents;
 use function function_exists;
 use function getmypid;
@@ -31,7 +33,7 @@ class System
             return $win;
         }
 
-        $os = strtolower(PHP_OS);
+        $os = strtolower(PHP_OS); // PHP_OS_FAMILY available since 7.2
 
         return $win = (str_contains($os, 'win') && !str_contains($os, 'darwin'));
     }
@@ -67,9 +69,19 @@ class System
     /**
      * @return array{int, int|null}
      */
-    public static function getIds(): array
+    public static function getProcessAndThreadId(): array
     {
-        return [(int) getmypid(), function_exists('zend_thread_id') ? zend_thread_id() : null];
+        if (function_exists('zend_thread_id')) {
+            // "This function is only available if PHP has been built with ZTS (Zend Thread Safety) support and debug mode (--enable-debug)."
+            $tid = zend_thread_id();
+        } elseif (extension_loaded('pthreads')) {
+            $tid = Thread::getCurrentThreadId();
+        } else {
+            // parallel: no api to get thread id in parallel extension :E
+            $tid = null;
+        }
+
+        return [(int) getmypid(), $tid];
     }
 
     public static function setProcessName(string $name): void
@@ -78,6 +90,19 @@ class System
 
         if (!self::isWindows()) {
             @file_put_contents("/proc/" . getmypid() . "/comm", $name);
+        }
+    }
+
+    public static function processExists(int $pid): bool
+    {
+        if (self::isWindows()) {
+            $output = shell_exec("tasklist /FI \"PID eq {$pid}\" 2>&1");
+
+            return strpos($output, "No tasks are running") === false;
+        } else {
+            $output = shell_exec("ps -p {$pid} 2>&1");
+
+            return strpos($output, "PID") !== false;
         }
     }
 

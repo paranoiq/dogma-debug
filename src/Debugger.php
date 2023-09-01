@@ -42,7 +42,6 @@ use function number_format;
 use function ob_get_clean;
 use function ob_start;
 use function register_shutdown_function;
-use function serialize;
 use function session_status;
 use function session_write_close;
 use function socket_connect;
@@ -52,14 +51,12 @@ use function socket_write;
 use function sprintf;
 use function str_ends_with;
 use function str_repeat;
-use function str_replace;
 use function str_starts_with;
 use function strlen;
 use function strtolower;
 use function substr;
 use function touch;
 use function trim;
-use function unserialize;
 use const AF_INET;
 use const CONNECTION_ABORTED;
 use const CONNECTION_TIMEOUT;
@@ -106,7 +103,7 @@ class Debugger
     /** @var callable[] Functions to call before starting the actual request */
     public static $beforeStart = [];
 
-    /** @var callable[] Functions to call before sending a packet. Receives Packet as first argument. Returns true to stop packet from sending */
+    /** @var callable[] Functions to call before sending a message. Receives Message as first argument. Returns true to stop message from sending */
     public static $beforeSend = [];
 
     /** @var callable[] Functions to call before debugger shutdown. Can dump some final things before debug footer is sent */
@@ -241,7 +238,7 @@ class Debugger
         ob_start();
 
         $dump = Dumper::dump($value, $maxDepth, $traceLength);
-        self::send(Packet::DUMP, $dump);
+        self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
@@ -258,7 +255,7 @@ class Debugger
         ob_start();
 
         $dump = Dumper::varDump($value, $colors);
-        self::send(Packet::DUMP, $dump);
+        self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
@@ -274,7 +271,7 @@ class Debugger
     {
         $message = ExceptionHandler::formatException($exception, ExceptionHandler::SOURCE_DUMPED);
 
-        self::send(Packet::EXCEPTION, $message);
+        self::send(Message::EXCEPTION, $message);
 
         return $exception;
     }
@@ -287,7 +284,7 @@ class Debugger
 
         if ($value === false) {
             $message = Ansi::white(" Output buffer closed unexpectedly in Debugger::capture(). ", Ansi::DRED);
-            self::send(Packet::ERROR, $message);
+            self::send(Message::ERROR, $message);
 
             return '';
         }
@@ -295,7 +292,7 @@ class Debugger
         ob_start();
 
         $dump = Dumper::dump($value, $maxDepth, $traceLength);
-        self::send(Packet::DUMP, $dump);
+        self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
@@ -327,7 +324,7 @@ class Debugger
 
         $message = Ansi::black($name ? " $name: $label " : " $label ", $color);
 
-        self::send(Packet::LABEL, $message);
+        self::send(Message::LABEL, $message);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
@@ -338,10 +335,10 @@ class Debugger
     {
         ob_start();
 
-        // escape special chars, that can interfere with packet formatting
+        // escape special chars, that can interfere with message formatting
         $message = Dumper::escapeRawString($message, Dumper::$rawEscaping, Ansi::LGRAY, $background);
 
-        self::send(Packet::RAW, $message);
+        self::send(Message::RAW, $message);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
@@ -368,7 +365,7 @@ class Debugger
         }
         $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeLines, $codeDepth);
 
-        self::send(Packet::CALLSTACK, $trace);
+        self::send(Message::CALLSTACK, $trace);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
@@ -402,7 +399,7 @@ class Debugger
             $message = Ansi::white(" {$depth}{$function}() ", Ansi::DCYAN) . ' in ' . $location;
         }
 
-        self::send(Packet::CALLSTACK, $message);
+        self::send(Message::CALLSTACK, $message);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
@@ -450,7 +447,7 @@ class Debugger
             $message = Ansi::white("Timer $event:") . ' ' . Dumper::time($time);
         }
 
-        self::send(Packet::TIMER, $message);
+        self::send(Message::TIMER, $message);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
@@ -488,7 +485,7 @@ class Debugger
         $name = $name ? 'Memory ' . $name : 'Memory';
         $message = Ansi::white(" $name: ", Ansi::DGREEN) . $memory;
 
-        self::send(Packet::MEMORY, $message);
+        self::send(Message::MEMORY, $message);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
@@ -511,7 +508,7 @@ class Debugger
 
     public static function send(
         int $type,
-        string $message,
+        string $payload,
         string $backtrace = '',
         ?float $duration = null
     ): void
@@ -531,35 +528,34 @@ class Debugger
             $depth--;
         }
 
-        $message = str_replace(Packet::MARKER, "||||", $message);
-        $packet = new Packet($type, $message, $backtrace, $duration);
+        $message = Message::create($type, $payload, $backtrace, $duration);
 
         foreach (self::$beforeSend as $function) {
-            if ($function($packet)) {
+            if ($function($message)) {
                 return;
             }
         }
 
         if (self::$connection === self::CONNECTION_LOCAL) {
-            self::$server->renderPacket($packet);
+            self::$server->renderMessage($message);
             return;
         }
 
-        $packet = serialize($packet) . Packet::MARKER;
+        $data = $message->encode();
 
         if (self::$connection === self::CONNECTION_FILE) {
-            $file = fopen(self::$logFile, 'a');
+            $file = fopen(self::$logFile, 'ab');
             if (!$file) {
                 $m = error_get_last()['message'] ?? '???';
                 self::error("Could not send data to debug server: $m");
-                self::print($message . "\n" . $backtrace);
+                self::print($payload . "\n" . $backtrace);
                 return;
             }
-            $result = fwrite($file, $packet);
+            $result = fwrite($file, $data);
             if (!$result) {
                 $m = error_get_last()['message'] ?? '???';
                 self::error("Could not send data to debug server: $m");
-                self::print($message . "\n" . $backtrace);
+                self::print($payload . "\n" . $backtrace);
                 fclose($file);
                 return;
             }
@@ -568,11 +564,11 @@ class Debugger
             return;
         }
 
-        $result = @socket_write(self::$socket, $packet, strlen($packet));
+        $result = @socket_write(self::$socket, $data, strlen($data));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
             self::error("Could not send data to debug server: $m");
-            self::print($message . "\n" . $backtrace);
+            self::print($payload . "\n" . $backtrace);
         }
     }
 
@@ -589,7 +585,7 @@ class Debugger
     {
         if (self::$showDependenciesInfo) {
             $callstack = Callstack::get(Dumper::$traceFilters);
-            self::send(Packet::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
+            self::send(Message::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
         }
     }
 
@@ -652,26 +648,26 @@ class Debugger
         self::$connected = true;
 
         if (!self::$initDone) {
-            if (Packet::$count === 0) {
+            if (Message::$count === 0) {
                 $header = self::createHeader();
-                $packet = new Packet(Packet::INTRO, $header);
+                $message = Message::create(Message::INTRO, $header);
 
                 if (self::$connection === self::CONNECTION_LOCAL) {
-                    self::$server->renderPacket($packet);
+                    self::$server->renderMessage($message);
                 } else {
-                    $packet = serialize($packet) . Packet::MARKER;
+                    $data = $message->encode();
 
                     if (self::$connection === self::CONNECTION_FILE) {
-                        $file = fopen(self::$logFile, 'a');
+                        $file = fopen(self::$logFile, 'ab');
                         if (!$file) {
                             return;
                         }
-                        $result = fwrite($file, $packet);
+                        $result = fwrite($file, $data);
                         if (!$result) {
                             return;
                         }
                     } else {
-                        $result = @socket_write(self::$socket, $packet, strlen($packet));
+                        $result = @socket_write(self::$socket, $data, strlen($data));
                         if (!$result) {
                             return;
                         }
@@ -716,7 +712,7 @@ class Debugger
                         $callback();
                     }
                 } finally {
-                    self::send(Packet::OUTRO, self::createFooter());
+                    self::send(Message::OUTRO, self::createFooter());
                     self::$shutdownDone = true;
                 }
             }
@@ -739,7 +735,7 @@ class Debugger
             $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
         }
 
-        self::send(Packet::ERROR, $message);
+        self::send(Message::ERROR, $message);
     }
 
     // header & footer -------------------------------------------------------------------------------------------------
@@ -751,7 +747,7 @@ class Debugger
         /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timerStarts[''], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
-        $id = implode('/', array_filter(System::getIds()));
+        $id = implode('/', array_filter(System::getProcessAndThreadId()));
         $php = PHP_VERSION . ', ' . Request::$sapi;
         $header = "\n" . Ansi::white(" >> #$id $time | PHP $php ", self::$headerColor) . ' ';
         if (Request::$application && Request::$environment) {
@@ -864,7 +860,7 @@ class Debugger
         $start = self::$timerStarts[''];
         $time = Units::time(microtime(true) - $start);
         $memory = Units::memory(memory_get_peak_usage(false));
-        $id = implode('/', array_filter(System::getIds()));
+        $id = implode('/', array_filter(System::getProcessAndThreadId()));
         $footer .= Ansi::white(" << #$id, {$output}$time, $memory ", self::$headerColor);
 
         // includes io
@@ -1002,8 +998,8 @@ class Debugger
             self::connect();
         }
 
-        $packet = serialize(new Packet(Packet::OUTPUT_WIDTH, '')) . Packet::MARKER;
-        $result = socket_write(self::$socket, $packet, strlen($packet));
+        $data = Message::create(Message::OUTPUT_WIDTH, '')->encode();
+        $result = socket_write(self::$socket, $data, strlen($data));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
             self::error("Could not send data to debug server: $m");
@@ -1013,13 +1009,12 @@ class Debugger
         if ($content === false) {
             self::$outputWidth = 120;
         } else {
-            foreach (explode(Packet::MARKER, $content) as $message) {
-                if (!$message) {
+            foreach (explode("\x04", $content) as $data) {
+                if (!$data) {
                     continue;
                 }
-                /** @var Packet $response */
-                $response = unserialize($message, ['allowed_classes' => [Packet::class]]);
-                if ($response->type === Packet::OUTPUT_WIDTH) {
+                $response = Message::decode($data);
+                if ($response->type === Message::OUTPUT_WIDTH) {
                     self::$outputWidth = (int) $response->payload;
                 }
             }
