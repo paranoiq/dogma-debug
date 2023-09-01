@@ -134,6 +134,11 @@ class Intercept
     /** @var int */
     public static $traceCodeDepth = 0;
 
+    // call graph settings ---------------------------------------------------------------------------------------------
+
+    /** @var bool Log names of all called functions/methods */
+    public static $callGraph = false;
+
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var array<string, array{string, array{class-string, string}}> */
@@ -337,6 +342,17 @@ class Intercept
     public static function hack(string $code, string $file): string
     {
         $replaced = [];
+
+        if (self::$callGraph) {
+            $result = preg_replace("~((?:function|fn)(?:\\s+[a-z0-9_]+)?\\s*\\(.*\\)\\s*(:[^{]+)?\\{)~isU", '\\1rf(true, true);', $code);
+            if ($result !== $code) {
+                $code = $result;
+            }
+            $result = preg_replace("~(.*((?:include|require)(?:_once)?)(?:\\s|\\())~iU", 'rf(true, true, "\\2");\\1', $code);
+            if ($result !== $code) {
+                $code = $result;
+            }
+        }
 
         foreach (self::$functions as $function => [$handler, $callable]) {
             // must not be preceded by: other name characters, namespace, `::`, `->`, `$` or `function `
