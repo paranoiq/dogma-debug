@@ -1,4 +1,4 @@
-<?php declare(strict_types = 1);
+<?php
 
 require_once dirname(__DIR__, 2) . '/client.php';
 
