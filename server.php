@@ -19,6 +19,7 @@ set_time_limit(0);
 // client may have been loaded earlier by auto_prepend_file directive
 if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Str.php';
+    require_once __DIR__ . '/src/tools/Color.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/System.php';
     require_once __DIR__ . '/src/tools/Units.php';

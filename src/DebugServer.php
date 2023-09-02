@@ -12,6 +12,7 @@
 namespace Dogma\Debug;
 
 use Socket;
+use function array_diff_key;
 use function clearstatcache;
 use function count;
 use function explode;
@@ -22,6 +23,8 @@ use function filesize;
 use function fopen;
 use function fread;
 use function fseek;
+use function in_array;
+use function ltrim;
 use function socket_accept;
 use function socket_bind;
 use function socket_close;
@@ -59,6 +62,15 @@ class DebugServer
     /** @var bool */
     private $groupInfo = true;
 
+    /** @var bool */
+    private $alwaysShowPids = false;
+
+    /** @var bool */
+    private $checkDeadProcesses = true;
+
+    /** @var string */
+    private $defaultPidColor = Color::NAMED_COLORS['tomato'];
+
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var int */
@@ -67,8 +79,20 @@ class DebugServer
     /** @var resource[]|Socket[] */
     private $connections = [];
 
-    /** @var array<int, int|string> */
-    private $ids = [];
+    /** @var array<int, int> */
+    private $connectionPids = [];
+
+    /** @var array<int, bool> */
+    private $logPids = [];
+
+    /** @var array<int, bool> */
+    private $deadPids = [];
+
+    /** @var array<int, string> */
+    private $pidColors = [];
+
+    /** @var array<string> */
+    private $unusedPidColors;
 
     /** @var Message|null */
     private $lastRequest;
@@ -82,6 +106,9 @@ class DebugServer
         $this->address = $address;
         $this->file = str_replace('\\', '/', $file);
         $this->useSockets = extension_loaded('sockets');
+
+        $colors = array_diff_key(Color::NAMED_COLORS, Color::NAMED_COLORS_4BIT);
+        $this->unusedPidColors = Color::filterByLightness($colors, 25, 90);
     }
 
     /**
@@ -106,27 +133,27 @@ class DebugServer
                     $this->connections[] = $newConnection;
                 }
 
-                foreach ($this->connections as $i => $connection) {
+                foreach ($this->connections as $connectionId => $connection) {
                     $content = @socket_read($connection, 1000000);
                     if ($content === false) {
                         if (socket_last_error() === 10035) { // Win: WSAEWOULDBLOCK
                             continue;
                         }
                         // closed
-                        echo "\n" . Ansi::white(" << #{$this->ids[$i]} disconnected ", Ansi::DYELLOW);
+                        echo "\n" . Ansi::black(" #{$this->connectionPids[$connectionId]} END process disconnected ", Ansi::DYELLOW);
                         socket_close($connection);
-                        unset($this->connections[$i]);
-                        unset($this->ids[$i]);
+                        $this->removePid($this->connectionPids[$connectionId], $connectionId);
+                        unset($this->connections[$connectionId]);
                         continue;
                     } elseif ($content === '') {
                         // nothing to read
                         continue;
                     }
 
-                    $outro = $this->processRequests($content, $i);
+                    $outro = $this->processRequests($content, $connectionId);
                     if ($outro) {
                         socket_close($connection);
-                        unset($this->connections[$i]);
+                        unset($this->connections[$connectionId]);
                     }
                 }
             }
@@ -135,7 +162,7 @@ class DebugServer
             if (file_exists($this->file)) {
                 $size = filesize($this->file);
                 if ($size !== $this->position) {
-                    $file = fopen($this->file, 'r');
+                    $file = fopen($this->file, 'rb');
                     if ($file === false) {
                         // todo
                         continue;
@@ -151,18 +178,67 @@ class DebugServer
                         fclose($file);
                         continue;
                     } else {
-                        $this->processRequests($content, 0); // todo
+                        $this->processRequests($content, null);
                         $this->position += strlen($content);
                     }
                     fclose($file);
                 }
             }
 
-            usleep(1000000);
+            if ($this->checkDeadProcesses) {
+                // processed with 1 round trip delay to prevent race conditions
+                foreach ($this->deadPids as $pid => $x) {
+                    if (isset($this->logPids[$pid])) {
+                        echo "\n" . Ansi::black(" #{$pid} END process ended without sending outro ", Ansi::DYELLOW);
+                        $this->removePid($pid, null);
+                    }
+                }
+
+                foreach ($this->logPids as $pid => $x) {
+                    if (!System::processExists($pid)) {
+                        $this->deadPids[$pid] = true;
+                    }
+                }
+            }
+
+            usleep(100000);
         }
     }
 
-    private function processRequests(string $content, int $i): bool
+    private function addPid(int $pid, ?int $connectionId): void
+    {
+        if ($connectionId !== null) {
+            if (!isset($this->connectionPids[$connectionId])) {
+                $this->connectionPids[$connectionId] = $pid;
+
+                [$color, $key] = Color::pickMostDistant($this->unusedPidColors, $this->pidColors, $this->defaultPidColor);
+                unset($this->unusedPidColors[$key]);
+                $this->pidColors[$pid] = $color;
+            }
+        } else {
+            $this->logPids[$pid] = true;
+
+            [$color, $key] = Color::pickMostDistant($this->unusedPidColors, $this->pidColors, $this->defaultPidColor);
+            unset($this->unusedPidColors[$key]);
+            $this->pidColors[$pid] = $color;
+        }
+    }
+
+    private function removePid(int $pid, ?int $connectionId): void
+    {
+        if ($connectionId !== null) {
+            unset($this->connectionPids[$connectionId]);
+        } else {
+            unset($this->logPids[$pid], $this->deadPids[$pid]);
+        }
+        $color = $this->pidColors[$pid] ?? $this->defaultPidColor;
+        unset($this->pidColors[$pid]);
+        if (!in_array($color, $this->unusedPidColors, true)) {
+            $this->unusedPidColors[] = $color;
+        }
+    }
+
+    private function processRequests(string $content, ?int $connectionId): bool
     {
         $outro = false;
         foreach (explode("\x04", $content) as $data) {
@@ -175,17 +251,26 @@ class DebugServer
             // handle server -> client communication
             if ($message->type === Message::OUTPUT_WIDTH) {
                 $response = Message::create(Message::OUTPUT_WIDTH, (string) System::getTerminalWidth())->encode();
-                socket_write($this->connections[$i], $response);
+                socket_write($this->connections[$connectionId], $response);
                 //stream_socket_sendto($this->sock, $response, 0, $connection);
                 continue;
             }
 
-            $this->ids[$i] = $message->processId;
+            if ($connectionId !== null) {
+                $this->addPid($message->processId, $connectionId);
+            } elseif ($message->processId !== 0 && $message->type === Message::INTRO) {
+                $this->addPid($message->processId, null);
+            }
 
             $this->renderMessage($message);
 
             if ($message->type === Message::OUTRO) {
                 $outro = true;
+                if ($connectionId === null) {
+                    $this->removePid($message->processId, null);
+                }
+                // todo: should unset also for socket connection?
+                // todo: how to handle dangling messages sent after shutdown_handler? (e.g. from closing session)
             }
         }
 
@@ -209,14 +294,17 @@ class DebugServer
         }
 
         // process id
-        if (count($this->connections) > 1 && $message->type !== Message::INTRO && $message->type !== Message::OUTRO) {
-            echo "\n" . Ansi::white(" #$message->processId ", Ansi::DYELLOW) . ' ';
+        $isIntroOutro = $message->type === Message::INTRO || $message->type === Message::OUTRO;
+        $showPids = $isIntroOutro || $this->alwaysShowPids || (count($this->connections) + count($this->logPids)) > 1;
+        if ($showPids && $message->processId !== 0) {
+            $color = $this->pidColors[$message->processId] ?? $this->defaultPidColor;
+            echo "\n" . Ansi::rgb(" #{$message->processId} ", null, $color) . ($isIntroOutro ? '' : ' ');
         } else {
             echo "\n";
         }
 
         // payload
-        echo $message->payload;
+        echo ltrim($message->payload);
         if ($message->bell) {
             echo "\x07";
         }

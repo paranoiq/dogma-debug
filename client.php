@@ -52,6 +52,7 @@ unset($_dogma_debug_prepend, $_dogma_debug_script);
 if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/polyfils.php';
     require_once __DIR__ . '/src/tools/Str.php';
+    require_once __DIR__ . '/src/tools/Color.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/Ascii.php';
     require_once __DIR__ . '/src/tools/Diff.php';

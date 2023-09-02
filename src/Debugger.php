@@ -15,7 +15,6 @@ namespace Dogma\Debug;
 use DateTime;
 use Socket;
 use Throwable;
-use function array_filter;
 use function array_shift;
 use function array_sum;
 use function connection_status;
@@ -115,8 +114,11 @@ class Debugger
     /** @var string Format of time for request header */
     public static $headerTimeFormat = 'D H:i:s.v';
 
-    /** @var string Background color of request header, footer and process id label */
-    public static $headerColor = Ansi::LYELLOW;
+    /** @var string Foreground color of request header/footer and process id label */
+    public static $headerColor = Ansi::BLACK;
+
+    /** @var string Background color of request header/footer */
+    public static $headerBg = Ansi::LYELLOW;
 
     /** @var list<class-string<StreamWrapper>> Order of stream handler stats in request footer */
     public static $footerStreamWrappers = [
@@ -747,9 +749,8 @@ class Debugger
         /** @var DateTime $dt */
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timerStarts[''], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
-        $id = implode('/', array_filter(System::getProcessAndThreadId()));
-        $php = PHP_VERSION . ', ' . Request::$sapi;
-        $header = "\n" . Ansi::white(" >> #$id $time | PHP $php ", self::$headerColor) . ' ';
+        $php = PHP_VERSION . ' ' . Request::$sapi;
+        $header = "\n" . Ansi::color(" START $time | PHP $php ", self::$headerColor, self::$headerBg) . ' ';
         if (Request::$application && Request::$environment) {
             $header .= Ansi::white(' ' . Request::$application . '/' . Request::$environment . ' ', Ansi::DBLUE) . ' ';
         } elseif (Request::$application) {
@@ -860,8 +861,7 @@ class Debugger
         $start = self::$timerStarts[''];
         $time = Units::time(microtime(true) - $start);
         $memory = Units::memory(memory_get_peak_usage(false));
-        $id = implode('/', array_filter(System::getProcessAndThreadId()));
-        $footer .= Ansi::white(" << #$id, {$output}$time, $memory ", self::$headerColor);
+        $footer .= Ansi::color(" END {$output}$time, $memory ", self::$headerColor, self::$headerBg);
 
         // includes io
         $events = 0;
@@ -874,7 +874,7 @@ class Debugger
         }
         if ($events > 0) {
             $time = Units::time($time);
-            $footer .= Ansi::white("| inc: {$events}× $time ", self::$headerColor);
+            $footer .= Ansi::color("| inc: {$events}× $time ", self::$headerColor, self::$headerBg);
         }
 
         // stream wrappers io
@@ -883,7 +883,7 @@ class Debugger
             $ioStats = $wrapper::getStats();
             if ($ioStats['events']['fopen'] > 0) {
                 $ioTime = Units::time($ioStats['time']['total']);
-                $footer .= Ansi::white('| ' . $wrapper::NAME . ": {$ioStats['events']['fopen']}× $ioTime ", self::$headerColor);
+                $footer .= Ansi::color('| ' . $wrapper::PROTOCOL . ": {$ioStats['events']['fopen']}× $ioTime ", self::$headerColor, self::$headerBg);
             }
         }
 
@@ -895,7 +895,7 @@ class Debugger
                 + $stats['events']['delete'] + $stats['events']['query'];
             $sqlTime = Units::time($stats['time']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| db: $conn con, $queries q, $sqlTime, $rows rows ", self::$headerColor);
+            $footer .= Ansi::color("| db: $conn con, $queries q, $sqlTime, $rows rows ", self::$headerColor, self::$headerBg);
         }
 
         // redis io
@@ -906,7 +906,7 @@ class Debugger
             $time = Units::time($stats['time']['total']);
             $data = Units::memory((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| redis: $queries q, $time, $data, $rows rows ", self::$headerColor);
+            $footer .= Ansi::color("| redis: $queries q, $time, $data, $rows rows ", self::$headerColor, self::$headerBg);
         }
 
         // amqp io
@@ -917,7 +917,7 @@ class Debugger
             $time = Units::time($stats['time']['total']);
             $data = Units::memory((int) $stats['data']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::white("| amqp: $queries q, $time, $data, $rows rows ", self::$headerColor);
+            $footer .= Ansi::color("| amqp: $queries q, $time, $data, $rows rows ", self::$headerColor, self::$headerBg);
         }
 
         // termination reason

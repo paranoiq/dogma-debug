@@ -462,7 +462,7 @@ trait DumperFormatters
 
     public static function dumpStringColor(string $string, string $info, string $key, int $depth): ?string
     {
-        if (!Ansi::isColor($string, !preg_match('~color|background~i', $key))) {
+        if (!Color::isColor($string, !preg_match('~color|background~i', $key))) {
             return null;
         }
 

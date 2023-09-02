@@ -25,19 +25,7 @@ Debugger::send(Message::DUMP,
     . Ansi::lmagenta('light magenta') . "\n"
     . Ansi::dmagenta('dark magenta') . "\n"
     . Ansi::lyellow('light yellow') . "\n"
-    . Ansi::dyellow('dark yellow') . "\n"
-    . "\n"
-    . Ansi::rgb('orange', '#FFA500') . "\n"
-    . Ansi::rgb('khaki', '#F0E68C') . "\n"
-    . Ansi::rgb('spring green', '#00FF7F') . "\n"
-    . Ansi::rgb('cadet blue', '#5F9EA0') . "\n"
-    . Ansi::rgb('sienna', '#A0522D') . "\n"
-    . "\n"
-    . Ansi::rgb('orange', null, '#FFA500') . "\n"
-    . Ansi::rgb('khaki', null, '#F0E68C') . "\n"
-    . Ansi::rgb('spring green', null, '#00FF7F') . "\n"
-    . Ansi::rgb('cadet blue', null, '#5F9EA0') . "\n"
-    . Ansi::rgb('sienna', null, '#A0522D')
+    . Ansi::dyellow('dark yellow')
 );
 
 Assert::true(true);

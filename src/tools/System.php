@@ -7,6 +7,8 @@
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
 
+// spell-check-ignore: FI ZTS api eq ps pthreads tasklist tid
+
 namespace Dogma\Debug;
 
 use Thread;
@@ -17,7 +19,9 @@ use function extension_loaded;
 use function file_put_contents;
 use function function_exists;
 use function getmypid;
+use function shell_exec;
 use function str_contains;
+use function strpos;
 use function strtolower;
 use function trim;
 use function zend_thread_id;
@@ -97,10 +101,16 @@ class System
     {
         if (self::isWindows()) {
             $output = shell_exec("tasklist /FI \"PID eq {$pid}\" 2>&1");
+            if ($output === false || $output === null) {
+                return true;
+            }
 
             return strpos($output, "No tasks are running") === false;
         } else {
             $output = shell_exec("ps -p {$pid} 2>&1");
+            if ($output === false || $output === null) {
+                return true;
+            }
 
             return strpos($output, "PID") !== false;
         }
