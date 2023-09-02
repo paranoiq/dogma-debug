@@ -37,6 +37,7 @@ class Request
     public const APPLICATION_REQUIRE_CHECKER = 'require-checker';
     public const APPLICATION_PHPCS = 'phpcs';
     public const APPLICATION_PARALLEL_LINT = 'parallel-lint';
+    public const APPLICATION_SPELL_CHECKER = 'spell-checker';
     public const APPLICATION_ADMINER = 'adminer';
     public const APPLICATION_ROUNDCUBE = 'roundcube';
 
@@ -70,6 +71,7 @@ class Request
         '~composer-require-checker~' => self::APPLICATION_REQUIRE_CHECKER,
         '~squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
         '~php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
+        '~vendor/spell-checker/spell-checker~' => self::APPLICATION_SPELL_CHECKER,
     ];
 
     /** @var array<string, string> */
