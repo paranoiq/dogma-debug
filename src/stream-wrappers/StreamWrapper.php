@@ -48,7 +48,24 @@ abstract class StreamWrapper
     public const ALL = 0x1FFFFF;
     public const NONE = 0;
 
-    protected const INCLUDE_FLAGS = 16512;
+    // from https://github.com/php/php-src/blob/8c442f171933b7b4430262490ad2d236b53a4137/main/php_streams.h
+    protected const STREAM_IGNORE_PATH = 0x0; // IGNORE_PATH
+    protected const STREAM_USE_PATH = 0x1; // USE_PATH
+    protected const STREAM_IGNORE_URL = 0x2; // IGNORE_URL
+    protected const STREAM_REPORT_ERRORS = 0x8; // REPORT_ERRORS
+    protected const STREAM_MUST_SEEK = 0x10; // seekable, but not writeable
+    protected const STREAM_WILL_CAST = 0x20; // will be cast to FILE* or socket (skips buffering)
+    protected const STREAM_LOCATE_WRAPPERS_ONLY = 0x40; // applies to php_stream_locate_url_wrapper
+    protected const STREAM_OPEN_FOR_INCLUDE = 0x80; // used by include/require functions
+    protected const STREAM_USE_URL = 0x100; // ONLY open urls
+    protected const STREAM_ONLY_GET_HEADERS = 0x200; // used when only the headers from HTTP request are to be fetched
+    protected const STREAM_DISABLE_OPEN_BASEDIR = 0x400; // don't apply open_basedir checks
+    protected const STREAM_OPEN_PERSISTENT = 0x800; // get (or create) a persistent version of the stream
+    protected const STREAM_USE_GLOB_DIR_OPEN = 0x1000; // use glob stream for directory open in plain files stream
+    protected const STREAM_DISABLE_URL_PROTECTION = 0x2000; // don't check allow_url_fopen and allow_url_include
+    protected const STREAM_ASSUME_REALPATH = 0x4000; // assume the path passed in exists and is fully expanded, avoiding syscalls
+    protected const STREAM_USE_BLOCKING_PIPE = 0x8000; // allow blocking reads on anonymous pipes on Windows
+    protected const STREAM_OPEN_FOR_ZEND_STREAM = 0x10000; // used by include/require functions
 
     /**
      * @return array{events: int[], data: int[], time: float[]}

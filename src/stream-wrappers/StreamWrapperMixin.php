@@ -13,6 +13,7 @@ namespace Dogma\Debug;
 
 use function array_slice;
 use function array_sum;
+use function fopen;
 use function func_get_args;
 use function getcwd;
 use function in_array;
@@ -72,6 +73,9 @@ trait StreamWrapperMixin
     /** @var array<string, string> Redirect file access to another location. Full path matches only. All paths must use forward slashes, no backslashes! */
     public static $pathRedirects = [];
 
+    /** @var bool Try to workaround PHAR bug with including files more than once on include_once or require_once due to bad path normalization when custom stream handler is used by returning empty resource for any already included files (even for include and require) */
+    public static $experimentalPharRequireOnceBugWorkAround = false;
+
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var bool */
@@ -100,6 +104,9 @@ trait StreamWrapperMixin
 
     /** @var array<string, VirtualFile> */
     private static $virtualFiles = [];
+
+    /** @var array<string, bool> */
+    private static $openedPaths = [];
 
     // stream handler internals ----------------------------------------------------------------------------------------
 
@@ -212,7 +219,7 @@ trait StreamWrapperMixin
         }
 
         // log event counts and times
-        $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
+        $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
         if ($isInclude) {
             self::$includeEvents[$event] = isset(self::$includeEvents[$event]) ? self::$includeEvents[$event] + 1 : 1;
             self::$includeData[$event] = isset(self::$includeData[$event]) ? self::$includeData[$event] + $data : $data;
@@ -235,9 +242,11 @@ trait StreamWrapperMixin
         }
 
         $path = Dumper::file($path);
+        $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
+        $options = Ansi::lred($this->options) . ($isInclude ? ' include' : ' read');
 
         $message = Dumper::call($function, $params, $return);
-        $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message;
+        $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message . ' ' . $options;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
@@ -261,6 +270,18 @@ trait StreamWrapperMixin
         }
         $this->options = $options;
 
+        if (self::$experimentalPharRequireOnceBugWorkAround && static::class === PharStreamWrapper::class) {
+            // skip open if include and already handled (might fix PHAR issue?)
+            $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
+            $normalizedPath = Dumper::normalizePath($path);
+            if ($isInclude && isset(self::$openedPaths[$normalizedPath])) {
+                $this->handle = fopen('php://memory', 'rb');
+
+                return true;
+            }
+            self::$openedPaths[$normalizedPath] = true;
+        }
+
         if (isset(self::$virtualFiles[$this->path])) {
             $result = self::$virtualFiles[$this->path]->open($mode);
             $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen', [$mode, $options], (int) $this->handle);
@@ -277,7 +298,7 @@ trait StreamWrapperMixin
             $this->log(self::OPEN, $this->duration, 0, $this->path, 'fopen', [$mode, $options], (int) $this->handle);
         }
 
-        $isInclude = ($this->options & self::INCLUDE_FLAGS) !== 0;
+        $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
         if ($this->handle && $isInclude && Intercept::enabled()) {
             $buffer = '';
             do {
