@@ -197,8 +197,9 @@ class FakePdo extends PDO
         return $result;
     }
 
+    // $mode = PDO::ATTR_DEFAULT_FETCH_MODE not working in 8.2+
     #[ReturnTypeWillChange]
-    public function query($query, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, ...$fetch_mode_args)
+    public function query($query, $mode = PDO::FETCH_ASSOC, ...$fetch_mode_args)
     {
         $result = false;
         try {
