@@ -979,7 +979,7 @@ trait DumperFormatters
             unset($translations["\n"], $translations["\r"], $translations["\t"]);
         }
         $translationsWithoutQuote = $translations;
-        unset($translationsWithoutQuote['"']);
+        unset($translationsWithoutQuote['"'], $translationsWithoutQuote['$']);
         $apos = false;
         if ($escaping === self::ESCAPING_PHP || $escaping === self::ESCAPING_JS) {
             if (str_replace(array_keys($translationsWithoutQuote), '', $string) === $string
