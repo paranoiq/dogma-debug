@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 use function end;
 use function explode;
 use function is_a;
+use function ltrim;
+use function rtrim;
 use function str_starts_with;
 
 class PhpUnitHandler
@@ -38,17 +40,20 @@ class PhpUnitHandler
                         $parts = explode('\\', $frame->class);
                         $class = end($parts);
                     }
-                    $testCaseName = "{$class}::{$frame->function}";
 
-                    if (self::$currentTestCaseName === $testCaseName) {
-                        return;
+                    /** @var TestCase $testCase */
+                    $testCase = $frame->object;
+                    $dataSetName = $testCase->dataSetAsString();
+
+                    $args = Dumper::dumpArguments($frame->getNamedArgs());
+                    $args = ltrim(rtrim($args, ','));
+                    $message = Ansi::white(" Test case{$dataSetName}: ", Ansi::DGREEN) . ' ' . Dumper::class($class) . '::' . Dumper::function($frame->function) . '(' . $args . '): ';
+
+                    if ($message !== self::$currentTestCaseName) {
+                        Debugger::send(Message::CALLSTACK, $message);
                     }
 
-                    $message = Ansi::white(" Test case {$testCaseName}: ", Ansi::DGREEN);
-
-                    Debugger::send(Message::CALLSTACK, $message);
-
-                    self::$currentTestCaseName = $testCaseName;
+                    self::$currentTestCaseName = $message;
                 }
             }
         }, __CLASS__, __FUNCTION__);
