@@ -252,14 +252,14 @@ trait DumperFormatters
 
     public static function dumpUnitEnum(UnitEnum $enum): string
     {
-        return self::class(get_class($enum)) . self::symbol('::') . self::class($enum->name);
+        return self::class(get_class($enum)) . self::symbol('::') . self::case($enum->name);
     }
 
     public static function dumpBackedEnum(BackedEnum $enum): string
     {
         $value = is_int($enum->value) ? self::int((string) $enum->value) : self::string($enum->value);
 
-        return self::class(get_class($enum)) . self::symbol('::') . self::class($enum->name)
+        return self::class(get_class($enum)) . self::symbol('::') . self::case($enum->name)
             . self::bracket('(') . $value . self::bracket(')');
     }
 
@@ -674,18 +674,21 @@ trait DumperFormatters
 
     public static function class(string $class): string
     {
+        $short = $class;
         if (self::$namespaceReplacements) {
-            $class = preg_replace(array_keys(self::$namespaceReplacements), array_values(self::$namespaceReplacements), $class);
+            $short = preg_replace(array_keys(self::$namespaceReplacements), array_values(self::$namespaceReplacements), $class);
         }
 
-        $names = explode('\\', $class);
-        $class = array_pop($names);
+        $names = explode('\\', $short);
+        $name = array_pop($names);
 
         $names = array_map(static function ($name): string {
             return Ansi::color($name, self::$colors['namespace']);
         }, $names);
+        $name = Ansi::color($name, self::$colors['class']);
+        $name = Links::class($name, $class);
 
-        $names[] = Ansi::color($class, self::$colors['class']);
+        $names[] = $name;
 
         return implode(Ansi::color('\\', self::$colors['backslash']), $names);
     }
@@ -722,6 +725,11 @@ trait DumperFormatters
     public static function function(string $string): string
     {
         return Ansi::color($string, self::$colors['function']);
+    }
+
+    public static function case(string $string): string
+    {
+        return Ansi::color($string, self::$colors['case']);
     }
 
     public static function resource(string $string): string

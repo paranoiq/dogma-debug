@@ -41,14 +41,17 @@ class Request
     public const APPLICATION_ADMINER = 'adminer';
     public const APPLICATION_ROUNDCUBE = 'roundcube';
 
-    /** @var string */
+    /** @var Sapi::* - Through which SAPI is PHP request initiated? ('cli', 'fpm-fcgi', 'apache'...) */
     public static $sapi;
 
-    /** @var string|null */
-    public static $application;
-
-    /** @var string|null */
+    /** @var string|null - On which environment your project runs (custom name or auto-detected 'local', 'wsl', 'docker', etc.) */
     public static $environment;
+
+    /** @var string|null - Name of your project (custom name or auto-detected from path. e.g. 'my-homepage'). used for editor links */
+    public static $project;
+
+    /** @var string|null - Name of application running (the project itself or a dev tool like 'phpstan', 'phpcs', etc.)*/
+    public static $application;
 
     /** @var array<string, string> */
     public static $appCommandMatches = [
@@ -266,7 +269,20 @@ class Request
         }
     }
 
-    public static function is(string $name): bool
+    public static function isProject(string $name): bool
+    {
+        return self::$project === $name;
+    }
+
+    /**
+     * @param string[] $names
+     */
+    public static function isAnyProject(array $names): bool
+    {
+        return in_array(self::$project, $names, true);
+    }
+
+    public static function isApp(string $name): bool
     {
         return self::$application === $name;
     }
@@ -274,12 +290,12 @@ class Request
     /**
      * @param string[] $names
      */
-    public static function isAny(array $names): bool
+    public static function isAnyApp(array $names): bool
     {
         return in_array(self::$application, $names, true);
     }
 
-    public static function isOn(string $environment): bool
+    public static function isOnEnv(string $environment): bool
     {
         return self::$environment === $environment;
     }
@@ -287,7 +303,7 @@ class Request
     /**
      * @param string[] $environments
      */
-    public static function isOnAny(array $environments): bool
+    public static function isOnAnyEnv(array $environments): bool
     {
         return in_array(self::$environment, $environments, true);
     }

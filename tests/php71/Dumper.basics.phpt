@@ -266,13 +266,13 @@ Assert::dump($foo, '<$foo>: <Dogma><\><Tests><\><Debug><\><Foo> <{> <// #?id>
 
 
 classes:
-Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
+Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::class <{>
     <private static> <$a> = <1>;
     <protected static> <$b> = <"bar">;
 <}>');
 
 Dumper::$dumpClassesWithStaticMethodVariables = true;
-Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::<class> <{>
+Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::class <{>
     <private static> <$a> = <1>;
     <protected static> <$b> = <"bar">;
     <public static function ><bar><()> <{>

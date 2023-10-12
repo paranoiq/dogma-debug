@@ -267,6 +267,7 @@ class Dumper
         'class' => Ansi::DCYAN, // ...Bar
         'access' => Ansi::DGRAY, // public private protected
         'constant' => Ansi::WHITE, // FOO
+        'case' => Ansi::WHITE, // enum case name
         'property' => Ansi::DYELLOW, // $foo
         'function' => Ansi::LRED, // function/method name
         'key' => Ansi::WHITE, // array keys. set null to use string/int formats
@@ -774,8 +775,8 @@ class Dumper
     }
 
     /**
-     * @param class-string $class
      * @param mixed[] $properties
+     * @param class-string $class
      */
     public static function dumpProperties(array $properties, int $depth, string $class): string
     {
@@ -945,14 +946,14 @@ class Dumper
                     $access = $method->isProtected() ? 'protected' : ($method->isPublic() ? 'public' : 'private');
                     $variables = self::dumpVariables($variables, $depth + 1, true);
                     $methods[$name] = $indent . self::access($access . ($method->isStatic() ? ' static' : '') . ' function ')
-                        . self::class($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
+                        . self::function($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
                 }
             }
             ksort($methods);
             $methods = implode("\n", $methods) . "\n";
         }
 
-        return self::class($class) . self::symbol('::') . self::class('class') . ' '
+        return self::class($class) . self::symbol('::') . self::symbol('class') . ' '
             . self::bracket('{') . "\n" . $items . $methods . self::bracket('}');
     }
 
@@ -984,7 +985,7 @@ class Dumper
             $firstLine = substr($firstLine, $start);
             // in case of Closure:fromCallable() we have a name
             $firstLine = preg_replace_callback('~function(\\s+)([a-zA-Z0-9_]+)(\\s*)\\(~', static function ($m): string {
-                return 'function' . $m[1] . self::class($m[2]) . $m[3] . '(';
+                return 'function' . $m[1] . self::function($m[2]) . $m[3] . '(';
             }, $firstLine);
             if ($firstLine === null) {
                 throw new LogicException('Should not happen');
@@ -1011,7 +1012,7 @@ class Dumper
 
             $name = str_contains($ref->getName(), '{closure}')
                 ? ''
-                : self::class($ref->getName());
+                : self::function($ref->getName());
 
             $head = "function $name($params) ";
             if ($variables !== []) {
@@ -1041,11 +1042,11 @@ class Dumper
         if (is_object($object)) {
             $ref = (new ReflectionObject($object))->getMethod($method);
             $name = self::class(get_class($object)) . self::symbol('::')
-                . self::class($method) . self::bracket('()');
+                . self::function($method) . self::bracket('()');
         } else {
             $ref = (new ReflectionClass($object))->getMethod($method);
             $name = self::class($object) . self::symbol('::')
-                . self::class($method) . self::bracket('()');
+                . self::function($method) . self::bracket('()');
         }
 
         $variables = self::dumpVariables($ref->getStaticVariables(), $depth, true);
