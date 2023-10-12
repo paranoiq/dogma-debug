@@ -790,14 +790,7 @@ class Dumper
         if (PHP_VERSION_ID >= 70400 && self::$showUninitializedProperties) {
             $propRefs = self::collectProperties($class);
             if (count($properties) !== count($propRefs)) {
-                foreach ($propRefs as $propRef) {
-                    if ($propRef->isPrivate()) {
-                        $key = "\0" . $propRef->getDeclaringClass()->getName() . "\0" . $propRef->name;
-                    } elseif ($propRef->isProtected()) {
-                        $key = "\0*\0" . $propRef->name;
-                    } else {
-                        $key = $propRef->name;
-                    }
+                foreach ($propRefs as $key => $propRef) {
                     if (!array_key_exists($key, $properties)) {
                         $properties[$key] = $uninitialized;
                     }
@@ -809,8 +802,8 @@ class Dumper
         $items = [];
         $nulls = [];
         $empty = [];
-        foreach ($properties as $name => $value) {
-            $parts = explode("\0", $name);
+        foreach ($properties as $key => $value) {
+            $parts = explode("\0", $key);
             if (count($parts) === 3) {
                 $name = $parts[2];
                 $cls = $parts[1];
@@ -870,7 +863,7 @@ class Dumper
 
     /**
      * @param class-string $class
-     * @return list<ReflectionProperty>
+     * @return array<string, ReflectionProperty>
      */
     private static function collectProperties(string $class): array
     {
@@ -884,7 +877,21 @@ class Dumper
             $ref = $ref->getParentClass();
         } while ($ref !== false);
 
-        return array_merge([], ...$propRefs);
+        $propRefs = array_merge([], ...$propRefs);
+
+        $indexed = [];
+        foreach ($propRefs as $propRef) {
+            if ($propRef->isPrivate()) {
+                $key = "\0" . $propRef->getDeclaringClass()->getName() . "\0" . $propRef->name;
+            } elseif ($propRef->isProtected()) {
+                $key = "\0*\0" . $propRef->name;
+            } else {
+                $key = $propRef->name;
+            }
+            $indexed[$key] = $propRef;
+        }
+
+        return $indexed;
     }
 
     /**
