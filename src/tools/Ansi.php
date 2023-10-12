@@ -52,9 +52,9 @@ final class Ansi
     public const LPURPLE = 'M';
     public const DPURPLE = 'm';
 
-    public const RESET_FORMAT = "\x1B[0m";
-    public const UP = "\x1B[A";
-    public const DELETE_ROW = "\x1B[2K";
+    public const RESET_FORMAT = "\e[0m";
+    public const UP = "\e[A";
+    public const DELETE_ROW = "\e[2K";
 
     /** @var string[] */
     private static $fg = [
@@ -114,22 +114,22 @@ final class Ansi
 
         $out = '';
         if (isset(self::$fg[$color])) {
-            $out .= "\x1B[" . self::$fg[$color] . 'm';
+            $out .= "\e[" . self::$fg[$color] . 'm';
         }
         if (isset(self::$bg[$background])) {
-            $out .= "\x1B[" . self::$bg[$background] . 'm';
+            $out .= "\e[" . self::$bg[$background] . 'm';
         }
 
         $end = $background === null
-            ? "\x1B[" . self::$fg[self::$default] . "m" // does not reset background
-            : "\x1B[0m";
+            ? "\e[" . self::$fg[self::$default] . "m" // does not reset background
+            : "\e[0m";
 
         return $out . $string . $end;
     }
 
     public static function colorStart(string $color): string
     {
-        return "\x1B[" . self::$fg[$color] . "m";
+        return "\e[" . self::$fg[$color] . "m";
     }
 
     /**
@@ -155,7 +155,7 @@ final class Ansi
             return $string;
         }
         if ($background === null) {
-            return "\x1B[38;2;{$r};{$g};{$b}m{$string}\x1B[0m";
+            return "\e[38;2;{$r};{$g};{$b}m{$string}\e[0m";
         }
 
         $background = strtolower(ltrim($background, "#"));
@@ -174,7 +174,7 @@ final class Ansi
             return $string;
         }
 
-        return "\x1B[38;2;{$r};{$g};{$b}m\x1B[48;2;{$rb};{$gb};{$bb}m{$string}\x1B[0m";
+        return "\e[38;2;{$r};{$g};{$b}m\e[48;2;{$rb};{$gb};{$bb}m{$string}\e[0m";
     }
 
     public static function between($string, string $color, string $after, string $background = self::BLACK): string
@@ -184,9 +184,9 @@ final class Ansi
         }
 
         if ($background === self::BLACK) {
-            return "\x1B[" . self::$fg[$color] . 'm' . $string . "\x1B[" . self::$fg[$after] . 'm';
+            return "\e[" . self::$fg[$color] . 'm' . $string . "\e[" . self::$fg[$after] . 'm';
         } else {
-            return "\x1B[" . self::$fg[$color] . "m\x1B[" . self::$bg[$background] . 'm' . $string . "\x1B[" . self::$fg[$after] . "m\x1B[" . self::$bg[$background] . 'm';
+            return "\e[" . self::$fg[$color] . "m\e[" . self::$bg[$background] . 'm' . $string . "\e[" . self::$fg[$after] . "m\e[" . self::$bg[$background] . 'm';
         }
     }
 
