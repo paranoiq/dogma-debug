@@ -67,26 +67,26 @@ Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.tr
 Dumper::$traceArgsDepth = 1;
 Dumper::$traceLength = 1;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-    <a>: <0>,
-    <b>: <0>,
+    <$a>: <0>,
+    <$b>: <0>,
 <)>');
 Dumper::$traceLength = 2;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-    <a>: <0>,
-    <b>: <0>,
+    <$a>: <0>,
+    <$b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>');
 Dumper::$traceLength = 3;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-    <a>: <0>,
-    <b>: <0>,
+    <$a>: <0>,
+    <$b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>');
 Dumper::$traceLength = 4;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-    <a>: <0>,
-    <b>: <0>,
+    <$a>: <0>,
+    <$b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>
@@ -95,11 +95,11 @@ Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.trace
 // variadic params
 // todo: format variadic...
 Assert::same(Assert::normalize(d(0, 0, 1, 2, 3)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
-    <a>: <0>,
-    <b>: <0>,
-    <c>: <1>,
-    <3>: <2>,
-    <4>: <3>,
+    <$a>: <0>,
+    <$b>: <0>,
+    <$c>: <1>,
+    <$3>: <2>,
+    <$4>: <3>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>

@@ -1111,7 +1111,11 @@ class Dumper
 
         $items = [];
         foreach ($variables as $name => $value) {
-            $var = self::property((string) $name);
+            $name = (string) $name;
+            if ($name[0] !== '$') {
+                $name = '$' . $name;
+            }
+            $var = self::property($name);
             $value = self::dumpValue($value, 1, $name);
 
             $item = $indent . $var . $sep . $value;
