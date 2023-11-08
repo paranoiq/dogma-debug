@@ -38,7 +38,8 @@ $_dogma_debug_start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? m
 // tester loads local copy, which may differ from stable auto-prepended version
 $_dogma_debug_prepend = (string) ini_get('auto_prepend_file');
 $_dogma_debug_script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
-if ($_dogma_debug_prepend !== str_replace('\\', '/', __FILE__)
+if($_dogma_debug_prepend !== ''
+    && $_dogma_debug_prepend !== str_replace('\\', '/', __FILE__)
     && $_dogma_debug_prepend !== str_replace(['\\', 'client'], ['/', 'shortcuts'], __FILE__)
     && substr($_dogma_debug_script, -5) === '.phpt'
     && substr($_dogma_debug_script, 0, (int) strpos($_dogma_debug_script, 'dogma-debug'))

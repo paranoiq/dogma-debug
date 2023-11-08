@@ -10,6 +10,7 @@ use DateTimeZone;
 use Dogma\Debug\Ansi;
 use Dogma\Debug\Assert;
 use Dogma\Debug\Dumper;
+use Dogma\Debug\System;
 use function range;
 use function tmpfile;
 use const INF;
@@ -299,12 +300,12 @@ $closure = Closure::fromCallable('date');
 Assert::dump($closure, '<$closure>: <Closure> function <date>(<$format>, <$timestamp>) <{><}>');
 
 $closure = Closure::fromCallable([$foo, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><26>
+Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><27>
     <static> <$x> = <42>;
 <}>');
 
 $closure = Closure::fromCallable([Bar::class, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><37>
+Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.basics.phpt<:><38>
     <static> <$x> = <42>;
 <}>');
 
@@ -321,7 +322,8 @@ Assert::dump([Bar::class, 'bar'], '<[Bar::class, \'bar\']>: <Dogma><\><Tests><\>
 
 stream:
 $file = tmpfile();
-Assert::dump($file, '<$file>: <(stream ?id)> <{>
+if (System::isWindows()) {
+    Assert::dump($file, '<$file>: <(stream ?id)> <{>
     <$blocked> = <true>;
     <$eof> = <false>;
     <$mode> = <"r+b">;
@@ -332,3 +334,16 @@ Assert::dump($file, '<$file>: <(stream ?id)> <{>
     <$uri> = <"?path?file">; <// ?bytes B, ?path?file>
     <$wrapper_type> = <"plainfile">; <// 9 B>
 <}>');
+} else {
+    Assert::dump($file, '<$file>: <(stream ?id)> <{>
+    <$blocked> = <true>;
+    <$eof> = <false>;
+    <$mode> = <"r+b">;
+    <$seekable> = <true>;
+    <$stream_type> = <"STDIO">;
+    <$timed_out> = <false>;
+    <$unread_bytes> = <0>;
+    <$uri> = <"?path?file">; <// ?bytes B>
+    <$wrapper_type> = <"plainfile">; <// 9 B>
+<}>');
+}
