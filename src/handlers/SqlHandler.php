@@ -12,13 +12,18 @@ namespace Dogma\Debug;
 use Dibi\DriverException;
 use Dibi\Event;
 use Doctrine\ORM\EntityManager;
+use PDOStatement;
 use function array_merge;
+use function array_shift;
 use function array_sum;
 use function array_unique;
 use function explode;
 use function implode;
 use function preg_match;
 use function preg_replace;
+use function preg_replace_callback;
+use function str_starts_with;
+use function strtolower;
 use function strtoupper;
 
 /**
@@ -66,7 +71,7 @@ class SqlHandler
     public static $traceFilters = [];
 
     /** @var int */
-    public static $traceLength = 10;
+    public static $traceLength = 1;
 
     /** @var array<string, callable> - Query filters for modifying logged SQL, indexed by connection name */
     public static $queryFilters = [
@@ -83,6 +88,24 @@ class SqlHandler
     /** @var int[] */
     private static $rows = [];
 
+    /**
+     * @param int|string|null $errorCode
+     */
+    public static function logUnknown(
+        string $query,
+        ?int $rows,
+        float $duration,
+        ?string $connection = null,
+        ?string $errorMessage = null,
+        $errorCode = null
+    ): void
+    {
+        self::log(self::getType($query), $query, $rows, $duration, $connection, $errorMessage, $errorCode);
+    }
+
+    /**
+     * @param int|string|null $errorCode
+     */
     public static function log(
         int $type,
         ?string $query,
@@ -90,7 +113,7 @@ class SqlHandler
         float $duration,
         ?string $connection = null,
         ?string $errorMessage = null,
-        ?int $errorCode = null
+        $errorCode = null
     ): void
     {
         if (!isset(self::$events[$type])) {
@@ -114,14 +137,13 @@ class SqlHandler
                     $query = $filter($query);
                 }
             }
-            $message = Ansi::lyellow($query);
+            $message = Ansi::lyellow($query . ';');
         } else {
-            $message = Ansi::lyellow(strtoupper(self::TYPES[$type]));
+            $message = Ansi::lyellow(strtoupper(self::TYPES[$type]) . ';');
         }
-        $message .= ';';
 
         $countFormatted = $rows !== null
-            ? ' ' . Ansi::color($rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['value'])
+            ? Ansi::color(' -- ' . $rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['info'])
             : '';
 
         $message = Ansi::white($connection ? " DB $connection: " : ' DB: ', Debugger::$handlerColors[self::NAME])
@@ -193,17 +215,6 @@ class SqlHandler
         $logger = new DoctrineSqlLogger($connection);
 
         $entityManager->getConnection()->getConfiguration()->setSQLLogger($logger);
-
-        self::$traceFilters = [
-            '~^Doctrine\\\\DBAL\\\\Connection~',
-            '~^Doctrine\\\\ORM\\\\UnitOfWork~',
-            '~^Doctrine\\\\ORM\\\\AbstractQuery~',
-            '~^Doctrine\\\\ORM\\\\Query~',
-            '~^Doctrine\\\\ORM\\\\Query\\\\Exec\\\\SingleSelectExecutor~',
-            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\ObjectHydrator~',
-            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\AbstractHydrator~',
-            '~^Doctrine\\\\ORM\\\\Persisters\\\\Entity\\\\BasicEntityPersister~',
-        ];
     }
 
     public static function disableDoctrineLogger(EntityManager $entityManager): void
@@ -220,6 +231,52 @@ class SqlHandler
         }
 
         self::log($event->type ?: self::OTHER, $event->sql, $event->count, $event->time, $connection, $errorMessage, $errorCode);
+    }
+
+    /**
+     * @param array<int|string, mixed> $params
+     * @param int|string|null $errorCode
+     */
+    public static function logPdoStatementExecute(
+        PDOStatement $statement,
+        array $params,
+        ?int $rows,
+        float $duration,
+        ?string $connection = null,
+        ?string $errorMessage = null,
+        $errorCode = null
+    ): void
+    {
+        $query = $statement->queryString;
+        // todo: order and names
+        $query = preg_replace_callback('~[?]~', static function () use (&$params): string {
+            $value = array_shift($params);
+            if (is_string($value)) {
+                $oldEscaping = Dumper::$stringsEscaping;
+                Dumper::$stringsEscaping = Dumper::ESCAPING_MYSQL;
+                $value = Dumper::string($value);
+                Dumper::$stringsEscaping = $oldEscaping;
+            } else {
+                $value = Dumper::dumpValue($value);
+            }
+            return $value . Ansi::colorStart(Dumper::$colors['value']);
+        }, $query);
+        self::log(self::getType($query), $query, $rows, $duration, $connection, $errorMessage, $errorCode);
+    }
+
+    public static function useDoctrineTraceFilters(): void
+    {
+        self::$traceFilters = array_merge(self::$traceFilters, [
+            '~^Doctrine\\\\DBAL\\\\Connection~',
+            '~^Doctrine\\\\DBAL\\\\Driver~',
+            '~^Doctrine\\\\ORM\\\\UnitOfWork~',
+            '~^Doctrine\\\\ORM\\\\AbstractQuery~',
+            '~^Doctrine\\\\ORM\\\\Query~',
+            '~^Doctrine\\\\ORM\\\\Query\\\\Exec\\\\SingleSelectExecutor~',
+            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\ObjectHydrator~',
+            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\AbstractHydrator~',
+            '~^Doctrine\\\\ORM\\\\Persisters\\\\Entity\\\\BasicEntityPersister~',
+        ]);
     }
 
     // helpers ---------------------------------------------------------------------------------------------------------

@@ -248,10 +248,10 @@ class Dumper
 
     /** @var array<string, string|null> - configuration of colors for dumped types and special characters */
     public static $colors = [
-        'null' => Ansi::LYELLOW, // null
-        'bool' => Ansi::LYELLOW, // true, false
-        'int' => Ansi::LYELLOW, // 123
-        'float' => Ansi::LYELLOW, // 123.4
+        'null' => Ansi::LRED, // null
+        'bool' => Ansi::LRED, // true, false
+        'int' => Ansi::LRED, // 123
+        'float' => Ansi::LRED, // 123.4
 
         'value' => Ansi::LYELLOW, // primary color for formatted internal value of an object
         'value2' => Ansi::DYELLOW, // secondary color for formatted internal value of an object
@@ -269,7 +269,7 @@ class Dumper
         'constant' => Ansi::WHITE, // FOO
         'case' => Ansi::WHITE, // enum case name
         'property' => Ansi::DYELLOW, // $foo
-        'function' => Ansi::LRED, // function/method name
+        'function' => Ansi::DCYAN, // function/method name
         'key' => Ansi::WHITE, // array keys. set null to use string/int formats
 
         'closure' => Ansi::LGRAY, // static function ($a) use ($b)

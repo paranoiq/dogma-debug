@@ -10,8 +10,9 @@
 namespace Dogma\Debug;
 
 use PDO;
-use PDOStatement;
+use PDOException;
 use ReturnTypeWillChange;
+use function microtime;
 
 class FakePdo81 extends PDO
 {
@@ -85,13 +86,21 @@ class FakePdo81 extends PDO
     public const NAME = 'Pdo';
 
     /** @var int */
-    public static $intercept = Intercept::LOG_CALLS;
+    public static $intercept = Intercept::SILENT;
 
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
-        Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
+        try {
+            $t = microtime(true);
 
-        parent::__construct($dsn, $username, $password, $options);
+            parent::__construct($dsn, $username, $password, $options);
+        } finally {
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
+            SqlHandler::log(SqlHandler::CONNECT, null, 0, $t);
+        }
+
+        $this->setAttribute(self::ATTR_STATEMENT_CLASS, [FakePdoStatement::class]);
     }
 
     #[ReturnTypeWillChange]
@@ -102,6 +111,7 @@ class FakePdo81 extends PDO
             $result = parent::prepare($query, $options);
         } finally {
             Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $result);
+            // todo: SqlHandler::logPrepare($query, $options);
         }
 
         return $result;
@@ -111,9 +121,12 @@ class FakePdo81 extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::beginTransaction();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::beginTransaction', [], $result);
+            SqlHandler::log(SqlHandler::BEGIN, 'PDO::beginTransaction()', 0, $t);
         }
 
         return $result;
@@ -123,9 +136,12 @@ class FakePdo81 extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::commit();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::commit', [], $result);
+            SqlHandler::log(SqlHandler::COMMIT, 'PDO::commit()', 0, $t);
         }
 
         return $result;
@@ -135,9 +151,12 @@ class FakePdo81 extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::rollBack();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::rollBack', [], $result);
+            SqlHandler::log(SqlHandler::ROLLBACK, 'PDO::rollback()', 0, $t);
         }
 
         return $result;
@@ -182,24 +201,48 @@ class FakePdo81 extends PDO
     #[ReturnTypeWillChange]
     public function exec($statement)
     {
+        $logged = false;
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::exec($statement);
+        } catch (PDOException $e) {
+            $t = microtime(true) - $t;
+            SqlHandler::logUnknown($statement, 0, $t, null, $e->getMessage(), $e->getCode());
+            $logged = true;
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::exec', [$statement], $result);
+            if (!$logged) {
+                SqlHandler::logUnknown($statement, 0, $t);
+            }
         }
 
         return $result;
     }
 
     #[ReturnTypeWillChange]
-    public function query(?string $query, ?int $mode = PDO::ATTR_DEFAULT_FETCH_MODE, mixed ...$fetch_mode_args)
+    public function query(?string $query, ?int $mode = null, mixed ...$fetch_mode_args)
     {
+        $logged = false;
         $result = false;
         try {
-            $result = parent::query($query, $mode, ...$fetch_mode_args);
+            $t = microtime(true);
+            if ($mode === null) {
+                $result = parent::query($query);
+            } else {
+                $result = parent::query($query, $mode, ...$fetch_mode_args);
+            }
+        } catch (PDOException $e) {
+            $t = microtime(true) - $t;
+            SqlHandler::logUnknown($query, 0, $t, null, $e->getMessage(), $e->getCode());
+            $logged = true;
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::query', [$query, $mode, ...$fetch_mode_args], $result);
+            if (!$logged) {
+                SqlHandler::logUnknown($query, 0, $t);
+            }
         }
 
         return $result;

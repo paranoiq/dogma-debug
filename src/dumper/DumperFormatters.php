@@ -686,7 +686,7 @@ trait DumperFormatters
             return Ansi::color($name, self::$colors['namespace']);
         }, $names);
         $name = Ansi::color($name, self::$colors['class']);
-        $name = Links::class($name, $class);
+        //$name = Links::class($name, $class);
 
         $names[] = $name;
 
@@ -997,6 +997,9 @@ trait DumperFormatters
                 $apos = true;
                 $translations = $translationsWithoutQuote;
             }
+        } elseif ($escaping === self::ESCAPING_MYSQL || $escaping === self::ESCAPING_PGSQL) {
+            $apos = true;
+            $translations = $translationsWithoutQuote;
         }
         $pattern = Str::createCharPattern(array_keys($translations));
 
@@ -1064,7 +1067,7 @@ trait DumperFormatters
         string $escaping,
         string $pattern,
         array $translations,
-        bool $binary,
+        bool $binary = false,
         string $ellipsis = '',
         string $quote = '"',
         int $offsetChars = 1

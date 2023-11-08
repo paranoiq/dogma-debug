@@ -83,7 +83,7 @@ class FakePdo extends PDO
     public const NAME = 'pdo';
 
     /** @var int */
-    public static $intercept = Intercept::LOG_CALLS;
+    public static $intercept = Intercept::SILENT;
 
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
