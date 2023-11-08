@@ -2,6 +2,9 @@
 
 namespace Dogma\Debug;
 
+use function str_replace;
+use const PHP_SAPI;
+
 class Sapi
 {
 
@@ -27,5 +30,14 @@ class Sapi
     public const THTTPD = 'thttpd';
     public const TUX = 'tux';
     public const WEBJAMES = 'webjames';
+
+    /**
+     * @return self::*
+     */
+    static function get(): string
+    {
+        // @phpstan-ignore-next-line "... returns string"
+        return str_replace('handler', '', PHP_SAPI);
+    }
 
 }

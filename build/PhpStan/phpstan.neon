@@ -14,6 +14,7 @@ parameters:
         - ../../src
         - ../../client.php
         - ../../server.php
+        - ../../shortcuts.php
         - ../../tests/php71
         - ../../tests/Assert.php
         - ../../tests/bootstrap.php

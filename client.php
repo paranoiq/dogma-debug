@@ -60,6 +60,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Http.php';
     require_once __DIR__ . '/src/tools/Links.php';
     require_once __DIR__ . '/src/tools/System.php';
+    require_once __DIR__ . '/src/tools/Sapi.php';
     require_once __DIR__ . '/src/tools/RedisParser.php';
     require_once __DIR__ . '/src/tools/Resources.php';
     require_once __DIR__ . '/src/tools/Units.php';
@@ -119,12 +120,14 @@ if (!class_exists(Debugger::class)) {
     if (extension_loaded('pdo')) {
         if (PHP_VERSION_ID < 80000) {
             require_once __DIR__ . '/src7/FakePdo7.php';
+            require_once __DIR__ . '/src7/FakePdoStatement.php';
         } elseif (PHP_VERSION_ID < 80100) {
             require_once __DIR__ . '/src8/FakePdo8.php';
+            require_once __DIR__ . '/src8/FakePdoStatement.php';
         } else {
             require_once __DIR__ . '/src8/FakePdo81.php';
+            require_once __DIR__ . '/src8/FakePdoStatement.php';
         }
-        require_once __DIR__ . '/src8/FakePdoStatement.php';
     }
 
     require_once __DIR__ . '/src/stream-wrappers/StreamWrapper.php';

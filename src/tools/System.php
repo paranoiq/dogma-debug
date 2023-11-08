@@ -101,14 +101,14 @@ class System
     {
         if (self::isWindows()) {
             $output = shell_exec("tasklist /FI \"PID eq {$pid}\" 2>&1");
-            if ($output === false || $output === null) {
+            if ($output === false || $output === null) { // @phpstan-ignore-line "Strict comparison using === between string|null and false will always evaluate to false."
                 return true;
             }
 
             return strpos($output, "No tasks are running") === false;
         } else {
             $output = shell_exec("ps -p {$pid} 2>&1");
-            if ($output === false || $output === null) {
+            if ($output === false || $output === null) { // @phpstan-ignore-line "Strict comparison using === between string|null and false will always evaluate to false."
                 return true;
             }
 

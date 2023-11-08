@@ -270,11 +270,13 @@ trait StreamWrapperMixin
         }
         $this->options = $options;
 
+        // @phpstan-ignore-next-line "Strict comparison using === between class-string<static(Dogma\Debug\DataStreamWrapper)> and 'Dogma\\Debug\\PharStreamWrapper' will always evaluate to false."
         if (self::$experimentalPharRequireOnceBugWorkAround && static::class === PharStreamWrapper::class) {
             // skip open if include and already handled (might fix PHAR issue?)
             $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
             $normalizedPath = Dumper::normalizePath($path);
             if ($isInclude && isset(self::$openedPaths[$normalizedPath])) {
+                // @phpstan-ignore-next-line "Property Dogma\Debug\ZlibStreamWrapper::$handle (resource|null) does not accept resource|false." - should not fail
                 $this->handle = fopen('php://memory', 'rb');
 
                 return true;

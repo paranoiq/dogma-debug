@@ -30,29 +30,34 @@ class FakePdoStatement extends PDOStatement
     {
     }
 
-    public function bindParam(
-        int|string $param,
-        mixed &$var,
-        int $type = PDO::PARAM_STR,
-        int $maxLength = null,
-        mixed $driverOptions = null
-    ): bool {
+    /**
+     * @param int|string $param
+     * @param mixed $var
+     * @param int $type
+     * @param int $maxLength
+     * @param mixed $driverOptions
+     */
+    public function bindParam($param, &$var, $type = PDO::PARAM_STR, $maxLength = null, $driverOptions = null): bool {
         $this->params[$param] = $var;
 
         return parent::bindParam($param, $var, $type, $maxLength, $driverOptions);
     }
 
-    public function bindValue(
-        int|string $param,
-        mixed $value,
-        int $type = PDO::PARAM_STR
-    ): bool {
+    /**
+     * @param int|string $param
+     * @param mixed $value
+     * @param int $type
+     */
+    public function bindValue($param, $value, $type = PDO::PARAM_STR): bool {
         $this->params[$param] = $value;
 
         return parent::bindValue($param, $value, $type);
     }
 
-    public function execute(?array $params = null): bool
+    /**
+     * @param array|null $params
+     */
+    public function execute($params = null): bool
     {
         $allParams = $params !== null ? array_merge($this->params, $params) : $this->params;
 

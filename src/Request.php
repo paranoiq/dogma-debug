@@ -91,7 +91,7 @@ class Request
     {
         self::autodetectApps();
 
-        self::$sapi = str_replace('handler', '', PHP_SAPI);
+        self::$sapi = Sapi::get();
     }
 
     // index -----------------------------------------------------------------------------------------------------------

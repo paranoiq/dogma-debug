@@ -4,20 +4,21 @@ $ignore = [];
 $paths = [];
 
 if (PHP_VERSION_ID < 70400) {
-    // ctrl-c handler
+    $ignore[] = '~expects callable\(\): mixed&string, \'sapi_windows_set…\' given~';
+    $ignore[] = '~expects callable\(\): mixed&string, \'pcntl_unshare\' given~';
+}
+if (!function_exists('sapi_windows_set_ctrl_handler')) {
+    // win vs lin
     $ignore[] = '~Constant PHP_WINDOWS_EVENT_CTRL_(C|BREAK) not found~';
     $ignore[] = '~Used constant PHP_WINDOWS_EVENT_CTRL_(C|BREAK) not found~';
     $ignore[] = '~Used function sapi_windows_set_ctrl_handler not found~';
-    $ignore[] = '~expects callable\(\): mixed&string, \'sapi_windows_set…\' given~';
-    $ignore[] = '~expects callable\(\): mixed&string, \'pcntl_unshare\' given~';
-
-    // property types
-    $ignore[] = '~Call to an undefined method ReflectionProperty::getType~';
-    $ignore[] = '~Call to an undefined method ReflectionProperty::isInitialized~';
-
-    // weak ref
+}
+if (PHP_VERSION_ID < 80000) {
+    // somewhat fucked up on 7.4 (lin)
     $ignore[] = '~WeakReference~';
     $ignore[] = '~ReflectionReference~';
+    $ignore[] = '~Call to an undefined method ReflectionProperty::getType~';
+    $ignore[] = '~Call to an undefined method ReflectionProperty::isInitialized~';
 }
 if (PHP_VERSION_ID < 80000) {
     // Socket

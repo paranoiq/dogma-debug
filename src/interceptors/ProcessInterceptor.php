@@ -129,6 +129,7 @@ class ProcessInterceptor
 
     public static function sapi_windows_set_ctrl_handler(callable $callable, bool $add): bool
     {
+        // @phpstan-ignore-next-line
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$callable, $add], true);
     }
 
@@ -144,6 +145,7 @@ class ProcessInterceptor
 
     public static function pcntl_unshare(int $flags): bool
     {
+        // @phpstan-ignore-next-line
         return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [$flags], 0);
     }
 
