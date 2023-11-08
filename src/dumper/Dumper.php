@@ -248,8 +248,8 @@ class Dumper
 
     /** @var array<string, string|null> - configuration of colors for dumped types and special characters */
     public static $colors = [
-        'null' => Ansi::LRED, // null
-        'bool' => Ansi::LRED, // true, false
+        'null' => Ansi::WHITE, // null
+        'bool' => Ansi::WHITE, // true, false
         'int' => Ansi::LRED, // 123
         'float' => Ansi::LRED, // 123.4
 
@@ -266,8 +266,8 @@ class Dumper
         'backslash' => Ansi::DGRAY, // // ...\...
         'class' => Ansi::DCYAN, // ...Bar
         'access' => Ansi::DGRAY, // public private protected
-        'constant' => Ansi::WHITE, // FOO
-        'case' => Ansi::WHITE, // enum case name
+        'constant' => Ansi::DCYAN, // FOO
+        'case' => Ansi::DCYAN, // enum case name
         'property' => Ansi::DYELLOW, // $foo
         'function' => Ansi::DCYAN, // function/method name
         'key' => Ansi::WHITE, // array keys. set null to use string/int formats
@@ -712,13 +712,17 @@ class Dumper
     public static function dumpObject($object, int $depth = 0): string
     {
         $hash = spl_object_hash($object);
-        $recursion = isset(self::$objects[$hash]);
-        self::$objects[$hash] = true;
+        $recursion = self::$objects[$hash] ?? null;
+        if ($recursion === null) {
+            self::$objects[$hash] = true;
+        }
         $class = get_class($object);
 
-        if ($recursion) {
+        if ($recursion === true) {
             return self::class($class) . ' ' . self::bracket('{') . ' '
                 . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
+        } elseif (is_string($recursion)) {
+            return $recursion;
         }
 
         $info = self::objectInfo($object);
@@ -744,6 +748,7 @@ class Dumper
         $skip = in_array($class, self::$doNotTraverse, true);
         if ($depth >= self::$maxDepth || $skip) {
             if ($handlerResult !== '' && !str_contains($handlerResult, "\n")) {
+                self::$objects[$hash] = $handlerResult;
                 return $handlerResult;
             }
 
@@ -752,6 +757,7 @@ class Dumper
                 if (is_int($cl) || is_a($object, $cl)) {
                     $short = $handler($object);
                     if ($short) {
+                        self::$objects[$hash] = $short;
                         return $short;
                     }
                 }
@@ -762,6 +768,9 @@ class Dumper
         }
 
         if ($handlerResult !== '') {
+            if (!str_contains($handlerResult, "\n")) {
+                self::$objects[$hash] = $handlerResult;
+            }
             return $handlerResult;
         }
 
