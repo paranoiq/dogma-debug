@@ -75,6 +75,10 @@ class Dumper
     use DumperTraces;
     use DumperFormatters;
 
+    public const FLOATS_DEFAULT = 0;
+    public const FLOATS_DECIMALS = 1; // show decimals (do not allow scientific notation)
+    public const FLOATS_SCIENTIFIC_3 = 2; // only allow scientific notation in steps of 3
+
     public const ESCAPING_NONE = 'none';
     public const ESCAPING_PHP = 'php';
     public const ESCAPING_JS = 'js';
@@ -116,6 +120,9 @@ class Dumper
 
     /** @var bool|null - render long integers and floats with "_" dividing digits into groups of 3, null for auto on PHP >= 7.4 */
     public static $numbersWithUnderscore = false;
+
+    /** @var int - how floats will be rendered (decimals or scientific notation); does not affect precision */
+    public static $floatFormatting = self::FLOATS_SCIENTIFIC_3;
 
     // string settings -------------------------------------------------------------------------------------------------
 
@@ -559,7 +566,7 @@ class Dumper
             }
         }
 
-        return self::float((string) $float);
+        return self::float($float);
     }
 
     public static function dumpString(string $string, int $depth = 0, string $key = ''): string

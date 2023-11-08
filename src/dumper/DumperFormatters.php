@@ -48,7 +48,9 @@ use function in_array;
 use function ini_get;
 use function is_array;
 use function is_callable;
+use function is_infinite;
 use function is_int;
+use function is_nan;
 use function is_object;
 use function is_resource;
 use function is_scalar;
@@ -58,6 +60,7 @@ use function json_encode;
 use function key;
 use function ltrim;
 use function md5;
+use function number_format;
 use function ord;
 use function preg_match;
 use function preg_replace;
@@ -337,9 +340,9 @@ trait DumperFormatters
             $time = DateTime::createFromFormat('U.uP', $float . $decimal . 'Z');
             $time = $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s.uP');
 
-            return self::float((string) $float) . ' ' . self::info('// ' . $time);
+            return self::float($float) . ' ' . self::info('// ' . $time);
         } elseif ($float <= 3600) {
-            return self::float((string) $float) . ' ' . self::info('// ' . Units::time($float));
+            return self::float($float) . ' ' . self::info('// ' . Units::time($float));
         }
 
         return null;
@@ -561,8 +564,22 @@ trait DumperFormatters
         return Ansi::color($value, self::$colors['int']);
     }
 
-    public static function float(string $value): string
+    public static function float(float $value): string
     {
+        if (!is_nan($value) && !is_infinite($value) && self::$floatFormatting !== self::FLOATS_DEFAULT) {
+            if (self::$floatFormatting === self::FLOATS_DECIMALS) {
+                $value = number_format($value, 16, '.', '');
+                $value = rtrim($value, '0');
+                if (substr($value, -1) === '.') {
+                    $value .= '0';
+                }
+            } else {
+                $value = self::floatScientific3($value);
+            }
+        } else {
+            $value = (string) $value;
+        }
+
         $value = strtoupper($value);
         if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN' && !str_contains($value, '.')) {
             $value .= '.0';
@@ -574,6 +591,41 @@ trait DumperFormatters
         }
 
         return Ansi::color($value, self::$colors['float']);
+    }
+
+    private static function floatScientific3(float $value) {
+        $exponent = 0;
+        while (abs($value) >= 1000.0 || abs($value) < 1.0) {
+            if ($value === 0.0 || $value === -0.0) {
+                break;
+            }
+
+            if ($value >= 1000.0) {
+                $value /= 1000.0;
+                $exponent += 3;
+            } elseif ($value < 1) {
+                $value *= 1000.0;
+                $exponent -= 3;
+            }
+        }
+        if ($exponent === 3) {
+            $value *= 1000.0;
+            $exponent = 0;
+        } elseif ($exponent === -3) {
+            $value /= 1000.0;
+            $exponent = 0;
+        }
+
+        $value = rtrim((string) $value, '0');
+        if ($value === '') {
+            return '0.0';
+        } elseif (substr($value, -1) === '.') {
+            $value .= '0';
+        } elseif (!str_contains($value, '.')) {
+            $value .= '.0';
+        }
+
+        return $value . ($exponent ? ('E' . $exponent) : '');
     }
 
     public static function value(string $value): string
