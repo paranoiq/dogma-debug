@@ -15,6 +15,7 @@ use function explode;
 use function is_a;
 use function ltrim;
 use function rtrim;
+use function str_contains;
 use function str_starts_with;
 
 class PhpUnitHandler
@@ -49,11 +50,13 @@ class PhpUnitHandler
                     $args = ltrim(rtrim($args, ','));
                     $message = Ansi::white(" Test case{$dataSetName}: ", Ansi::DGREEN) . ' ' . Dumper::class($class) . '::' . Dumper::function($frame->function) . '(' . $args . '): ';
 
-                    if ($message !== self::$currentTestCaseName) {
+                    if ($message !== self::$currentTestCaseName && !str_contains($message, 'recurrence of')) {
                         Debugger::send(Message::CALLSTACK, $message);
                     }
 
-                    self::$currentTestCaseName = $message;
+                    if (!str_contains($message, 'recurrence of')) {
+                        self::$currentTestCaseName = $message;
+                    }
                 }
             }
         }, __CLASS__, __FUNCTION__);
