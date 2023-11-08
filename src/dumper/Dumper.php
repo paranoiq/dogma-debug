@@ -304,6 +304,7 @@ class Dumper
         '~time|\\Wts~i' => [self::class, 'dumpIntTime'],
         '~size|bytes|memory~i' => [self::class, 'dumpIntSize'],
         '~flags|options|headeropt|settings~i' => [self::class, 'dumpIntFlags'],
+        '~(http|response)_?(code|status)~i' => [self::class, 'dumpIntHttpCode'],
         [self::class, 'dumpIntPowersOfTwo'],
     ];
 

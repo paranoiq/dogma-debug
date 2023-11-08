@@ -384,6 +384,15 @@ trait DumperFormatters
         return self::int((string) $int) . ' ' . self::info('// ' . $info);
     }
 
+    public static function dumpIntHttpCode(int $int): ?string
+    {
+        if (!isset(Http::RESPONSE_MESSAGES[$int])) {
+            return null;
+        }
+
+        return self::int((string) $int) . ' ' . self::info('// ' . Http::RESPONSE_MESSAGES[$int]);
+    }
+
     public static function dumpIntPowersOfTwo(int $int): ?string
     {
         $abs = abs($int);
