@@ -895,7 +895,8 @@ class Debugger
                 + $stats['events']['delete'] + $stats['events']['query'];
             $sqlTime = Units::time($stats['time']['total']);
             $rows = $stats['rows']['total'];
-            $footer .= Ansi::color("| db: $conn con, $queries q, $sqlTime, $rows rows ", self::$headerColor, self::$headerBg);
+            $connections = $conn > 1 ?  "$conn con," : "";
+            $footer .= Ansi::color("| db:$connections $queries q, $sqlTime, $rows rows ", self::$headerColor, self::$headerBg);
         }
 
         // redis io
