@@ -753,7 +753,7 @@ class Dumper
             }
         }
 
-        $skip = in_array($class, self::$doNotTraverse, true);
+        $skip = in_array($class, self::$doNotTraverse, true) && $depth !== 0;
         if ($depth >= self::$maxDepth || $skip) {
             if ($handlerResult !== '' && !str_contains($handlerResult, "\n")) {
                 self::$objects[$hash] = $handlerResult;
