@@ -727,8 +727,13 @@ class Dumper
         $class = get_class($object);
 
         if ($recursion === true) {
-            return self::class($class) . ' ' . self::bracket('{') . ' '
-                . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
+            $short = self::dumpObjectShort($object, $hash);
+            if ($short) {
+                return $short;
+            } else {
+                return self::class($class) . ' ' . self::bracket('{') . ' '
+                    . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
+            }
         } elseif (is_string($recursion)) {
             return $recursion;
         }
@@ -760,15 +765,9 @@ class Dumper
                 return $handlerResult;
             }
 
-            /** @var int|class-string $cl */
-            foreach (self::$shortObjectFormatters as $cl => $handler) {
-                if (is_int($cl) || is_a($object, $cl)) {
-                    $short = $handler($object);
-                    if ($short) {
-                        self::$objects[$hash] = $short;
-                        return $short;
-                    }
-                }
+            $short = self::dumpObjectShort($object, $hash);
+            if ($short) {
+                return $short;
             }
 
             return self::class($class) . ' ' . self::bracket('{') . ' '
@@ -789,6 +788,25 @@ class Dumper
         } else {
             return self::class($class) . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
         }
+    }
+
+    /**
+     * @param object $object
+     */
+    private static function dumpObjectShort($object, string $hash): ?string
+    {
+        /** @var int|class-string $cl */
+        foreach (self::$shortObjectFormatters as $cl => $handler) {
+            if (is_int($cl) || is_a($object, $cl)) {
+                $short = $handler($object);
+                if ($short) {
+                    self::$objects[$hash] = $short;
+                    return $short;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
