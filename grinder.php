@@ -5,7 +5,7 @@
 $name = $argv[1];
 $file = fopen($name, 'r');
 if (!$file) {
-    echo "File $name not found.\n";
+    echo "File {$name} not found.\n";
     exit;
 }
 

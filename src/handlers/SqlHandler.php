@@ -22,8 +22,6 @@ use function implode;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
-use function str_starts_with;
-use function strtolower;
 use function strtoupper;
 
 /**
@@ -143,10 +141,10 @@ class SqlHandler
         }
 
         $countFormatted = $rows !== null
-            ? Ansi::color(' -- ' . $rows . ($rows === 1 ? ' row' : ' rows'), Dumper::$colors['info'])
+            ? Ansi::color(' -- ' . Units::units($rows, 'row'), Dumper::$colors['info'])
             : '';
 
-        $message = Ansi::white($connection ? " DB $connection: " : ' DB: ', Debugger::$handlerColors[self::NAME])
+        $message = Ansi::white($connection ? " DB {$connection}: " : ' DB: ', Debugger::$handlerColors[self::NAME])
             . ' ' . $message . $countFormatted;
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);

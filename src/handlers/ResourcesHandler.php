@@ -172,9 +172,9 @@ class ResourcesHandler
         self::$resources = $resources;
         self::$lastReportTime = $now;
 
-        $time = Units::time($resources->time - Debugger::getStart());
+        $time = Units::timeWs($resources->time - Debugger::getStart());
         $memory = Units::memory($resources->phpMemory);
-        Debugger::send(Message::ERROR, Ansi::dyellow("Running $time, $memory"));
+        Debugger::send(Message::ERROR, Ansi::dyellow("Running {$time}{$memory}"));
     }
 
 }

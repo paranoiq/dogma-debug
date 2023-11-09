@@ -324,7 +324,7 @@ class Debugger
             $name = Dumper::escapeRawString($name, Dumper::$rawEscaping, Ansi::BLACK, $color);
         }
 
-        $message = Ansi::black($name ? " $name: $label " : " $label ", $color);
+        $message = Ansi::black($name ? " {$name}: {$label} " : " {$label} ", $color);
 
         self::send(Message::LABEL, $message);
 
@@ -444,9 +444,9 @@ class Debugger
 
         $time = Units::time(microtime(true) - $previous);
         if ($name !== '') {
-            $message = Ansi::white("Timer ") . Ansi::lyellow($name) . Ansi::white(" $event:") . ' ' . Dumper::time($time);
+            $message = Ansi::white("Timer ") . Ansi::lyellow($name) . Ansi::white(" {$event}:") . ' ' . Dumper::time($time);
         } else {
-            $message = Ansi::white("Timer $event:") . ' ' . Dumper::time($time);
+            $message = Ansi::white("Timer {$event}:") . ' ' . Dumper::time($time);
         }
 
         self::send(Message::TIMER, $message);
@@ -549,14 +549,14 @@ class Debugger
             $file = fopen(self::$logFile, 'ab');
             if (!$file) {
                 $m = error_get_last()['message'] ?? '???';
-                self::error("Could not send data to debug server: $m");
+                self::error("Could not send data to debug server: {$m}");
                 self::print($payload . "\n" . $backtrace);
                 return;
             }
             $result = fwrite($file, $data);
             if (!$result) {
                 $m = error_get_last()['message'] ?? '???';
-                self::error("Could not send data to debug server: $m");
+                self::error("Could not send data to debug server: {$m}");
                 self::print($payload . "\n" . $backtrace);
                 fclose($file);
                 return;
@@ -569,7 +569,7 @@ class Debugger
         $result = @socket_write(self::$socket, $data, strlen($data));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
-            self::error("Could not send data to debug server: $m");
+            self::error("Could not send data to debug server: {$m}");
             self::print($payload . "\n" . $backtrace);
         }
     }
@@ -594,9 +594,9 @@ class Debugger
     public static function error(string $message): void
     {
         if (self::$connection === self::CONNECTION_SOCKET) {
-            $message = sprintf("Dogma Debugger: $message. Debug server should be running on %s:%s.", self::$remoteAddress, self::$remotePort);
+            $message = sprintf("Dogma Debugger: {$message}. Debug server should be running on %s:%s.", self::$remoteAddress, self::$remotePort);
         } else {
-            $message = sprintf("Dogma Debugger: $message. Log file is probably not writable: %s.", self::$logFile);
+            $message = sprintf("Dogma Debugger: {$message}. Log file is probably not writable: %s.", self::$logFile);
         }
 
         if (PHP_SAPI === 'cli') {
@@ -734,7 +734,7 @@ class Debugger
         } elseif (!self::$reportDebuggerAccidentalOutput) {
             return;
         } else {
-            $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output);
+            $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output, 0);
         }
 
         self::send(Message::ERROR, $message);
@@ -750,7 +750,7 @@ class Debugger
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timerStarts[''], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
         $php = PHP_VERSION . ' ' . Request::$sapi;
-        $header = "\n" . Ansi::color(" START $time | PHP $php ", self::$headerColor, self::$headerBg) . ' ';
+        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} ", self::$headerColor, self::$headerBg) . ' ';
         if (Request::$application && Request::$environment) {
             $header .= Ansi::white(' ' . Request::$application . '/' . Request::$environment . ' ', Ansi::DBLUE) . ' ';
         } elseif (Request::$application) {
@@ -780,7 +780,7 @@ class Debugger
 
             $method = Request::getMethod();
             if ($method !== null) {
-                $header .= Ansi::white(" $method ", RequestHandler::$methodColors[strtolower($method)]) . ' ';
+                $header .= Ansi::white(" {$method} ", RequestHandler::$methodColors[strtolower($method)]) . ' ';
             }
 
             $url = Request::getUrl();
@@ -856,12 +856,10 @@ class Debugger
         if (OutputHandler::enabled()) {
             OutputHandler::terminateAllOutputBuffers();
         }
-        $outputLength = OutputHandler::getTotalLength();
-        $output = $outputLength > 0 ? Units::memory($outputLength) . ', ' : '';
-        $start = self::$timerStarts[''];
-        $time = Units::time(microtime(true) - $start);
+        $output = Units::memoryWs(OutputHandler::getTotalLength());
+        $time = Units::timeWs(microtime(true) - self::$timerStarts['']);
         $memory = Units::memory(memory_get_peak_usage(false));
-        $footer .= Ansi::color(" END {$output}$time, $memory ", self::$headerColor, self::$headerBg);
+        $footer .= Ansi::color(" END {$output}{$time}{$memory} ", self::$headerColor, self::$headerBg);
 
         // includes io
         $events = 0;
@@ -874,7 +872,7 @@ class Debugger
         }
         if ($events > 0) {
             $time = Units::time($time);
-            $footer .= Ansi::color("| inc: {$events}× $time ", self::$headerColor, self::$headerBg);
+            $footer .= Ansi::color("| inc: {$events}× {$time} ", self::$headerColor, self::$headerBg);
         }
 
         // stream wrappers io
@@ -882,8 +880,8 @@ class Debugger
         foreach (self::$footerStreamWrappers as $wrapper) {
             $ioStats = $wrapper::getStats();
             if ($ioStats['events']['fopen'] > 0) {
-                $ioTime = Units::time($ioStats['time']['total']);
-                $footer .= Ansi::color('| ' . $wrapper::PROTOCOL . ": {$ioStats['events']['fopen']}× $ioTime ", self::$headerColor, self::$headerBg);
+                $time = Units::time($ioStats['time']['total']);
+                $footer .= Ansi::color('| ' . $wrapper::PROTOCOL . ": {$ioStats['events']['fopen']}× {$time} ", self::$headerColor, self::$headerBg);
             }
         }
 
@@ -891,40 +889,39 @@ class Debugger
         $stats = SqlHandler::getStats();
         $conn = $stats['events']['connect'];
         if ($conn > 0) {
-            $queries = $stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update']
-                + $stats['events']['delete'] + $stats['events']['query'];
-            $sqlTime = Units::time($stats['time']['total']);
-            $rows = $stats['rows']['total'];
-            $connections = $conn > 1 ?  "$conn con," : "";
-            $footer .= Ansi::color("| db:$connections $queries q, $sqlTime, $rows rows ", self::$headerColor, self::$headerBg);
+            $connections = $conn > 1 ? Units::unitWs($conn, 'con') : '';
+            $queries = Units::unitWs($stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update'] + $stats['events']['delete'] + $stats['events']['query'], 'q');
+            $time = Units::timeWs($stats['time']['total']);
+            $rows = Units::units($stats['rows']['total'], 'row');
+            $footer .= Ansi::color("| db: {$connections}{$queries}{$time}{$rows} ", self::$headerColor, self::$headerBg);
         }
 
         // redis io
         $stats = RedisHandler::getStats();
         $events = $stats['events']['total'];
         if ($events > 0) {
-            $queries = $stats['events']['total'];
-            $time = Units::time($stats['time']['total']);
-            $data = Units::memory((int) $stats['data']['total']);
-            $rows = $stats['rows']['total'];
-            $footer .= Ansi::color("| redis: $queries q, $time, $data, $rows rows ", self::$headerColor, self::$headerBg);
+            $queries = Units::unitWs($stats['events']['total'], 'q');
+            $time = Units::timeWs($stats['time']['total']);
+            $data = Units::memoryWs((int) $stats['data']['total']);
+            $rows = Units::units($stats['rows']['total'], 'row');
+            $footer .= Ansi::color("| redis: {$queries}{$time}{$data}{$rows} ", self::$headerColor, self::$headerBg);
         }
 
         // amqp io
         $stats = AmqpHandler::getStats();
         $events = $stats['events']['total'];
         if ($events > 0) {
-            $queries = $stats['events']['total'];
-            $time = Units::time($stats['time']['total']);
-            $data = Units::memory((int) $stats['data']['total']);
-            $rows = $stats['rows']['total'];
-            $footer .= Ansi::color("| amqp: $queries q, $time, $data, $rows rows ", self::$headerColor, self::$headerBg);
+            $queries = Units::unitWs($stats['events']['total'], 'q');
+            $time = Units::timeWs($stats['time']['total']);
+            $data = Units::memoryWs((int) $stats['data']['total']);
+            $rows = Units::units($stats['rows']['total'], 'row');
+            $footer .= Ansi::color("| amqp: {$queries}{$time}{$data}{$rows} ", self::$headerColor, self::$headerBg);
         }
 
         // termination reason
         if (Resources::timeLimit() !== 0.0 && Resources::timeRemaining() < 0 && (self::$terminatedBy === null || self::$terminatedBy === 'signal (profiling)')) {
             $reason = 'time limit (' . Resources::timeLimit() . ' s)';
-            $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
+            $footer .= ' ' . Ansi::white(" {$reason} ", Ansi::LMAGENTA);
         } elseif (self::$terminatedBy !== null) {
             $footer .= ' ' . Ansi::white(' ' . self::$terminatedBy . ' ', Ansi::LMAGENTA);
         } elseif (connection_status() !== 0) {
@@ -936,7 +933,7 @@ class Debugger
             } else {
                 $reason = 'connection aborted & time limit (' . Resources::timeLimit() . ' s)';
             }
-            $footer .= ' ' . Ansi::white(' ' . $reason . ' ', Ansi::LMAGENTA);
+            $footer .= ' ' . Ansi::white(" {$reason} ", Ansi::LMAGENTA);
         }
 
         // response code
@@ -949,17 +946,16 @@ class Debugger
                     break;
                 }
             }
-            $footer .= ' ' . Ansi::white(' ' . $status . ' ' . $message . ' ', $color);
+            $footer .= ' ' . Ansi::white(" {$status} {$message} ", $color);
         }
 
         // errors
         ErrorHandler::disable();
         $errors = ErrorHandler::getMessages();
         if ($errors !== []) {
-            $count = ErrorHandler::getCount();
+            $err = Units::units(ErrorHandler::getCount(), 'error');
             $list = ErrorHandler::$listErrors ? ':' : '';
-            $footer .= ' ' . Ansi::white($count > 1 ? " $count errors$list " : " 1 error$list ", Ansi::LRED);
-            //$footer .= ' ' . self::$name;
+            $footer .= ' ' . Ansi::white(" {$err}{$list} ", Ansi::LRED);
             if ($list) {
                 foreach ($errors as $error => $files) {
                     $file = $line = $count = null;
@@ -968,8 +964,7 @@ class Debugger
                     }
                     $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
                     if ($file !== '') {
-                        $footer .= Dumper::info(' - e.g. in ') . Dumper::fileLine((string) $file, (int) $line)
-                            . Dumper::info(' ' . $count . '×');
+                        $footer .= Dumper::info(' - e.g. in ') . Dumper::fileLine((string) $file, (int) $line) . Dumper::info(" {$count}×");
                     }
                 }
             }
@@ -1003,7 +998,7 @@ class Debugger
         $result = socket_write(self::$socket, $data, strlen($data));
         if (!$result) {
             $m = error_get_last()['message'] ?? '???';
-            self::error("Could not send data to debug server: $m");
+            self::error("Could not send data to debug server: {$m}");
         }
 
         $content = socket_read(self::$socket, 10000);

@@ -231,7 +231,7 @@ trait DumperFormatters
     {
         $id = (int) $resource;
 
-        return self::resource("(stream $id)") . ' ' . self::bracket('{')
+        return self::resource("(stream {$id})") . ' ' . self::bracket('{')
             . self::dumpVariables(stream_get_meta_data($resource), $depth)
             . self::indent($depth) . self::bracket('}');
     }
@@ -246,7 +246,7 @@ trait DumperFormatters
         if ($params !== ['options' => []]) {
             $params = self::dumpVariables($params, $depth) . self::indent($depth);
 
-            return self::resource("(stream-context $id)") . ' ' . self::bracket('{')
+            return self::resource("(stream-context {$id})") . ' ' . self::bracket('{')
                 . $params . self::bracket('}');
         } else {
             return self::resource('(stream-context)') . ' ' . self::info('#' . (int) $resource);
@@ -411,7 +411,7 @@ trait DumperFormatters
             return null;
         }
 
-        return self::int((string) $int) . ' ' . self::info("// 2^$exp");
+        return self::int((string) $int) . ' ' . self::info("// 2^{$exp}");
     }
 
     public static function dumpStringHidden(string $string, string $info, string $key, int $depth): ?string
@@ -427,7 +427,7 @@ trait DumperFormatters
             $info = substr($info, 0, -9);
         }
         $info .= $info ? ', hidden' : 'hidden';
-        $info = ' ' . self::info("// $info");
+        $info = ' ' . self::info("// {$info}");
 
         return $quote . self::exceptions('*****') . $quote . $info;
     }
@@ -438,7 +438,7 @@ trait DumperFormatters
             return null;
         }
 
-        return self::string($string, $depth, PATH_SEPARATOR) . ' ' . self::info("// $info");
+        return self::string($string, $depth, PATH_SEPARATOR) . ' ' . self::info("// {$info}");
     }
 
     public static function dumpStringPath(string $string, string $info, string $key, int $depth): ?string
@@ -451,7 +451,7 @@ trait DumperFormatters
             $path = self::normalizePath($string);
             $path = ($path !== rtrim($string, '/')) ? ', ' . $path : '';
 
-            return self::string($string, $depth) . ' ' . self::info("// $info{$path}");
+            return self::string($string, $depth) . ' ' . self::info("// {$info}{$path}");
         }
 
         return null;
@@ -499,22 +499,22 @@ trait DumperFormatters
             $line = $ref->getStartLine();
 
             // todo: trim file prefix
-            $info .= "callable defined in $file:$line";
+            $info .= "callable defined in {$file}:{$line}";
 
-            return self::string($string, $depth) . ' ' . self::info("// $info");
+            return self::string($string, $depth) . ' ' . self::info("// {$info}");
         } else {
             foreach (get_loaded_extensions() as $extension) {
                 if (in_array($string, get_extension_funcs($extension) ?: [], true)) {
                     $extension = strtolower($extension);
-                    $info .= "callable from ext-$extension";
+                    $info .= "callable from ext-{$extension}";
 
-                    return self::string($string, $depth) . ' ' . self::info("// $info");
+                    return self::string($string, $depth) . ' ' . self::info("// {$info}");
                 }
             }
 
             $info .= "callable";
 
-            return self::string($string, $depth) . ' ' . self::info("// $info");
+            return self::string($string, $depth) . ' ' . self::info("// {$info}");
         }
     }
 
@@ -534,12 +534,12 @@ trait DumperFormatters
             return null;
         }
         if (self::$jsonStrings === self::JSON_DECODE) {
-            return self::exceptions('json:') . ' ' . self::dump($data) . ' ' . self::info("// $info");
+            return self::exceptions('json:') . ' ' . self::dump($data) . ' ' . self::info("// {$info}");
         }
 
         $json = json_encode($data, JSON_PRETTY_PRINT);
 
-        return self::exceptions('prettified:') . ' ' . $json . ' ' . self::info("// $info");
+        return self::exceptions('prettified:') . ' ' . $json . ' ' . self::info("// {$info}");
     }
 
     // component formatters --------------------------------------------------------------------------------------------

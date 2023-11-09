@@ -223,7 +223,7 @@ trait DumperTraces
 
         $number = $frame->number !== null && self::$traceNumbered ? ' ' . $frame->number : '';
 
-        return [self::info("^---$number in ") . $fileLine . $separator . $classMethod . $timeMemory, $currentArgs];
+        return [self::info("^---{$number} in ") . $fileLine . $separator . $classMethod . $timeMemory, $currentArgs];
     }
 
     /**

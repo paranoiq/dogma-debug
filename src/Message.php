@@ -125,7 +125,7 @@ class Message
         if ($char !== null) {
             $hex = dechex(ord($char));
             $pos = strpos($payload, $char);
-            Debugger::send(self::ERROR, "Payload can not contain special characters. Found \\x$hex at position $pos.");
+            Debugger::send(self::ERROR, "Payload can not contain special characters. Found \\x{$hex} at position {$pos}.");
             $payload = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
                 return '\x' . Str::charToHex($m[0]);
             }, $payload);
@@ -135,7 +135,7 @@ class Message
             if ($char !== null) {
                 $hex = dechex(ord($char));
                 $pos = strpos($payload, $char);
-                Debugger::send(self::ERROR, "Backtrace can not contain special characters. Found \\x$hex at position $pos.");
+                Debugger::send(self::ERROR, "Backtrace can not contain special characters. Found \\x{$hex} at position {$pos}.");
                 $backtrace = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
                     return '\x' . Str::charToHex($m[0]);
                 }, $backtrace);
@@ -171,8 +171,8 @@ class Message
      */
     public function encode(): string
     {
-        return "\x01$this->type\x1F$this->bell\x1F$this->counter\x1F$this->time\x1F$this->duration\x1F$this->processId\x1F$this->threadId"
-            . "\x02$this->payload\x03$this->backtrace\x04";
+        return "\x01{$this->type}\x1F{$this->bell}\x1F{$this->counter}\x1F{$this->time}\x1F{$this->duration}\x1F{$this->processId}\x1F{$this->threadId}"
+            . "\x02{$this->payload}\x03{$this->backtrace}\x04";
     }
 
     public static function decode(string $data): self

@@ -14,6 +14,44 @@ use function round;
 class Units
 {
 
+    public static function unitWs(int $amount, string $unit, string $separator = ', ', bool $emptyIfZero = true): string
+    {
+        if ($amount === 0 && $emptyIfZero) {
+            return '';
+        } else {
+            return "{$amount} {$unit}{$separator}";
+        }
+    }
+
+    public static function unitsWs(int $amount, string $unit, string $separator = ', ', bool $emptyIfZero = true): string
+    {
+        if ($amount === 0 && $emptyIfZero) {
+            return '';
+        } elseif ($amount === 1) {
+            return "{$amount} {$unit}{$separator}";
+        } else {
+            return "{$amount} {$unit}s{$separator}";
+        }
+    }
+
+    public static function units(int $amount, string $unit): string
+    {
+        if ($amount === 1) {
+            return "{$amount} {$unit}";
+        } else {
+            return "{$amount} {$unit}s";
+        }
+    }
+
+    public static function memoryWs(int $size, int $digits = 3, string $separator = ', ', bool $emptyIfZero = true): string
+    {
+        if ($size === 0 && $emptyIfZero) {
+            return '';
+        }
+
+        return self::memory($size, $digits) . $separator;
+    }
+
     public static function memory(int $size, int $digits = 3): string
     {
         $size = (float) $size;
@@ -42,6 +80,15 @@ class Units
         }
 
         return self::digits($size / $divider, $digits) . $unit;
+    }
+
+    public static function timeWs(float $time, int $digits = 3, string $separator = ', ', bool $emptyIfZero = true): string
+    {
+        if ($time === 0.0 && $emptyIfZero) {
+            return '';
+        }
+
+        return self::time($time, $digits) . $separator;
     }
 
     public static function time(float $time, int $digits = 3): string

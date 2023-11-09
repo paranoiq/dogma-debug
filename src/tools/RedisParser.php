@@ -81,7 +81,7 @@ class RedisParser
                     }
                     break;
                 default:
-                    throw new Exception("Unknown resp data type: $type");
+                    throw new Exception("Unknown resp data type: {$type}");
             }
 
             $this->buffer = substr($this->buffer, $remove);

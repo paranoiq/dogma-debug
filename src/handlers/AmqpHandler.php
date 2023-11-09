@@ -101,7 +101,7 @@ class AmqpHandler
             Debugger::dependencyInfo("{$activated} activated by {$by}() to track filesystem functions.");
         }
 
-        $re = "~:$port$~";
+        $re = "~:{$port}$~";
         StreamInterceptor::$redirect[$protocol]['fwrite'][$re] = [self::class, 'amqpFwrite'];
         StreamInterceptor::$redirect[$protocol]['fread'][$re] = [self::class, 'amqpFread'];
         StreamInterceptor::$redirect[$protocol]['fgets'][$re] = [self::class, 'amqpFgets'];

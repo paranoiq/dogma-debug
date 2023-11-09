@@ -195,10 +195,10 @@ class ShutdownHandler
         if (!in_array($signal, self::$nonTerminating, true)) {
             //Debugger::send(Message::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
 
-            Debugger::setTermination("signal ($name)");
+            Debugger::setTermination("signal ({$name})");
             exit;
         } elseif (!in_array($signal, self::$ignore, true)) {
-            Debugger::send(Message::ERROR, Ansi::white(" Signal $name received. ", Ansi::DMAGENTA));
+            Debugger::send(Message::ERROR, Ansi::white(" Signal {$name} received. ", Ansi::DMAGENTA));
         }
     }
 
@@ -210,9 +210,9 @@ class ShutdownHandler
         $name = $signal === PHP_WINDOWS_EVENT_CTRL_C ? 'ctrl-c'
             : ($signal === PHP_WINDOWS_EVENT_CTRL_BREAK ? 'ctrl-break' : 'unknown');
 
-        Debugger::setTermination("signal($name)");
+        Debugger::setTermination("signal({$name})");
 
-        //Debugger::send(Message::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
+        //Debugger::send(Message::ERROR, Ansi::white(" Terminated by {$name} signal. ", Ansi::DRED));
         exit;
     }
 

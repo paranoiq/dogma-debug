@@ -360,9 +360,9 @@ class Intercept
             // may be followed by: whitespace, block comment or line comment and new line
             // does not care about occurrences inside strings (replaces them anyway)
             if ($function === 'exit' || $function === 'die') {
-                $pattern = "~(?<![a-zA-Z0-9_\\\\>:$])(?<!function )\\\\?$function((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*[(;])~i";
+                $pattern = "~(?<![a-zA-Z0-9_\\\\>:$])(?<!function )\\\\?{$function}((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*[(;])~i";
             } else {
-                $pattern = "~(?<![a-zA-Z0-9_\\\\>:$])(?<!function )\\\\?$function((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*\()~i";
+                $pattern = "~(?<![a-zA-Z0-9_\\\\>:$])(?<!function )\\\\?{$function}((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*\()~i";
             }
 
             $result = preg_replace_callback($pattern, static function (array $m) use ($callable): string {
@@ -386,7 +386,7 @@ class Intercept
             foreach ($methods as $method => [$handler, $callable]) {
                 // may be followed by: whitespace, block comment or line comment and new line
                 // does not care about occurrences inside strings (replaces them anyway)
-                $pattern = "~\\\\?$class::$method((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*\()~i";
+                $pattern = "~\\\\?{$class}::{$method}((?:\s|/\*[^*]*\*/|(?://|#)[^\n]*\n)*\()~i";
 
                 $result = preg_replace_callback($pattern, static function (array $m) use ($callable): string {
                     $r = '\\' . $callable[0] . '::' . $callable[1] . $m[1];
@@ -399,7 +399,7 @@ class Intercept
                 }, $code);
 
                 if ($result !== $code) {
-                    $replaced[$handler][] = "$class::$method()";
+                    $replaced[$handler][] = "{$class}::{$method}()";
                 }
 
                 $code = $result;
@@ -407,23 +407,23 @@ class Intercept
         }
 
         foreach (self::$classes as $class => [$handler, $replace]) {
-            $result1 = preg_replace("~new\s+\\\\?$class(?![A-Za-z0-9_])~", "new \\$replace", $code);
+            $result1 = preg_replace("~new\s+\\\\?{$class}(?![A-Za-z0-9_])~", "new \\$replace", $code);
             if ($result1 !== $code) {
-                $replaced[$handler][] = "new $class";
+                $replaced[$handler][] = "new {$class}";
             }
 
-            $result2 = preg_replace("~extends\s+\\\\?$class(?![A-Za-z0-9_])~", "extends \\$replace", $result1);
+            $result2 = preg_replace("~extends\s+\\\\?{$class}(?![A-Za-z0-9_])~", "extends \\$replace", $result1);
             if ($result2 !== $result1) {
-                $replaced[$handler][] = "extends $class";
+                $replaced[$handler][] = "extends {$class}";
             }
 
             $code = $result2;
         }
 
         foreach (self::$exceptions as $exception => $handler) {
-            $result = preg_replace("~catch\s+\\(\\\\?$exception(?![A-Za-z0-9_])~", "catch (\\Dogma\\Debug\\NoCatchException", $code);
+            $result = preg_replace("~catch\s+\\(\\\\?{$exception}(?![A-Za-z0-9_])~", "catch (\\Dogma\\Debug\\NoCatchException", $code);
             if ($result !== $code) {
-                $replaced[$handler][] = "catch ($exception)";
+                $replaced[$handler][] = "catch ({$exception})";
             }
 
             $code = $result;
@@ -431,7 +431,7 @@ class Intercept
 
         if (self::$exceptionCallable) {
             [$handler, [$class, $method]] = self::$exceptionCallable;
-            $result = preg_replace('~([ \t]*)(}\s*catch\s*\([^)]+\s+)(\\$[A-Za-z0-9_]+)(\s*\)\s*{)~', "\\1\\2\\3\\4\n\\1\t\\\\$class::$method(\\3);", $code);
+            $result = preg_replace('~([ \t]*)(}\s*catch\s*\([^)]+\s+)(\\$[A-Za-z0-9_]+)(\s*\)\s*{)~', "\\1\\2\\3\\4\n\\1\t\\\\{$class}::{$method}(\\3);", $code);
             if ($result !== $code) {
                 $replaced[$handler][] = "catch (...)";
             }
@@ -445,15 +445,15 @@ class Intercept
                     continue;
                 }
                 $items = Str::join($items, ', ', ' and ');
-                $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default'])
-                    . ' ' . Ansi::lmagenta("Overloaded $items in: ") . Dumper::file($file);
+                $message = Ansi::white(" {$handler}: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default'])
+                    . ' ' . Ansi::lmagenta("Overloaded {$items} in: ") . Dumper::file($file);
                 Debugger::send(Message::INTERCEPT, $message);
             }
         }
 
         if (self::$ticks) {
             $ticks = self::$ticks;
-            $result = str_replace('<?php', "<?php declare(ticks = $ticks);", $code);
+            $result = str_replace('<?php', "<?php declare(ticks = {$ticks});", $code);
 
             /*if ($code !== $result) {
                 $message = Ansi::lmagenta("Inserted ticks in: ") . Dumper::file($file);
@@ -521,7 +521,7 @@ class Intercept
             $message .= Dumper::info($info);
         }
 
-        $message = Ansi::white(" $handler: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
+        $message = Ansi::white(" {$handler}: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
 

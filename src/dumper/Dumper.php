@@ -573,8 +573,8 @@ class Dumper
     {
         $size = strlen($string);
         $length = Str::length($string, self::$inputEncoding);
-        $bytes = $size !== $length || $size >= self::$lengthInfoMin ? "$size B" : '';
-        $chars = $size !== $length ? ", $length ch" : '';
+        $bytes = $size !== $length || $size >= self::$lengthInfoMin ? "{$size} B" : '';
+        $chars = $size !== $length ? ", {$length} ch" : '';
         $trimmed = '';
         if ($length > self::$maxLength) {
             $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
@@ -612,7 +612,8 @@ class Dumper
 
         $count = count($array);
         if (isset($array[$marker])) {
-            $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
+            $cnt = Units::units($count, 'item');
+            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
 
             return self::bracket('[') . ' ' . self::exceptions('recursion') . ' ' . self::bracket(']') . $info;
         }
@@ -621,7 +622,8 @@ class Dumper
         $over = $depth - self::$maxDepth;
         $short = ''; // only to satisfy PHPStan
         if ($over >= 0) {
-            $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
+            $cnt = Units::units($count, 'item');
+            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
             $short = self::bracket('[') . ' ' . self::exceptions('...') . ' ' . self::bracket(']') . $info;
 
             if ($over >= 2) {
@@ -672,7 +674,8 @@ class Dumper
                 unset($array[$marker]);
             }
 
-            $info = self::$showInfo ? ' ' . self::info("// $count item" . ($count > 1 ? 's' : '')) : '';
+            $cnt = Units::units($count, 'item');
+            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
             $start = self::bracket('[');
             $end = self::bracket(']') . $info;
 
@@ -1052,12 +1055,12 @@ class Dumper
                 ? ''
                 : self::function($ref->getName());
 
-            $head = "function $name($params) ";
+            $head = "function {$name}({$params}) ";
             if ($variables !== []) {
                 $vars = implode(', ', array_map(static function (string $var): string {
                     return '$' . $var;
                 }, array_keys($variables)));
-                $head .= "use ($vars) ";
+                $head .= "use ({$vars}) ";
             }
         }
 
@@ -1178,7 +1181,7 @@ class Dumper
     {
         $type = is_resource($resource) ? get_resource_type($resource) : 'closed';
         $id = (int) $resource;
-        $name = "($type)";
+        $name = "({$type})";
 
         foreach (self::$resourceFormatters as $class => $handler) {
             if ($class === $name) {
@@ -1186,7 +1189,7 @@ class Dumper
             }
         }
 
-        $name = "($type $id)";
+        $name = "({$type} {$id})";
 
         return self::resource($name);
     }

@@ -373,7 +373,7 @@ class CallstackFrame
         }
 
         if ($result === false) {
-            throw new RuntimeException("Cannot read file $file: " . error_get_last()['message']);
+            throw new RuntimeException("Cannot read file {$file}: " . error_get_last()['message']);
         }
 
         return $result;
@@ -391,7 +391,7 @@ class CallstackFrame
         $result = @file($file, FILE_IGNORE_NEW_LINES);
 
         if ($result === false) {
-            throw new RuntimeException("Cannot read file lines from $file: " . error_get_last()['message']);
+            throw new RuntimeException("Cannot read file lines from {$file}: " . error_get_last()['message']);
         }
 
         return $start !== 0 || $count !== null

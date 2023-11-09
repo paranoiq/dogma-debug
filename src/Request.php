@@ -207,7 +207,7 @@ class Request
             $host = $_SERVER['HTTP_HOST'];
             $uri = $_SERVER['REQUEST_URI'] ?? '';
 
-            return "$scheme://$host$uri";
+            return "{$scheme}://{$host}{$uri}";
         } else {
             return null;
         }
