@@ -870,9 +870,11 @@ class Dumper
         ksort($items);
 
         if ($nulls !== []) {
+            sort($nulls);
             $items[] = $indent . implode(', ', $nulls) . $equal . self::null('null') . $semi;
         }
         if ($empty !== []) {
+            sort($empty);
             $items[] = $indent . implode(', ', $empty) . $equal . self::exceptions('uninitialized') . $semi;
         }
 
