@@ -355,7 +355,7 @@ class Dumper
         [self::class, 'dumpEntityId'],
     ];
 
-    /** @var array<string> - classes and methods (syntax: "Class::method") that are not traversed. short dumps are used if configured */
+    /** @var array<string> - classes, methods ("Class::method") and ("Class::$property") that are not traversed. short dumps are used if configured */
     public static $doNotTraverse = [];
 
     // internals -------------------------------------------------------------------------------------------------------
@@ -701,7 +701,7 @@ class Dumper
                 $infos = array_filter($infos);
 
                 $long = $start . substr(implode(' ', $values), 0, -strlen($coma))
-                    . $end . self::info(' (' . implode(', ', $infos) . ')');
+                    . $end . self::info(' (' . implode(', ', $infos)) . self::info(')');
             } else {
                 // item per line
                 $indent = self::indent($depth);
@@ -830,9 +830,10 @@ class Dumper
                 $cls = null;
             }
             $access = self::access($cls === '*' ? 'protected' : ($cls === null ? 'public' : 'private'));
+            $doNotTraverse = in_array($class . '::$' . $name, self::$doNotTraverse, true) ? 1000 : 0;
             $valueDump = $value === $uninitialized
                 ? self::exceptions('uninitialized')
-                : self::dumpValue($value, $depth + 1, $name);
+                : self::dumpValue($value, $depth + 1 + $doNotTraverse, $name);
 
             if (self::$groupNullAndUninitialized && $value === null) {
                 $nulls[] = $cls === null || $cls === '*' || $cls === $class
