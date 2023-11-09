@@ -170,7 +170,7 @@ class FormattersDogma
         return Dumper::class(get_class($interval)) . Dumper::bracket('(')
             . Dumper::value($interval->getStart()->format()) . ' ' . Dumper::symbol('-') . ' '
             . Dumper::value($interval->getEnd()->format()) . Dumper::bracket(')') . Dumper::symbol(':')
-            . ' ' . Dumper::dumpValue($interval->getData(), $depth);
+            . ' ' . Dumper::dumpValue($interval->getData(), $depth /* no increment */);
     }
 
     /**

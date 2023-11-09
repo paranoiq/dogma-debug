@@ -146,7 +146,7 @@ class FormattersDom
         Dumper::$showInfo = false;
         $attributes = [];
         foreach ($node->attributes ?? [] as $attribute) {
-            $attributes[] = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value);
+            $attributes[] = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $depth + 1);
         }
         $attributes = implode(' ', $attributes);
         if ($attributes !== '') {
@@ -214,7 +214,7 @@ class FormattersDom
 
     public static function dumpDomAttr(DOMAttr $attribute, int $depth = 0): string
     {
-        $value = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value);
+        $value = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $depth + 1);
 
         return $depth !== 0
             ? $value

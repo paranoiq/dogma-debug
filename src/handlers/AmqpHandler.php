@@ -231,11 +231,11 @@ class AmqpHandler
         if ($message[0] === '{') {
             // json encoded
             $prefix .= Dumper::exceptions('json:') . ' ';
-            $value = Dumper::dumpValue(json_decode($message, true));
+            $value = Dumper::dumpValue(json_decode($message, true), 0);
         } elseif (preg_match('~^a:[0-9]+:\\{~', $message)) {
             // php serializes
             $prefix .= Dumper::exceptions('serialized:') . ' ';
-            $value = Dumper::dumpValue(unserialize($message, ['allowed_classes' => true]));
+            $value = Dumper::dumpValue(unserialize($message, ['allowed_classes' => true]), 0);
         } else {
             $value = Dumper::string($message, 0);
         }

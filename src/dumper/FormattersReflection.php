@@ -485,7 +485,7 @@ class FormattersReflection
         $class = $depth === 0 ? Dumper::class($property->getDeclaringClass()->getName()) . ($static ? '::' : '->') : '';
         $name = Dumper::property('$' . $property->name);
         $value = (PHP_VERSION_ID < 70400 || $type === null || ($property->isStatic() && $property->isInitialized()))
-            ? Dumper::dumpValue($property->isStatic() ? $property->getValue() : (PHP_VERSION_ID >= 80000 ? $property->getDefaultValue() : null), $depth)
+            ? Dumper::dumpValue($property->isStatic() ? $property->getValue() : (PHP_VERSION_ID >= 80000 ? $property->getDefaultValue() : null), $depth + 1)
             : '(undefined)';
 
         $result .= $doc . $attrs;
@@ -564,7 +564,7 @@ class FormattersReflection
                 $result .= ' = ' . Dumper::constant($const);
             } else {
                 $default = $param->getDefaultValue();
-                $result .= ' = ' . Dumper::dumpValue($default);
+                $result .= ' = ' . Dumper::dumpValue($default, $depth + 1);
             }
         }
 
@@ -627,7 +627,7 @@ class FormattersReflection
         foreach ($attributes as $attribute) {
             $args = [];
             foreach (PHP_VERSION_ID >= 80000 ? $attribute->getArguments() : [] as $argument) {
-                $args[] = Dumper::dumpValue($argument);
+                $args[] = Dumper::dumpValue($argument, $depth + 1);
             }
 
             $args = $args !== []

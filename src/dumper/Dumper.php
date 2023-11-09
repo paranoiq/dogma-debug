@@ -482,7 +482,7 @@ class Dumper
      * @param mixed $value
      * @param string|int|null $key
      */
-    public static function dumpValue($value, int $depth = 0, $key = null): string
+    public static function dumpValue($value, int $depth, $key = null): string
     {
         if ($depth === 0) {
             self::$objects = [];

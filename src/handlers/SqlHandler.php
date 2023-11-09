@@ -257,7 +257,7 @@ class SqlHandler
                 $value = Dumper::string($value);
                 Dumper::$stringsEscaping = $oldEscaping;
             } else {
-                $value = Dumper::dumpValue($value);
+                $value = Dumper::dumpValue($value, 0);
             }
             return $value . Ansi::colorStart(Dumper::$colors['value']);
         }, $query);

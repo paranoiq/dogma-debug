@@ -205,7 +205,7 @@ trait DumperFormatters
     /**
      * @param object $object
      */
-    public static function dumpEntityId($object): ?string
+    public static function dumpEntityId($object, int $depth = 0): ?string
     {
         if (!property_exists($object, 'id')) {
             return null;
@@ -215,7 +215,7 @@ trait DumperFormatters
         $property = $ref->getProperty('id');
         $property->setAccessible(true);
 
-        $id = self::dumpValue($property->getValue($object));
+        $id = self::dumpValue($property->getValue($object), $depth + 1);
         $access = $property->isPrivate() ? 'private' : ($property->isProtected() ? 'protected' : 'public');
         $info = self::$showInfo ? ' ' . self::info('// #' . self::objectHash($object)) : '';
 
@@ -271,12 +271,12 @@ trait DumperFormatters
         $object = $weakReference->get();
 
         return self::class(get_class($weakReference)) . self::bracket('(')
-            . self::dumpValue($object, $depth) . self::bracket(')');
+            . self::dumpValue($object, $depth /* no increment */) . self::bracket(')');
     }
 
     public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
     {
-        return self::class(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth);
+        return self::class(get_class($callstack)) . ' ' . self::dumpValue($callstack->frames, $depth /* no increment */);
     }
 
     public static function dumpDateTimeInterface(DateTimeInterface $dt): string
@@ -855,21 +855,21 @@ trait DumperFormatters
             $output = '';
             $end = ')';
         } elseif (is_scalar($return) || is_resource($return)) {
-            $output = ' ' . Dumper::dumpValue($return);
+            $output = ' ' . Dumper::dumpValue($return, 0);
             $end = '):';
         } elseif (is_array($return)) {
             $output = [];
             foreach ($return as $k => $v) {
                 if (is_int($k)) {
-                    $output[] = Dumper::dumpValue($v);
+                    $output[] = Dumper::dumpValue($v, 0);
                 } else {
-                    $output[] = Ansi::color($k . ':', Dumper::$colors['call']) . ' ' . Dumper::dumpValue($v);
+                    $output[] = Ansi::color($k . ':', Dumper::$colors['call']) . ' ' . Dumper::dumpValue($v, 0);
                 }
             }
             $output = ' ' . implode(' ', $output);
             $end = '):';
         } else {
-            $output = ' ' . Dumper::dumpValue($return);
+            $output = ' ' . Dumper::dumpValue($return, 0);
             $end = '):';
         }
 
