@@ -305,7 +305,7 @@ class Dumper
     /** @var bool - turn on/of user formatters for dumps */
     public static $useFormatters = true;
 
-    /** @var array<int|string, callable> - user formatters for int values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(int): ?string> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
         '~filemode|permissions~i' => [self::class, 'dumpIntPermissions'],
         '~time|\\Wts~i' => [self::class, 'dumpIntTime'],
@@ -315,12 +315,12 @@ class Dumper
         [self::class, 'dumpIntPowersOfTwo'],
     ];
 
-    /** @var array<int|string, callable> - user formatters for float values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(float): ?string> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
         '~time~i' => [self::class, 'dumpFloatTime'],
     ];
 
-    /** @var array<int|string, callable> - user formatters for string values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(string): ?string> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
         [self::class, 'dumpStringHidden'], // must be first!
         '/path(?!ext)/i' => [self::class, 'dumpStringPathList'],
@@ -331,13 +331,18 @@ class Dumper
         [self::class, 'dumpStringJson'],
     ];
 
-    /** @var array<string, callable> - user formatters for resources */
+    /** @var array<string, callable(int|string): ?string> - user formatters for array keys. indexed by regexp matching the key containing the array - either "Class::$property" or "function.parameter. returns key info */
+    public static $arrayKeyFormatters = [
+        'curl_setopt_array.1' => [CurlInterceptor::class, 'getCurlSetoptArrayKeyInfo'],
+    ];
+
+    /** @var array<string, callable(resource): string> - user formatters for resources */
     public static $resourceFormatters = [
         '(stream)' => [self::class, 'dumpStream'],
         '(stream-context)' => [self::class, 'dumpStreamContext'],
     ];
 
-    /** @var array<class-string, callable> - user formatters for dumping objects and resources */
+    /** @var array<class-string, callable(object): ?string> - user formatters for dumping objects and resources */
     public static $objectFormatters = [
         // native classes
         BackedEnum::class => [self::class, 'dumpBackedEnum'],
@@ -350,7 +355,7 @@ class Dumper
         Callstack::class => [self::class, 'dumpCallstack'],
     ];
 
-    /** @var array<class-string|int, callable> - user formatters for dumping objects and resources in single-line mode */
+    /** @var array<class-string|int, callable(object): ?string> - user formatters for dumping objects and resources in single-line mode */
     public static $shortObjectFormatters = [
         [self::class, 'dumpEntityId'],
     ];
@@ -513,7 +518,7 @@ class Dumper
             if ($depth === 0 && count($value) === 2 && is_string($key) && $key[0] === '[' && is_callable($value)) {
                 return self::dumpMethod($value, $depth);
             } else {
-                return self::dumpArray($value, $depth);
+                return self::dumpArray($value, $depth, (string) $key);
             }
         } elseif (is_object($value)) {
             if ($value instanceof Closure) {
@@ -599,7 +604,7 @@ class Dumper
     /**
      * @param mixed[] $array
      */
-    public static function dumpArray(array $array, int $depth = 0): string
+    public static function dumpArray(array $array, int $depth = 0, string $key = ''): string
     {
         static $marker;
         if ($marker === null) {
@@ -657,11 +662,18 @@ class Dumper
                         : $dumpedValue;
 
                     $pos = strrpos($item, $infoPrefix);
+                    $keyInfo = isset(self::$arrayKeyFormatters[$key]) ? self::$arrayKeyFormatters[$key]($k) : '';
                     if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
                         $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
+                        if ($keyInfo !== '') {
+                            $item = str_replace($infoPrefix, $infoPrefix . $keyInfo . ' => ', $item);
+                        }
                         $hasInfo = true;
                     } else {
                         $item .= $coma;
+                        if ($keyInfo !== '') {
+                            $item .= ' ' . self::info('// ' . $keyInfo);
+                        }
                     }
 
                     $items[] = $item;

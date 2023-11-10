@@ -846,8 +846,7 @@ trait DumperFormatters
 
         $formatted = [];
         foreach ($params as $key => $value) {
-            $key = is_int($key) ? null : $key;
-            $formatted[] = Dumper::dumpValue($value, 0, $key);
+            $formatted[] = Dumper::dumpValue($value, 0, "{$name}.{$key}");
         }
         $params = implode(Ansi::color(', ', Dumper::$colors['call']), $formatted);
 

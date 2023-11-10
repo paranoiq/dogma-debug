@@ -502,6 +502,11 @@ class CurlInterceptor
         CURLINFO_PRIVATE => 'CURLINFO_PRIVATE',
     ];
 
+    public static function getCurlSetoptArrayKeyInfo(int $key): string
+    {
+        return self::$opt[$key] ?? '';
+    }
+
     /**
      * Take control over majority of curl_*() functions
      *

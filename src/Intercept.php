@@ -514,8 +514,7 @@ class Intercept
             return;
         }
 
-        $message = (($level & self::PREVENT_CALLS) ? ' Prevented ' : ' Called ')
-            . Dumper::call($function, $params, $return);
+        $message = (($level & self::PREVENT_CALLS) ? ' Prevented ' : ' Called ') . Dumper::call($function, $params, $return);
 
         if ($info !== '') {
             $message .= Dumper::info($info);
