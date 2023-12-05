@@ -19,6 +19,7 @@ use function array_sum;
 use function array_unique;
 use function explode;
 use function implode;
+use function is_int;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
@@ -71,10 +72,11 @@ class SqlHandler
     /** @var int */
     public static $traceLength = 1;
 
-    /** @var array<string, callable> - Query filters for modifying logged SQL, indexed by connection name */
+    /** @var array<int|string, callable> - Query filters for modifying logged SQL, optionally indexed by connection name */
     public static $queryFilters = [
-        '*' => [self::class, 'filterWhitespace'],
+        [self::class, 'normalizeWhitespace'],
         'doctrine' => [self::class, 'filterDoctrineSelects'],
+        [self::class, 'simpleHighlighting']
     ];
 
     /** @var int[] */
@@ -131,7 +133,7 @@ class SqlHandler
 
         if ($query) {
             foreach (self::$queryFilters as $forConnection => $filter) {
-                if ($forConnection === $connection || $forConnection === '*') {
+                if ($forConnection === $connection || is_int($forConnection)) {
                     $query = $filter($query);
                 }
             }
@@ -300,13 +302,30 @@ class SqlHandler
         }
     }
 
-    public static function filterWhitespace(string $query): string
+    public static function normalizeWhitespace(string $query): string
     {
-        $query = preg_replace('~\n\s*\n~m', "\n", $query);
-        $query = preg_replace('~\n\s{2,1000}~', "\n  ", $query);
-        $query = preg_replace('~\s+;\s*$~m', ";", $query);
+        $query = preg_replace('~\n\s*\n~m', "\n", $query); // remove empty lines
+        $query = preg_replace('~\n\s{2,1000}~', "\n  ", $query); // normalize indenting
+        $query = preg_replace('~\n  (?=AND |OR |JOIN |LEFT JOIN )~i', "\n    ", $query); // indent conditions and joins
+        $query = preg_replace('~\s+;\s*$~m', ";", $query); // remove whitespace around ";"
 
         return trim($query);
+    }
+
+    public static function simpleHighlighting(string $query): string
+    {
+        $commentColor = Ansi::colorStart(Dumper::$colors['info']);
+        $keywordColor = Ansi::colorStart(Dumper::$colors['value2']);
+        $textColor = Ansi::colorStart(Dumper::$colors['value']);
+        $reserved = implode('|', Sql::getKeywords());
+
+        $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|$)~i", "{$keywordColor}\\1{$textColor}", $query); // highlight keywords
+        $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query); // indent non-keywords
+        $query = preg_replace_callback("~-- [^\n]+\n~", static function (array $match) use ($commentColor, $textColor): string {
+            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
+        }, $query);
+
+        return $query;
     }
 
     public static function filterDoctrineSelects(string $query): string
