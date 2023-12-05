@@ -38,6 +38,8 @@ use function decoct;
 use function dirname;
 use function end;
 use function explode;
+use function fread;
+use function ftell;
 use function function_exists;
 use function get_class;
 use function get_extension_funcs;
@@ -66,6 +68,7 @@ use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
 use function property_exists;
+use function rewind;
 use function rtrim;
 use function spl_object_hash;
 use function spl_object_id;
@@ -231,8 +234,20 @@ trait DumperFormatters
     {
         $id = (int) $resource;
 
+        $metadata = stream_get_meta_data($resource);
+        $position = ftell($resource);
+        $metadata['position'] = $position;
+        if ($metadata['seekable'] && $position !== false && self::$dumpContentsOfSeekableStreams) {
+            if ($position !== 0) {
+                rewind($resource);
+            }
+            $contents = fread($resource, 8192);
+            $metadata['contents'] = $contents;
+            fseek($resource, $position);
+        }
+
         return self::resource("(stream {$id})") . ' ' . self::bracket('{')
-            . self::dumpVariables(stream_get_meta_data($resource), $depth)
+            . self::dumpVariables($metadata, $depth)
             . self::indent($depth) . self::bracket('}');
     }
 

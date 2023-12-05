@@ -202,6 +202,11 @@ class Dumper
     /** @var bool - dump static variables from methods when dumping static members of class (e.g. `rd(Foo::class)`) */
     public static $dumpClassesWithStaticMethodVariables = false;
 
+    /** @var bool - show contents of seekable streams (open files, php:// etc.; not usable for pipes etc.) by reading from start and then rewinding to original position */
+    public static $dumpContentsOfSeekableStreams = false;
+
+    // public static $dumpContentsOfSeekableIterators = false;
+
     // info settings ---------------------------------------------------------------------------------------------------
 
     /** @var bool|null - show comments with additional info (readable values, object hashes, hints...) */
