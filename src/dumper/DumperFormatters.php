@@ -1056,7 +1056,9 @@ trait DumperFormatters
             }
         }
 
-        $escaping = $binary ? self::$binaryEscaping : self::$stringsEscaping;
+        $escaping = $binary && (self::$stringsEscaping !== self::ESCAPING_MYSQL && self::$stringsEscaping !== self::ESCAPING_PGSQL)
+            ? self::$binaryEscaping
+            : self::$stringsEscaping;
         $translations = self::getTranslations($escaping);
         if (!self::$escapeWhiteSpace) {
             unset($translations["\n"], $translations["\r"], $translations["\t"]);
@@ -1083,7 +1085,7 @@ trait DumperFormatters
         }
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
-            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, false, $ellipsis, $apos ? "'" : '"');
+            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, $binary, $ellipsis, $apos ? "'" : '"');
         }
 
         // chunked
@@ -1150,6 +1152,9 @@ trait DumperFormatters
     {
         if ($escaping === self::ESCAPING_NONE) {
             $formatted = Ansi::color($quote . $string . $ellipsis . $quote, self::$colors['string']);
+        } elseif ($binary && ($escaping === self::ESCAPING_MYSQL || $escaping === self::ESCAPING_PGSQL)) {
+            // todo: still may be chunked?
+            return Ansi::color('x' . $quote . bin2hex($string) . $ellipsis . $quote, self::$colors['string']);
         } else {
             $formatted = self::escapeStringChunk($string, $escaping, $pattern, $translations, self::$colors['string']);
 
