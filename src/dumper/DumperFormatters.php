@@ -544,7 +544,7 @@ trait DumperFormatters
             return null;
         }
 
-        $data = json_decode($string);
+        $data = json_decode($string, true);
         if ($data === null) {
             return null;
         }
@@ -608,7 +608,7 @@ trait DumperFormatters
         return Ansi::color($value, self::$colors['float']);
     }
 
-    private static function floatScientific3(float $value) {
+    private static function floatScientific3(float $value): string {
         $exponent = 0;
         while (abs($value) >= 1000.0 || abs($value) < 1.0) {
             if ($value === 0.0 || $value === -0.0) {
