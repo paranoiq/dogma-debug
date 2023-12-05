@@ -45,7 +45,7 @@ class SqlHandler
     public const NONE = 0;
     public const QUERY = self::SELECT | self::INSERT | self::DELETE | self::UPDATE;
     public const TRANSACTION = self::BEGIN | self::COMMIT | self::ROLLBACK;
-    public const ALL = self::CONNECT | self::QUERY | self::TRANSACTION;
+    public const ALL = self::CONNECT | self::QUERY | self::TRANSACTION | self::OTHER;
 
     private const TYPES = [
         self::CONNECT => 'connect',
