@@ -303,8 +303,10 @@ class SqlHandler
     public static function filterWhitespace(string $query): string
     {
         $query = preg_replace('~\n\s*\n~m', "\n", $query);
+        $query = preg_replace('~\n\s{2,1000}~', "\n  ", $query);
+        $query = preg_replace('~\s+;\s*$~m', ";", $query);
 
-        return preg_replace('~\n\s{2,1000}~', "\n  ", $query);
+        return trim($query);
     }
 
     public static function filterDoctrineSelects(string $query): string
