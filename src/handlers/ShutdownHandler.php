@@ -185,12 +185,17 @@ class ShutdownHandler
         return self::$enabled;
     }
 
+    public static function getSignalName(int $signal): string
+    {
+        return array_search($signal, self::$signals, true) ?: (string) $signal;
+    }
+
     /**
      * @param mixed $info
      */
     public static function signal(int $signal, $info): void
     {
-        $name = array_search($signal, self::$signals, true) ?: $signal;
+        $name = self::getSignalName($signal);
 
         if (!in_array($signal, self::$nonTerminating, true)) {
             //Debugger::send(Message::ERROR, Ansi::white(" Terminated by $name signal. ", Ansi::DRED));
@@ -210,7 +215,7 @@ class ShutdownHandler
         $name = $signal === PHP_WINDOWS_EVENT_CTRL_C ? 'ctrl-c'
             : ($signal === PHP_WINDOWS_EVENT_CTRL_BREAK ? 'ctrl-break' : 'unknown');
 
-        Debugger::setTermination("signal({$name})");
+        Debugger::setTermination("signal ({$name})");
 
         //Debugger::send(Message::ERROR, Ansi::white(" Terminated by {$name} signal. ", Ansi::DRED));
         exit;

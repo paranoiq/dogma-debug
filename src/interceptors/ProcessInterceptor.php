@@ -29,8 +29,11 @@ class ProcessInterceptor
     /** @var int */
     private static $interceptChildren = Intercept::NONE;
 
+    /** @var int */
+    private static $interceptKill = Intercept::NONE;
+
     /**
-     * Take control over pcntl_signal(), pcntl_async_signals() and sapi_windows_set_ctrl_handler()
+     * Intercept pcntl_signal(), pcntl_async_signals() and sapi_windows_set_ctrl_handler()
      *
      * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
@@ -48,7 +51,7 @@ class ProcessInterceptor
     }
 
     /**
-     * Take control over pcntl_alarm()
+     * intercept pcntl_alarm()
      *
      * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
@@ -74,6 +77,18 @@ class ProcessInterceptor
         //   pcntl_getpriority, pcntl_setpriority,
         // err.: pcntl_get_last_error, pcntl_errno, pcntl_strerror
         self::$interceptChildren = $level;
+    }
+
+    /**
+     * Intercept posix_kill() function
+     *
+     * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
+     */
+    public static function interceptPosixKill(int $level = Intercept::LOG_CALLS): void
+    {
+        Intercept::registerFunction(self::NAME, 'posix_kill', self::class);
+
+        self::$interceptKill = $level;
     }
 
     // decorators ------------------------------------------------------------------------------------------------------
@@ -167,6 +182,14 @@ class ProcessInterceptor
     public static function pcntl_waitpid(int $process_id, &$status, int $flags = 0, &$resource_usage = []): int
     {
         return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [$process_id, &$status, $flags, &$resource_usage], 0);
+    }
+
+    public static function posix_kill(int $process_id, int $signal): bool
+    {
+        $name = ShutdownHandler::getSignalName($signal);
+        $info = ' ' . Dumper::info("// {$name}");
+
+        return Intercept::handle(self::NAME, self::$interceptKill, __FUNCTION__, [$process_id, $signal], true, false, $info);
     }
 
 }
