@@ -778,6 +778,9 @@ trait DumperFormatters
             return Ansi::color($name, self::$colors['info']);
         }, $names);
 
+        $class = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
+            return Ansi::colorStart(Ansi::WHITE) . '\x' . Str::charToHex($m[0]) . Ansi::colorStart(self::$colors['symbol']);
+        }, $class);
         $names[] = Ansi::color($class, self::$colors['symbol']);
 
         return implode(Ansi::color('\\', self::$colors['backslash']), $names);
