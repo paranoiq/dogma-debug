@@ -920,8 +920,15 @@ class Debugger
             $connections = $conn > 1 ? Units::unitWs($conn, 'con') : '';
             $queries = Units::unitWs($stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update'] + $stats['events']['delete'] + $stats['events']['query'], 'q');
             $time = Units::timeWs($stats['time']['total']);
-            $rows = Units::units($stats['rows']['total'], 'row');
-            $footer .= Ansi::color("| db: {$connections}{$queries}{$time}{$rows} ", self::$headerColor, self::$headerBg);
+            $errorCount = $stats['errors']['total'];
+            if ($errorCount === 0) {
+                $rows = Units::units($stats['rows']['total'], 'row');
+                $errors = '';
+            } else {
+                $rows = Units::unitsWs($stats['rows']['total'], 'row');
+                $errors = Units::units($errorCount, 'error');
+            }
+            $footer .= Ansi::color("| db: {$connections}{$queries}{$time}{$rows}{$errors} ", self::$headerColor, self::$headerBg);
         }
 
         // redis io

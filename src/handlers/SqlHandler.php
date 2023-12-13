@@ -63,6 +63,9 @@ class SqlHandler
     /** @var int - Types of events to show */
     public static $logEvents = self::ALL;
 
+    /** @var bool - Show log even if it is OFF when error happens */
+    public static $errorForcesLog = true;
+
     /** @var bool */
     public static $filterTrace = true;
 
@@ -79,14 +82,17 @@ class SqlHandler
         [self::class, 'simpleHighlighting']
     ];
 
-    /** @var int[] */
+    /** @var array<int, int> */
     private static $events = [];
 
-    /** @var float[] */
+    /** @var array<int, float> */
     private static $time = [];
 
-    /** @var int[] */
+    /** @var array<int, int> */
     private static $rows = [];
+
+    /** @var array<int, int> */
+    private static $errors = [];
 
     /**
      * @param int|string|null $errorCode
@@ -120,14 +126,19 @@ class SqlHandler
             self::$events[$type] = 0;
             self::$time[$type] = 0.0;
             self::$rows[$type] = 0;
+            self::$errors[$type] = 0;
         }
         self::$events[$type]++;
         self::$time[$type] += $duration;
         if ($rows !== null) {
             self::$rows[$type] += $rows;
         }
+        $isError = $errorCode !== null || $errorMessage !== null;
+        if ($isError) {
+            self::$errors[$type]++;
+        }
 
-        if (!($type & self::$logEvents)) {
+        if (!($type & self::$logEvents) && (!$isError || !self::$errorForcesLog)) {
             return;
         }
 
@@ -142,12 +153,21 @@ class SqlHandler
             $message = Ansi::lyellow(strtoupper(self::TYPES[$type]) . ';');
         }
 
-        $countFormatted = $rows !== null
-            ? Ansi::color(' -- ' . Units::units($rows, 'row'), Dumper::$colors['info'])
-            : '';
+        if ($rows !== null) {
+            $result = $isError ? ', FAILED' : ', OK';
+            $info = Ansi::color(' -- ' . Units::units($rows, 'row') . $result, Dumper::$colors['info']);
+        } else {
+            $result = $isError ? 'FAILED' : 'OK';
+            $info = Ansi::color(' -- ' . $result, Dumper::$colors['info']);
+        }
 
         $message = Ansi::white($connection ? " DB {$connection}: " : ' DB: ', Debugger::$handlerColors[self::NAME])
-            . ' ' . $message . $countFormatted;
+            . ' ' . $message . $info;
+
+        if ($isError) {
+            $errorMessage = str_replace('; check the manual that corresponds to your MySQL server version for the right syntax to use', '', (string) $errorMessage);
+            $message .= "\n " . Ansi::color($errorCode . ' ' . $errorMessage, Dumper::$colors['errors']);
+        }
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
@@ -197,11 +217,24 @@ class SqlHandler
                 'rollback' => self::$rows[self::ROLLBACK] ?? 0,
                 'other' => self::$rows[self::OTHER] ?? 0,
             ],
+            'errors' => [
+                'connect' => self::$errors[self::CONNECT] ?? 0,
+                'select' => self::$errors[self::SELECT] ?? 0,
+                'insert' => self::$errors[self::INSERT] ?? 0,
+                'delete' => self::$errors[self::DELETE] ?? 0,
+                'update' => self::$errors[self::UPDATE] ?? 0,
+                'query' => self::$errors[self::QUERY] ?? 0,
+                'begin' => self::$errors[self::BEGIN] ?? 0,
+                'commit' => self::$errors[self::COMMIT] ?? 0,
+                'rollback' => self::$errors[self::ROLLBACK] ?? 0,
+                'other' => self::$errors[self::OTHER] ?? 0,
+            ],
         ];
 
         $stats['events']['total'] = array_sum($stats['events']);
         $stats['time']['total'] = array_sum($stats['time']);
         $stats['rows']['total'] = array_sum($stats['rows']);
+        $stats['errors']['total'] = array_sum($stats['errors']);
 
         return $stats;
     }
@@ -322,6 +355,9 @@ class SqlHandler
         $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|$)~i", "{$keywordColor}\\1{$textColor}", $query); // highlight keywords
         $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query); // indent non-keywords
         $query = preg_replace_callback("~-- [^\n]+\n~", static function (array $match) use ($commentColor, $textColor): string {
+            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
+        }, $query);
+        $query = preg_replace_callback("~/\\*[^*]+\\*/~", static function (array $match) use ($commentColor, $textColor): string {
             return $commentColor . Ansi::removeColors($match[0]) . $textColor;
         }, $query);
 

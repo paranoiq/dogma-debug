@@ -300,6 +300,7 @@ class Dumper
         'file' => Ansi::LGRAY, // .../baz.php
         'line' => Ansi::DGRAY, // :42
 
+        'errors' => Ansi::LRED, // failed SQL etc.
         'exceptions' => Ansi::LMAGENTA, // RECURSION, SKIPPED, *****, ... (max depth, max length, not traversed)
 
         'call' => Ansi::LGREEN, // intercept or stream wrapper function call
