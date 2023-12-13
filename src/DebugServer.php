@@ -11,6 +11,8 @@
 
 namespace Dogma\Debug;
 
+use DateTime;
+use DateTimeZone;
 use Socket;
 use function array_diff_key;
 use function clearstatcache;
@@ -25,6 +27,7 @@ use function fread;
 use function fseek;
 use function in_array;
 use function ltrim;
+use function number_format;
 use function socket_accept;
 use function socket_bind;
 use function socket_close;
@@ -293,21 +296,28 @@ class DebugServer
             $this->durationSum = $message->duration;
         }
 
+        echo "\n";
+
+        // flags
+        if ($message->flags & Message::FLAG_BELL) {
+            echo "\x07";
+        }
+        if ($message->flags & Message::FLAG_SHOW_TIME) {
+            $formatted = number_format($message->time, 6, '.', '');
+            $dateTime = DateTime::createFromFormat('U.u', $formatted, new DateTimeZone('UTC'));
+            echo $dateTime->format('H:i:s.u ');
+        }
+
         // process id
         $isIntroOutro = $message->type === Message::INTRO || $message->type === Message::OUTRO;
-        $showPids = $isIntroOutro || $this->alwaysShowPids || (count($this->connections) + count($this->logPids)) > 1;
+        $showPids = $isIntroOutro || $this->alwaysShowPids || ($message->flags & Message::FLAG_SHOW_PID) || (count($this->connections) + count($this->logPids)) > 1;
         if ($showPids && $message->processId !== 0) {
             $color = $this->pidColors[$message->processId] ?? $this->defaultPidColor;
-            echo "\n" . Ansi::rgb(" #{$message->processId} ", null, $color) . ($isIntroOutro ? '' : ' ');
-        } else {
-            echo "\n";
+            echo Ansi::rgb(" #{$message->processId} ", null, $color) . ($isIntroOutro ? '' : ' ');
         }
 
         // payload
         echo ltrim($message->payload);
-        if ($message->bell) {
-            echo "\x07";
-        }
 
         // duration
         if ($message->duration > 0.000000000001) {

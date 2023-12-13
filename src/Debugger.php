@@ -182,6 +182,12 @@ class Debugger
         StreamInterceptor::PROTOCOL_TLS_12 => Ansi::DGREEN,
     ];
 
+    /** @var bool - show time of all logged events (otherwise shown only on request start/end) */
+    public static $alwaysShowTime = false;
+
+    /** @var bool - show pid for all logged events (otherwise shown only on request start/end) */
+    public static $alwaysShowPid = false;
+
     // internals -------------------------------------------------------------------------------------------------------
 
     /** @var array<string, float> - starts of timers indexed by name [timestamp] */
@@ -512,7 +518,8 @@ class Debugger
         int $type,
         string $payload,
         string $backtrace = '',
-        ?float $duration = null
+        ?float $duration = null,
+        ?int $processId = null
     ): void
     {
         static $depth = 0;
@@ -530,7 +537,9 @@ class Debugger
             $depth--;
         }
 
-        $message = Message::create($type, $payload, $backtrace, $duration);
+        $flags = (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
+            | (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0);
+        $message = Message::create($type, $payload, $backtrace, $duration, $flags, $processId);
 
         foreach (self::$beforeSend as $function) {
             if ($function($message)) {
@@ -652,7 +661,9 @@ class Debugger
         if (!self::$initDone) {
             if (Message::$count === 0) {
                 $header = self::createHeader();
-                $message = Message::create(Message::INTRO, $header);
+                $flags = (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
+                    | (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0);
+                $message = Message::create(Message::INTRO, $header, null, $flags);
 
                 if (self::$connection === self::CONNECTION_LOCAL) {
                     self::$server->renderMessage($message);
@@ -741,6 +752,23 @@ class Debugger
     }
 
     // header & footer -------------------------------------------------------------------------------------------------
+
+    public static function sendForkedProcessHeader(int $parentId, int $childId): void
+    {
+        $dt = new DateTime();
+        $time = $dt->format(self::$headerTimeFormat);
+        $php = PHP_VERSION . ' ' . Request::$sapi;
+        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} ", self::$headerColor, self::$headerBg) . ' ';
+        if (Request::$application && Request::$environment) {
+            $header .= Ansi::white(' ' . Request::$application . '/' . Request::$environment . ' ', Ansi::DBLUE) . ' ';
+        } elseif (Request::$application) {
+            $header .= Ansi::white(' ' . Request::$application . ' ', Ansi::DBLUE) . ' ';
+        }
+
+        $header .= "forked from #{$parentId}";
+
+        self::send(Message::INTRO, $header, '', null, $childId);
+    }
 
     private static function createHeader(): string
     {

@@ -46,6 +46,10 @@ class Message
     public const REDIS = 16;
     public const AMQP = 17;
 
+    public const FLAG_SHOW_TIME = 1;
+    public const FLAG_SHOW_PID = 2;
+    public const FLAG_BELL = 4;
+
     public const OUTPUT_WIDTH = 100;
 
     private const ALLOWED_CHARS = ["\n", "\r", "\t", "\e"];
@@ -60,7 +64,7 @@ class Message
     public $backtrace;
 
     /** @var int */
-    public $bell;
+    public $flags;
 
     /** @var int */
     public $counter = -1;
@@ -88,7 +92,7 @@ class Message
         string $payload,
         ?string $backtrace,
         ?float $duration,
-        int $bell,
+        int $flags,
         float $time,
         int $counter,
         int $processId,
@@ -98,22 +102,20 @@ class Message
         $this->payload = $payload;
         $this->backtrace = $backtrace;
         $this->duration = $duration;
-        $this->bell = $bell;
+        $this->flags = $flags;
         $this->time = $time;
         $this->counter = $counter;
         $this->processId = $processId;
         $this->threadId = $threadId;
     }
 
-    /**
-     * @param int|bool $bell
-     */
     public static function create(
         int $type,
         string $payload,
         ?string $backtrace = null,
         ?float $duration = null,
-        $bell = 0
+        int $flags = 0,
+        ?int $processId = null
     ): self
     {
         // todo: temporary
@@ -148,7 +150,12 @@ class Message
         if ($type !== self::OUTPUT_WIDTH) {
             $time = microtime(true);
             $counter = ++self::$count;
-            [$processId, $threadId] = System::getProcessAndThreadId();
+            if ($processId === null) {
+                [$processId, $threadId] = System::getProcessAndThreadId();
+            } else {
+                // todo: what happens to threads after pcntl_fork()?
+                $threadId = null;
+            }
         } else {
             $time = 0.0;
             $counter = 0;
@@ -156,7 +163,7 @@ class Message
             $threadId = null;
         }
 
-        return new self($type, $payload, $backtrace, $duration, intval($bell), $time, $counter, $processId, $threadId);
+        return new self($type, $payload, $backtrace, $duration, $flags, $time, $counter, $processId, $threadId);
     }
 
     /**
@@ -171,7 +178,7 @@ class Message
      */
     public function encode(): string
     {
-        return "\x01{$this->type}\x1F{$this->bell}\x1F{$this->counter}\x1F{$this->time}\x1F{$this->duration}\x1F{$this->processId}\x1F{$this->threadId}"
+        return "\x01{$this->type}\x1F{$this->flags}\x1F{$this->counter}\x1F{$this->time}\x1F{$this->duration}\x1F{$this->processId}\x1F{$this->threadId}"
             . "\x02{$this->payload}\x03{$this->backtrace}\x04";
     }
 
@@ -183,7 +190,7 @@ class Message
 
         $parts = explode("\x1F", $head);
         $type = (intval($parts[0])) ?: self::DUMP;
-        $bell = intval($parts[1] ?? 0);
+        $flags = intval($parts[1] ?? 0);
         $counter = intval($parts[2] ?? 0);
         $time = floatval($parts[3] ?? microtime(true));
         $duration = floatval($parts[4] ?? 0.0);
@@ -194,7 +201,7 @@ class Message
         $payload = $parts[0];
         $backtrace = rtrim($parts[1] ?? '', "\x04");
 
-        return new self($type, $payload, $backtrace, $duration, $bell, $time, $counter, $processId, $threadId);
+        return new self($type, $payload, $backtrace, $duration, $flags, $time, $counter, $processId, $threadId);
     }
 
 }

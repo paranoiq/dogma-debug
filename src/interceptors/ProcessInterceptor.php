@@ -9,6 +9,8 @@
 
 namespace Dogma\Debug;
 
+use function getmygid;
+
 /**
  * Tracks signals and pcntl functions
  *
@@ -155,7 +157,13 @@ class ProcessInterceptor
 
     public static function pcntl_fork(): int
     {
-        return Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [], 0);
+        $pid = Intercept::handle(self::NAME, self::$interceptChildren, __FUNCTION__, [], 0);
+
+        if ($pid !== 0) {
+            Debugger::sendForkedProcessHeader(getmypid(), $pid);
+        }
+
+        return $pid;
     }
 
     public static function pcntl_unshare(int $flags): bool
