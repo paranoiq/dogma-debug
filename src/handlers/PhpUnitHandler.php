@@ -48,7 +48,7 @@ class PhpUnitHandler
 
                     $args = Dumper::dumpArguments($frame->getNamedArgs());
                     $args = ltrim(rtrim($args, ','));
-                    $message = Ansi::white(" Test case{$dataSetName}: ", Ansi::DGREEN) . ' ' . Dumper::class($class) . '::' . Dumper::function($frame->function) . '(' . $args . '): ';
+                    $message = Ansi::white(" Test case{$dataSetName}: ", Ansi::LBLUE) . ' ' . Dumper::class($class) . '::' . Dumper::function($frame->function) . '(' . $args . '): ';
 
                     if ($message !== self::$currentTestCaseName && !str_contains($message, 'recurrence of')) {
                         Debugger::send(Message::CALLSTACK, $message);
