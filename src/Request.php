@@ -58,7 +58,7 @@ class Request
         '~dogma-debug/tests/.*\.phpt~' => self::APPLICATION_SELF_TEST,
         '~phpstan/phpstan/phpstan~' => self::APPLICATION_PHPSTAN,
         '~vendor/bin/phpstan~' => self::APPLICATION_PHPSTAN,
-        '~phpstan analyze -c~' => self::APPLICATION_PHPSTAN,
+        '~phpstan analyze~' => self::APPLICATION_PHPSTAN,
         '~phpstan worker~' => self::APPLICATION_PHPSTAN,
         '~vendor/bin/rector process~' => self::APPLICATION_RECTOR,
         '~vendor/bin/rector worker~' => self::APPLICATION_RECTOR,
