@@ -74,13 +74,13 @@ class ShutdownHandler
     private static $enabled = false;
 
     /** @var array<string, int> */
-    private static $signals;
+    private static $signals = [];
 
     /** @var int[] */
-    private static $nonTerminating;
+    private static $nonTerminating = [];
 
     /** @var int[] */
-    private static $ignore;
+    private static $ignore = [];
 
     /**
      * @param int[] $ignoreSignals
