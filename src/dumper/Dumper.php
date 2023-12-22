@@ -73,7 +73,7 @@ use const PHP_VERSION_ID;
 class Dumper
 {
     use DumperTraces;
-    use DumperFormatters;
+    use DumperComponents;
 
     public const FLOATS_DEFAULT = 0;
     public const FLOATS_DECIMALS = 1; // show decimals (do not allow scientific notation)
@@ -313,28 +313,28 @@ class Dumper
 
     /** @var array<int|string, callable(int): ?string> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
-        '~filemode|permissions~i' => [self::class, 'dumpIntPermissions'],
-        '~time|\\Wts~i' => [self::class, 'dumpIntTime'],
-        '~size|bytes|memory~i' => [self::class, 'dumpIntSize'],
-        '~flags|options|headeropt|settings~i' => [self::class, 'dumpIntFlags'],
-        '~(http|response)_?(code|status)~i' => [self::class, 'dumpIntHttpCode'],
-        [self::class, 'dumpIntPowersOfTwo'],
+        '~filemode|permissions~i' => [FormattersDefault::class, 'dumpIntPermissions'],
+        '~time|\\Wts~i' => [FormattersDefault::class, 'dumpIntTime'],
+        '~size|bytes|memory~i' => [FormattersDefault::class, 'dumpIntSize'],
+        '~flags|options|headeropt|settings~i' => [FormattersDefault::class, 'dumpIntFlags'],
+        '~(http|response)_?(code|status)~i' => [FormattersDefault::class, 'dumpIntHttpCode'],
+        [FormattersDefault::class, 'dumpIntPowersOfTwo'],
     ];
 
     /** @var array<int|string, callable(float): ?string> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
-        '~time~i' => [self::class, 'dumpFloatTime'],
+        '~time~i' => [FormattersDefault::class, 'dumpFloatTime'],
     ];
 
     /** @var array<int|string, callable(string): ?string> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
-        [self::class, 'dumpStringHidden'], // must be first!
-        '/path(?!ext)/i' => [self::class, 'dumpStringPathList'],
-        [self::class, 'dumpStringPath'],
-        [self::class, 'dumpStringUuid'],
-        [self::class, 'dumpStringColor'],
-        [self::class, 'dumpStringCallable'],
-        [self::class, 'dumpStringJson'],
+        [FormattersDefault::class, 'dumpStringHidden'], // must be first!
+        '/path(?!ext)/i' => [FormattersDefault::class, 'dumpStringPathList'],
+        [FormattersDefault::class, 'dumpStringPath'],
+        [FormattersDefault::class, 'dumpStringUuid'],
+        [FormattersDefault::class, 'dumpStringColor'],
+        [FormattersDefault::class, 'dumpStringCallable'],
+        [FormattersDefault::class, 'dumpStringJson'],
     ];
 
     /** @var array<string, callable(int|string): ?string> - user formatters for array keys. indexed by regexp matching the key containing the array - either "Class::$property" or "function.parameter. returns key info */
@@ -344,27 +344,27 @@ class Dumper
 
     /** @var array<string, callable(resource): string> - user formatters for resources */
     public static $resourceFormatters = [
-        '(stream)' => [self::class, 'dumpStream'],
-        '(stream-context)' => [self::class, 'dumpStreamContext'],
-        '(process)' => [self::class, 'dumpProcess'],
+        '(stream)' => [FormattersDefault::class, 'dumpStream'],
+        '(stream-context)' => [FormattersDefault::class, 'dumpStreamContext'],
+        '(process)' => [FormattersDefault::class, 'dumpProcess'],
     ];
 
     /** @var array<class-string, callable(object): ?string> - user formatters for dumping objects and resources */
     public static $objectFormatters = [
         // native classes
-        BackedEnum::class => [self::class, 'dumpBackedEnum'],
-        UnitEnum::class => [self::class, 'dumpUnitEnum'],
-        WeakReference::class => [self::class, 'dumpWeakReference'],
-        mysqli::class => [self::class, 'dumpMysqli'],
-        DateTimeInterface::class => [self::class, 'dumpDateTimeInterface'],
+        BackedEnum::class => [FormattersDefault::class, 'dumpBackedEnum'],
+        UnitEnum::class => [FormattersDefault::class, 'dumpUnitEnum'],
+        WeakReference::class => [FormattersDefault::class, 'dumpWeakReference'],
+        mysqli::class => [FormattersDefault::class, 'dumpMysqli'],
+        DateTimeInterface::class => [FormattersDefault::class, 'dumpDateTimeInterface'],
 
         // Debug
-        Callstack::class => [self::class, 'dumpCallstack'],
+        Callstack::class => [FormattersDefault::class, 'dumpCallstack'],
     ];
 
     /** @var array<class-string|int, callable(object): ?string> - user formatters for dumping objects and resources in single-line mode */
     public static $shortObjectFormatters = [
-        [self::class, 'dumpEntityId'],
+        [FormattersDefault::class, 'dumpEntityId'],
     ];
 
     /** @var array<string> - classes, methods ("Class::method") and ("Class::$property") that are not traversed. short dumps are used if configured */

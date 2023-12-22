@@ -76,11 +76,12 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/Debugger.php';
     require_once __DIR__ . '/src/Info.php';
 
-    require_once __DIR__ . '/src/dumper/DumperFormatters.php';
+    require_once __DIR__ . '/src/dumper/DumperComponents.php';
     require_once __DIR__ . '/src/dumper/DumperTraces.php';
     require_once __DIR__ . '/src/dumper/Dumper.php';
 
     require_once __DIR__ . '/src/dumper/FormattersReflection.php';
+    require_once __DIR__ . '/src/dumper/FormattersDefault.php';
     require_once __DIR__ . '/src/dumper/FormattersDom.php';
     require_once __DIR__ . '/src/dumper/FormattersDogma.php';
     require_once __DIR__ . '/src/dumper/FormattersBrick.php';
