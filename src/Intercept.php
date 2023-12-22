@@ -12,8 +12,13 @@ namespace Dogma\Debug;
 use Exception;
 use LogicException;
 use function call_user_func_array;
+use function implode;
 use function in_array;
 use function ini_get;
+use function is_array;
+use function is_int;
+use function is_resource;
+use function is_scalar;
 use function is_string;
 use function preg_replace;
 use function preg_replace_callback;
@@ -491,14 +496,9 @@ class Intercept
         if ($allowed || $level === self::NONE || $level === self::SILENT) {
             return call_user_func_array($function, $params);
         } elseif ($level & self::LOG_CALLS) {
-            $result = call_user_func_array($function, $params);
-            self::log($handler, $level, $function, $params, $result, $info);
-
-            return $result;
+            return self::callAndLog(true, $handler, $level, $function, $params, $defaultReturn, $info);
         } elseif ($level & self::PREVENT_CALLS) {
-            self::log($handler, $level, $function, $params, $defaultReturn, $info);
-
-            return $defaultReturn;
+            return self::callAndLog(false, $handler, $level, $function, $params, $defaultReturn, $info);
         } else {
             throw new LogicException('Not implemented: ' . $level);
         }
@@ -510,11 +510,22 @@ class Intercept
      */
     public static function log(string $handler, int $level, string $function, array $params, $return, string $info = ''): void
     {
+        self::callAndLog(false, $handler, $level, $function, $params, $return, $info);
+    }
+
+    /**
+     * @param mixed[] $params
+     * @param mixed|null $return
+     */
+    private static function callAndLog(bool $call, string $handler, int $level, string $function, array $params, $return, string $info = '')
+    {
+        [$return, $dump] = self::callAndLogInternal($call, $function, $params, $return);
+
         if (!self::$logAttempts || ($level & self::SILENT)) {
-            return;
+            return $return;
         }
 
-        $message = (($level & self::PREVENT_CALLS) ? ' Prevented ' : ' Called ') . Dumper::call($function, $params, $return);
+        $message = (($level & self::PREVENT_CALLS) ? ' Prevented ' : ' Called ') . $dump;
 
         if ($info !== '') {
             $message .= Dumper::info($info);
@@ -525,6 +536,65 @@ class Intercept
         $trace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
 
         Debugger::send(Message::INTERCEPT, $message, $trace);
+
+        return $return;
+    }
+
+    /**
+     * @param array<int|string|null> $params
+     * @param int|string|mixed[]|bool|null $return
+     * @return array{mixed, string}
+     */
+    private static function callAndLogInternal(bool $call, string $function, array $params = [], $return = null): array
+    {
+        $info = Dumper::$showInfo;
+        Dumper::$showInfo = null;
+
+        $paramSeparator = Ansi::color(', ', Dumper::$colors['call']);
+
+        $paramDumps = [];
+        foreach ($params as $key => $value) {
+            $paramDumps[$key] = Dumper::dumpValue($value, 0, "{$function}.{$key}");
+        }
+
+        if ($call) {
+            $return = call_user_func_array($function, $params);
+
+            foreach ($params as $key => $value) {
+                $paramDumpAfter = Dumper::dumpValue($value, 0, "{$function}.{$key}");
+                if ($paramDumpAfter !== $paramDumps[$key]) {
+                    $paramDumps[$key] .= ' ' . Dumper::symbol('=>') . ' ' . $paramDumpAfter;
+                }
+            }
+        }
+
+        $paramsDump = implode($paramSeparator, $paramDumps);
+
+        if ($return === null) {
+            $output = '';
+            $end = ')';
+        } elseif (is_scalar($return) || is_resource($return)) {
+            $output = ' ' . Dumper::dumpValue($return, 0);
+            $end = '):';
+        } elseif (is_array($return)) {
+            $output = [];
+            foreach ($return as $k => $v) {
+                if (is_int($k)) {
+                    $output[] = Dumper::dumpValue($v, 0);
+                } else {
+                    $output[] = Ansi::color($k . ':', Dumper::$colors['call']) . ' ' . Dumper::dumpValue($v, 0);
+                }
+            }
+            $output = ' ' . implode(' ', $output);
+            $end = '):';
+        } else {
+            $output = ' ' . Dumper::dumpValue($return, 0);
+            $end = '):';
+        }
+
+        Dumper::$showInfo = $info;
+
+        return [$return, Dumper::func($function . '(', $paramsDump, $end, $output)];
     }
 
 }

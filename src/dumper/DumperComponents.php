@@ -472,14 +472,14 @@ trait DumperComponents
      * @param array<int|string|null> $params
      * @param int|string|mixed[]|bool|null $return
      */
-    public static function call(string $name, array $params = [], $return = null/*, array $hints = []*/): string
+    public static function call(string $function, array $params = [], $return = null): string
     {
         $info = Dumper::$showInfo;
         Dumper::$showInfo = null;
 
         $formatted = [];
         foreach ($params as $key => $value) {
-            $formatted[] = Dumper::dumpValue($value, 0, "{$name}.{$key}");
+            $formatted[] = Dumper::dumpValue($value, 0, "{$function}.{$key}");
         }
         $params = implode(Ansi::color(', ', Dumper::$colors['call']), $formatted);
 
@@ -507,7 +507,7 @@ trait DumperComponents
 
         Dumper::$showInfo = $info;
 
-        return self::func($name . '(', $params, $end, $output);
+        return self::func($function . '(', $params, $end, $output);
     }
 
     public static function func(string $name, string $params = '', string $end = '', string $return = ''): string
