@@ -56,12 +56,9 @@ class Request
     /** @var array<string, string> */
     public static $appCommandMatches = [
         '~dogma-debug/tests/.*\.phpt~' => self::APPLICATION_SELF_TEST,
-        '~phpstan/phpstan/phpstan~' => self::APPLICATION_PHPSTAN,
-        '~vendor/bin/phpstan~' => self::APPLICATION_PHPSTAN,
-        '~phpstan analyze~' => self::APPLICATION_PHPSTAN,
-        '~phpstan worker~' => self::APPLICATION_PHPSTAN,
-        '~vendor/bin/rector process~' => self::APPLICATION_RECTOR,
-        '~vendor/bin/rector worker~' => self::APPLICATION_RECTOR,
+        '~(?:phpstan/phpstan|vendor/bin)/phpstan~' => self::APPLICATION_PHPSTAN,
+        '~phpstan (?:analyse|analyze|worker)~' => self::APPLICATION_PHPSTAN,
+        '~vendor/bin/rector (?:process|worker)~' => self::APPLICATION_RECTOR,
         '~phpunit/phpunit/phpunit~' => self::APPLICATION_PHPUNIT,
         '~codeception/codeception/codecept~' => self::APPLICATION_CODECEPTION,
         '~nette/tester/src/tester~' => self::APPLICATION_NETTE_TESTER,
