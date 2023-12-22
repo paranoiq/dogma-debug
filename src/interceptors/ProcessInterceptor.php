@@ -9,7 +9,8 @@
 
 namespace Dogma\Debug;
 
-use function getmygid;
+use function implode;
+use const SIG_DFL;
 
 /**
  * Tracks signals and pcntl functions
@@ -47,6 +48,7 @@ class ProcessInterceptor
         Intercept::registerFunction(self::NAME, 'pcntl_sigprocmask', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_sigwaitinfo', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_sigtimedwait', self::class);
+        Intercept::registerFunction(self::NAME, 'pcntl_signal_get_handler', self::class);
 
         Intercept::registerFunction(self::NAME, 'sapi_windows_set_ctrl_handler', self::class);
         self::$interceptSignals = $level;
@@ -100,7 +102,10 @@ class ProcessInterceptor
      */
     public static function pcntl_signal(int $signal, $callable, bool $restartSysCalls = true): bool
     {
-        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signal, $callable, $restartSysCalls], true);
+        $name = ShutdownHandler::getSignalName($signal);
+        $info = ' ' . Dumper::info("// {$name}");
+
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signal, $callable, $restartSysCalls], true, false, $info);
     }
 
     public static function pcntl_async_signals(?bool $enable): bool
@@ -119,7 +124,13 @@ class ProcessInterceptor
      */
     public static function pcntl_sigprocmask(int $mode, array $signals, &$old_signals): bool
     {
-        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$mode, $signals, &$old_signals], true);
+        $names = [];
+        foreach ($signals as $signal) {
+            $names = ShutdownHandler::getSignalName($signal);
+        }
+        $info = ' ' . Dumper::info('// ' . implode(',', $names));
+
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$mode, $signals, &$old_signals], true, false, $info);
     }
 
     /**
@@ -130,7 +141,13 @@ class ProcessInterceptor
      */
     public static function pcntl_sigwaitinfo(array $signals, &$info = [])
     {
-        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info], true);
+        $names = [];
+        foreach ($signals as $signal) {
+            $names = ShutdownHandler::getSignalName($signal);
+        }
+        $info = ' ' . Dumper::info('// ' . implode(',', $names));
+
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info], true, false, $info);
     }
 
     /**
@@ -141,7 +158,21 @@ class ProcessInterceptor
      */
     public static function pcntl_sigtimedwait(array $signals, &$info = [], int $seconds = 0, int $nanoseconds = 0)
     {
-        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info, $seconds, $nanoseconds], true);
+        $names = [];
+        foreach ($signals as $signal) {
+            $names = ShutdownHandler::getSignalName($signal);
+        }
+        $info = ' ' . Dumper::info('// ' . implode(',', $names));
+
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info, $seconds, $nanoseconds], true, false, $info);
+    }
+
+    public static function pcntl_signal_get_handler(int $signal)
+    {
+        $name = ShutdownHandler::getSignalName($signal);
+        $info = ' ' . Dumper::info("// {$name}");
+
+        return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signal], SIG_DFL, false, $info);
     }
 
     public static function sapi_windows_set_ctrl_handler(callable $callable, bool $add): bool

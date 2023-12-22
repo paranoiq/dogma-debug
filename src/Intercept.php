@@ -55,10 +55,10 @@ use function substr;
  *      set_error_handler(), restore_error_handler()
  *      error_reporting(), display_errors()
  *      set_exception_handler(), restore_exception_handler()
- * - todo: ExecInterceptor:
- *      exec(), passthru(), shell_exec(), system()
- *      proc_open(), proc_close(), proc_terminate(), proc_get_status()
- *      `...`
+ * - ExecInterceptor:
+ *      exec(), passthru(), pcntl_exec(), shell_exec(), system(), proc_open(),
+ *      proc_close(), proc_terminate(), proc_get_status()
+ *      todo: `...`
  * - HeadersInterceptor:
  *      header(), header_remove(), header_register_callback(), http_response_code()
  *      setcookie(), setrawcookie()
