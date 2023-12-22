@@ -67,6 +67,7 @@ use function ord;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function proc_get_status;
 use function property_exists;
 use function rewind;
 use function rtrim;
@@ -257,6 +258,7 @@ trait DumperFormatters
     public static function dumpStreamContext($resource, int $depth = 0): string
     {
         $id = (int) $resource;
+
         $params = stream_context_get_params($resource);
         if ($params !== ['options' => []]) {
             $params = self::dumpVariables($params, $depth) . self::indent($depth);
@@ -265,6 +267,24 @@ trait DumperFormatters
                 . $params . self::bracket('}');
         } else {
             return self::resource('(stream-context)') . ' ' . self::info('#' . (int) $resource);
+        }
+    }
+
+    /**
+     * @param resource $resource
+     */
+    public static function dumpProcess($resource, int $depth = 0): string
+    {
+        $id = (int) $resource;
+
+        $params = proc_get_status($resource);
+        if ($params !== ['options' => []]) {
+            $params = self::dumpVariables($params, $depth) . self::indent($depth);
+
+            return self::resource("(process {$id})") . ' ' . self::bracket('{')
+                . $params . self::bracket('}');
+        } else {
+            return self::resource('(process)') . ' ' . self::info('#' . (int) $resource);
         }
     }
 

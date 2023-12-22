@@ -167,6 +167,9 @@ class ProcessInterceptor
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signals, &$info, $seconds, $nanoseconds], true, false, $info);
     }
 
+    /**
+     * @return callable|int
+     */
     public static function pcntl_signal_get_handler(int $signal)
     {
         $name = ShutdownHandler::getSignalName($signal);

@@ -346,6 +346,7 @@ class Dumper
     public static $resourceFormatters = [
         '(stream)' => [self::class, 'dumpStream'],
         '(stream-context)' => [self::class, 'dumpStreamContext'],
+        '(process)' => [self::class, 'dumpProcess'],
     ];
 
     /** @var array<class-string, callable(object): ?string> - user formatters for dumping objects and resources */
