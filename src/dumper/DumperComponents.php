@@ -486,20 +486,6 @@ trait DumperComponents
         if ($return === null) {
             $output = '';
             $end = ')';
-        } elseif (is_scalar($return) || is_resource($return)) {
-            $output = ' ' . Dumper::dumpValue($return, 0);
-            $end = '):';
-        } elseif (is_array($return)) {
-            $output = [];
-            foreach ($return as $k => $v) {
-                if (is_int($k)) {
-                    $output[] = Dumper::dumpValue($v, 0);
-                } else {
-                    $output[] = Ansi::color($k . ':', Dumper::$colors['call']) . ' ' . Dumper::dumpValue($v, 0);
-                }
-            }
-            $output = ' ' . implode(' ', $output);
-            $end = '):';
         } else {
             $output = ' ' . Dumper::dumpValue($return, 0);
             $end = '):';
