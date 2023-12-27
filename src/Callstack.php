@@ -125,7 +125,8 @@ class Callstack
                 continue;
             } elseif ($function === null && $file === null) {
                 // on some internal functions that call back
-                continue;
+                $file = 'PHP internals (signal, shutdown, stream, buffer or session handler)';
+                $line = -1;
             }
 
             if ($function !== null && str_contains($function, '{closure:')) {
