@@ -251,6 +251,17 @@ class FormattersDefault
         return Dumper::int(str_pad(decoct($int), 4, '0', STR_PAD_LEFT)) . ' ' . Dumper::info('// ' . $perms);
     }
 
+    public static function dumpIntSignal(int $int): ?string
+    {
+        if ($int <= 0) {
+            return null;
+        }
+
+        $name = ShutdownHandler::getSignalName($int);
+
+        return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . $name);
+    }
+
     public static function dumpIntSize(int $int): ?string
     {
         if ($int < 1024) {

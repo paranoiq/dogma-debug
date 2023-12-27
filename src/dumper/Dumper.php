@@ -314,6 +314,7 @@ class Dumper
     /** @var array<int|string, callable(int): ?string> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
         '~filemode|permissions~i' => [FormattersDefault::class, 'dumpIntPermissions'],
+        '~termsig|stopsig|signal~i' => [FormattersDefault::class, 'dumpIntSignal'],
         '~time|\\Wts~i' => [FormattersDefault::class, 'dumpIntTime'],
         '~size|bytes|memory~i' => [FormattersDefault::class, 'dumpIntSize'],
         '~flags|options|headeropt|settings~i' => [FormattersDefault::class, 'dumpIntFlags'],
