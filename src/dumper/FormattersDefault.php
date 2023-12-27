@@ -89,18 +89,37 @@ class FormattersDefault
         $metadata = stream_get_meta_data($resource);
         $position = ftell($resource);
         $metadata['position'] = $position;
+        $contents = null;
         if ($metadata['seekable'] && $position !== false && Dumper::$dumpContentsOfSeekableStreams) {
             if ($position !== 0) {
                 rewind($resource);
             }
             $contents = fread($resource, 8192);
-            $metadata['contents'] = $contents;
             fseek($resource, $position);
         }
 
-        return Dumper::resource("(stream {$id})") . ' ' . Dumper::bracket('{')
-            . Dumper::dumpVariables($metadata, $depth)
-            . Dumper::indent($depth) . Dumper::bracket('}');
+        $result = Dumper::resource("(stream {$id}");
+        $result .= ' ' . Dumper::value($metadata['stream_type']) . ' ' . Dumper::value2($metadata['mode']);
+        $result .= ' ' . Dumper::value($metadata['seekable'] ? 'seekable' : 'non-seekable');
+        $result .= ' ' . Dumper::value(!empty($metadata['blocked']) ? 'blocked' : 'non-blocked');
+        if (!empty($metadata['timed_out'])) {
+            $result .= ' ' . Dumper::value('timed-out');
+        }
+        if ($metadata['position'] !== false) {
+            $result .= ' position:' . Dumper::int($metadata['position']);
+        }
+        if ($metadata['unread_bytes'] !== 0) {
+            $result .= ' unread-bytes:' . Dumper::int($metadata['unread_bytes']);
+        }
+        if (!empty($metadata['eof'])) {
+            $result .= ' ' . Dumper::value2('EOF');
+        }
+        if ($contents !== null) {
+            $result .= ' ' . Dumper::string($contents);
+        }
+        $result .= Dumper::resource(")");
+
+        return $result;
     }
 
     /**
@@ -130,13 +149,36 @@ class FormattersDefault
 
         $params = proc_get_status($resource);
         if ($params !== ['options' => []]) {
-            $params = Dumper::dumpVariables($params, $depth) . Dumper::indent($depth);
+            $result = Dumper::resource("(process {$id}");
+            if ($params['pid']) {
+                $result .= ' pid:' . Dumper::int($params['pid']);
+            }
+            $result .= ' ' . Dumper::string($params['command']);
 
-            return Dumper::resource("(process {$id})") . ' ' . Dumper::bracket('{')
-                . $params . Dumper::bracket('}');
+            // should be mutually exclusive, but who knows...
+            if ($params['running']) {
+                $result .= ' ' . Dumper::value('running');
+            }
+            if ($params['signaled']) {
+                $result .= ' ' . Dumper::value('terminated(') . Dumper::int($params['termsig']) . Dumper::value(')');
+            }
+            if ($params['stopped']) {
+                $result .= ' ' . Dumper::value('stopped(') . Dumper::int($params['stopsig']) . Dumper::value(')');
+            }
+            if (!$params['running'] && !$params['signaled'] && !$params['stopped']) {
+                $result .= ' ' . Dumper::value('ended');
+            }
+
+            // todo: cache exitcode "Only first call of this function return real value, next calls return -1."
+            if ($params['exitcode'] !== -1) {
+                $result .= ' exit:' . Dumper::int($params['exitcode']);
+            }
+            $result .= Dumper::resource(")");
         } else {
-            return Dumper::resource('(process)') . ' ' . Dumper::info('#' . (int) $resource);
+            $result = Dumper::resource("(process {$id})") . ' ' . Dumper::info('#' . (int) $resource);
         }
+
+        return $result;
     }
 
     public static function dumpUnitEnum(UnitEnum $enum): string
