@@ -303,7 +303,7 @@ class Dumper
         'errors' => Ansi::LRED, // failed SQL etc.
         'exceptions' => Ansi::LMAGENTA, // RECURSION, SKIPPED, *****, ... (max depth, max length, not traversed)
 
-        'call' => Ansi::LGREEN, // intercept or stream wrapper function call
+        'call' => Ansi::DCYAN, // intercept or stream wrapper function call
         'time' => Ansi::LBLUE, // operation time
         'memory' => Ansi::DBLUE, // allocated memory
     ];
