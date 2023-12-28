@@ -412,6 +412,18 @@ class FormattersDefault
         return null;
     }
 
+    public static function dumpStringKeyValuePair(string $string, string $info, string $key, int $depth): ?string
+    {
+        if (!str_contains($string, '=')) {
+            return null;
+        }
+
+        $string = Dumper::string($string, $depth, PATH_SEPARATOR);
+        $string = str_replace('=', Ansi::colorStart(Dumper::$colors['symbol']) . '=' . Ansi::colorStart(Dumper::$colors['string']), $string);
+
+        return $string . ' ' . Dumper::info("// {$info}");
+    }
+
     public static function dumpStringUuid(string $string, string $info, string $key, int $depth): ?string
     {
         static $uuidRe = '~^(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})}?$~';

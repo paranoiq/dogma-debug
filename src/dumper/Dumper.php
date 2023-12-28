@@ -332,6 +332,7 @@ class Dumper
         [FormattersDefault::class, 'dumpStringHidden'], // must be first!
         '/path(?!ext)/i' => [FormattersDefault::class, 'dumpStringPathList'],
         [FormattersDefault::class, 'dumpStringPath'],
+        [FormattersDefault::class, 'dumpStringKeyValuePair'],
         [FormattersDefault::class, 'dumpStringUuid'],
         [FormattersDefault::class, 'dumpStringColor'],
         [FormattersDefault::class, 'dumpStringCallable'],
