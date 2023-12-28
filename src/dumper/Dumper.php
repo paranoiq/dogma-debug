@@ -348,6 +348,7 @@ class Dumper
         '(stream)' => [FormattersDefault::class, 'dumpStream'],
         '(stream-context)' => [FormattersDefault::class, 'dumpStreamContext'],
         '(process)' => [FormattersDefault::class, 'dumpProcess'],
+        '(closed)' => [FormattersDefault::class, 'dumpClosedProcess'],
     ];
 
     /** @var array<class-string, callable(object): ?string> - user formatters for dumping objects and resources */

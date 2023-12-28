@@ -57,6 +57,9 @@ use const STR_PAD_LEFT;
 class FormattersDefault
 {
 
+    /** @var array<int, int> */
+    private static $processExitCodes = [];
+
     /**
      * @param object $object
      */
@@ -169,16 +172,31 @@ class FormattersDefault
                 $result .= ' ' . Dumper::value('ended');
             }
 
-            // todo: cache exitcode "Only first call of this function return real value, next calls return -1."
+            // cache exitcode because "Only first call of this function return real value, next calls return -1."
+            if (isset(self::$processExitCodes[$id])) {
+                $params['exitcode'] = self::$processExitCodes[$id];
+            }
             if ($params['exitcode'] !== -1) {
                 $result .= ' exit:' . Dumper::int($params['exitcode']);
+                self::$processExitCodes[$id] = $params['exitcode'];
             }
             $result .= Dumper::resource(")");
         } else {
-            $result = Dumper::resource("(process {$id})") . ' ' . Dumper::info('#' . (int) $resource);
+            $result = Dumper::resource("(process {$id})");
         }
 
         return $result;
+    }
+
+    /**
+     * @param resource $resource
+     */
+    public static function dumpClosedProcess($resource, int $depth = 0): string
+    {
+        $id = (int) $resource;
+        unset(self::$processExitCodes[$id]);
+
+        return Dumper::resource("(closed {$id})");
     }
 
     public static function dumpUnitEnum(UnitEnum $enum): string
