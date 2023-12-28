@@ -447,6 +447,8 @@ class Dumper
     }
 
     /**
+     * Dump value preceded by expression it came from and followed by trace
+     *
      * @param mixed $value
      */
     public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null): string
@@ -719,7 +721,7 @@ class Dumper
                     $parts = explode($infoPrefix, $item);
                     $parts[] = '';
                     [$v, $i] = $parts;
-                    //$i = str_replace(Ansi::RESET_FORMAT, '', $i);
+                    $i = Ansi::removeColors($i);
                     $values[] = $v;
                     $infos[] = $i;
                 }
