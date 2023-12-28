@@ -58,6 +58,7 @@ use function str_split;
 use function strlen;
 use function strpos;
 use function strrev;
+use function strtolower;
 use function strtoupper;
 use function substr;
 use function trim;
@@ -213,6 +214,9 @@ trait DumperComponents
         $value = strtoupper($value);
         if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN' && !str_contains($value, '.')) {
             $value .= '.0';
+        }
+        if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN') {
+            $value = strtolower($value);
         }
         $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
         if ($under) {
