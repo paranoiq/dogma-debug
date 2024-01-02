@@ -589,9 +589,14 @@ trait DumperComponents
         if ($version === 1) {
             /** @var positive-int $time */
             $time = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
+            $dateTime = self::intToFormattedDate((int) $time);
+            // not valid date. probably not UUID
+            if (intval(explode('-', $dateTime)[0]) > 3000) {
+                return null;
+            }
 
-            return 'UUID v' . $version . ', ' . self::intToFormattedDate((int) $time);
-        } elseif ($version < 6) {
+            return 'UUID v' . $version . ', ' . $dateTime;
+        } elseif ($version > 0 && $version < 6) {
             return 'UUID v' . $version;
         } else {
             return null;
