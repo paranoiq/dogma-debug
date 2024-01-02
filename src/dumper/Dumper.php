@@ -748,9 +748,6 @@ class Dumper
     {
         $hash = spl_object_hash($object);
         $recursion = self::$objects[$hash] ?? null;
-        if ($recursion === null) {
-            self::$objects[$hash] = true;
-        }
         $class = get_class($object);
 
         if ($recursion === true) {
@@ -764,6 +761,9 @@ class Dumper
         } elseif (is_string($recursion)) {
             return $recursion;
         }
+        if ($recursion === null) {
+            self::$objects[$hash] = true;
+        }
 
         $info = self::objectInfo($object);
 
@@ -773,7 +773,7 @@ class Dumper
             if ($handler !== null) {
                 $handlerResult = $handler($object);
             }
-            if ($handlerResult !== null) {
+            if ($handlerResult === null) {
                 foreach (self::$objectFormatters as $cl => $handler) {
                     if (is_a($object, $cl)) {
                         $handlerResult = $handler($object, $depth);
