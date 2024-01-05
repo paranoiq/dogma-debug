@@ -322,6 +322,17 @@ class FormattersDefault
         return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . $name);
     }
 
+    public static function dumpIntExitCode(int $int): ?string
+    {
+        if ($int <= 0) {
+            return null;
+        }
+
+        $name = ExecInterceptor::getExitCodeName($int);
+
+        return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . $name);
+    }
+
     public static function dumpIntSize(int $int): ?string
     {
         if ($int < 1024) {

@@ -315,6 +315,7 @@ class Dumper
     public static $intFormatters = [
         '~filemode|permissions~i' => [FormattersDefault::class, 'dumpIntPermissions'],
         '~termsig|stopsig|signal~i' => [FormattersDefault::class, 'dumpIntSignal'],
+        '~exit~i' => [FormattersDefault::class, 'dumpIntExitCode'],
         '~time|\\Wts~i' => [FormattersDefault::class, 'dumpIntTime'],
         '~size|bytes|memory~i' => [FormattersDefault::class, 'dumpIntSize'],
         '~flags|options|headeropt|settings~i' => [FormattersDefault::class, 'dumpIntFlags'],
