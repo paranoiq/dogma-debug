@@ -134,6 +134,7 @@ class Debugger
     /** @var array<string, string> Background colors of handler labels */
     public static $handlerColors = [
         'default' => Ansi::DGREEN,
+        'event' => Ansi::LBLUE,
 
         // basic handlers
         ErrorHandler::NAME => Ansi::DGREEN,
