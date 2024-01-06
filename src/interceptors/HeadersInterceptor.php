@@ -64,6 +64,10 @@ class HeadersInterceptor
 
     public static function header_register_callback(callable $callable): bool
     {
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_HEADERS) {
+            $callable = Intercept::wrapEventHandler($callable, Intercept::EVENT_HEADERS);
+        }
+
         return Intercept::handle(self::NAME, self::$interceptHeaders, __FUNCTION__, [$callable], true);
     }
 

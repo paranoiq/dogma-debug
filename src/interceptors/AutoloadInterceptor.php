@@ -53,6 +53,10 @@ class AutoloadInterceptor
 
     public static function spl_autoload_register(?callable $callback = null, bool $throw = true, bool $prepend = false): bool
     {
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_AUTOLOAD) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_AUTOLOAD);
+        }
+
         return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$callback, $throw, $prepend], true);
     }
 

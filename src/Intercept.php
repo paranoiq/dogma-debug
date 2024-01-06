@@ -12,13 +12,10 @@ namespace Dogma\Debug;
 use Exception;
 use LogicException;
 use function call_user_func_array;
+use function func_get_args;
 use function implode;
 use function in_array;
 use function ini_get;
-use function is_array;
-use function is_int;
-use function is_resource;
-use function is_scalar;
 use function is_string;
 use function preg_replace;
 use function preg_replace_callback;
@@ -32,9 +29,9 @@ use function substr;
  * functions (like register_error_handler etc.). This can be used to prevent other tools from changing
  * the environment and potentially silence some errors or just to track which tools are doing what
  *
- * FileHandler (and PharHandler if you are debugging a packed application) must be enabled for this
+ * FileStreamWrapper (and PharStreamWrapper if you are debugging a packed application) must be enabled for this
  *
- * You can add a custom handler via Intercept::registerXyz() methods and overload any system functions. use:
+ * You can add a custom interceptor via Intercept::registerXyz() methods and overload any system functions. use:
  * - registerFunction() to replace functions
  * - registerMethod() to replace methods
  * - registerClass() to replace classes
@@ -42,8 +39,9 @@ use function substr;
  * - inspectCaughtException() to inspect exceptions caught by application
  * - strictTypes() to turn strict_types on/off regardless of declarations in source code
  * - insertDeclareTicks() to setup ticks regardless of declarations in source code
+ * - removeSensitiveParameterAttributes() to dump data marked as sensitive in backtrace outputs
  *
- * Supported handlers so far and what functions they overload:
+ * Supported interceptors so far and what functions they overload:
  *
  * - AutoloadInterceptor:
  *      spl_autoload_*(), user function __autoload(), user function registered via ini directive 'unserialize_callback_func'
@@ -52,7 +50,7 @@ use function substr;
  * - BuffersInterceptor:
  *      flush(), ob_*() (except ob_gz_handler()), output_add_rewrite_var(), output_reset_rewrite_vars()
  * - CurlInterceptor:
- *      curl_*(),
+ *      curl_*(), curl_multi_*()
  *      todo: curl_share_*()
  * - DnsInterceptor:
  *      checkdnsrr(), dns_check_record(), dns_get_mx(), dns_get_record(), gethostbyaddr(), gethostbyname(), gethostbynamel(), gethostname(), getmxrr()
@@ -113,14 +111,40 @@ class Intercept
     //public const ALWAYS_LAST = 6; // for register_x_handler() - process own handling after native functionality
     //public const ALWAYS_FIRST = 8; // for register_x_handler() - process own handling before native functionality
 
-    /** @var bool Report files where code has been modified */
+    public const EVENT_ERROR = 1;
+    public const EVENT_EXCEPTION = 2;
+    public const EVENT_TICK = 4;
+    public const EVENT_HEADERS = 8;
+    public const EVENT_SHUTDOWN = 16;
+    public const EVENT_SESSION = 32;
+    public const EVENT_AUTOLOAD = 64;
+    public const EVENT_SIGNAL = 128;
+    public const EVENT_OUTPUT = 256;
+
+    public const EVENT_ALL = 511;
+
+    /** @var bool - Report files where code has been modified */
     public static $logReplacements = true;
 
-    /** @var string[] Array of handler name to filter */
+    /** @var string[] - Array of handler name to filter */
     public static $logReplacementsForHandlers = [];
 
-    /** @var bool Report when app code tries to call overloaded functions */
+    /** @var bool - Report when app code tries to call overloaded functions */
     public static $logAttempts = true;
+
+    /**
+     * @var int - Wrap event handlers to report when event code is being executed for:
+     *  - set_error_handler()
+     *  - set_exception_handler()
+     *  - register_tick_function()
+     *  - header_register_callback()
+     *  - register_shutdown_function()
+     *  - session_set_save_handler()
+     *  - spl_autoload_register()
+     *  - pcntl_signal()
+     *  - ob_start()
+     */
+    public static $wrapEventHandlers = 0;
 
     // trace settings --------------------------------------------------------------------------------------------------
 
@@ -169,6 +193,62 @@ class Intercept
 
     /** @var int|null */
     private static $ticks;
+
+    /** @var array<int, int> */
+    private static $wrappedHandlerCounts = [];
+
+    /** @var array<int, string> */
+    private static $eventHandlerNames = [
+        self::EVENT_ERROR => 'error handler',
+        self::EVENT_EXCEPTION => 'exception handler',
+        self::EVENT_TICK => 'tick handler',
+        self::EVENT_HEADERS => 'headers handler',
+        self::EVENT_SHUTDOWN => 'shutdown handler',
+        self::EVENT_SESSION => 'session handler',
+        self::EVENT_AUTOLOAD => 'autoload handler',
+        self::EVENT_SIGNAL => 'signal handler',
+        self::EVENT_OUTPUT => 'output handler',
+    ];
+
+    public static function wrapEventHandler(callable $callback, int $event, ?string $type = null): callable
+    {
+        $callstack = Callstack::get(Dumper::$traceFilters);
+        $count = (self::$wrappedHandlerCounts[$event] ?? 0) + 1;
+        self::$wrappedHandlerCounts[$event] = $count;
+
+        return static function () use ($callback, $callstack, $event, $type, $count) {
+            Intercept::eventStart($callstack, $event, $type, $count);
+            $result = call_user_func_array($callback, func_get_args());
+            Intercept::eventEnd($callstack, $event, $type, $count);
+            return $result;
+        };
+    }
+
+    public static function eventStart(Callstack $callstack, int $event, ?string $type = null, ?int $count = null): void
+    {
+        $name = 'Called ' . self::$eventHandlerNames[$event];
+        if ($type !== null) {
+            $name .= " ({$type})";
+        }
+        if ($count !== null) {
+            $name .= ' #' . $count;
+        }
+        $message = Ansi::white(" {$name} " , Debugger::$handlerColors['event']) . ' defined in:';
+        Debugger::send(Message::EVENT, $message, Dumper::formatCallstack($callstack, 1, null, 0));
+    }
+
+    public static function eventEnd(Callstack $callstack, int $event, ?string $type = null, ?int $count = null): void
+    {
+        $name = 'Finished ' . self::$eventHandlerNames[$event];
+        if ($type !== null) {
+            $name .= " ({$type})";
+        }
+        if ($count !== null) {
+            $name .= ' #' . $count;
+        }
+        $message = Ansi::white(" {$name} " , Debugger::$handlerColors['event']) . ' defined in:';
+        Debugger::send(Message::EVENT, $message, Dumper::formatCallstack($callstack, 1, null, 0));
+    }
 
     public static function enabled(): bool
     {

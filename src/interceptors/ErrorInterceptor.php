@@ -76,6 +76,10 @@ class ErrorInterceptor
 
     public static function set_exception_handler(?callable $callback): ?callable
     {
+        if ($callback !== null && Intercept::$wrapEventHandlers & Intercept::EVENT_EXCEPTION) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_EXCEPTION);
+        }
+
         return Intercept::handle(self::NAME, self::$interceptExceptionHandlers, __FUNCTION__, [$callback], null);
     }
 
@@ -86,6 +90,10 @@ class ErrorInterceptor
 
     public static function set_error_handler(?callable $callback, int $levels = E_ALL | E_STRICT): ?callable
     {
+        if ($callback !== null && Intercept::$wrapEventHandlers & Intercept::EVENT_ERROR) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_ERROR);
+        }
+
         return Intercept::handle(self::NAME, self::$interceptErrorHandlers, __FUNCTION__, [$callback, $levels], null, self::ignored());
     }
 

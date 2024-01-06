@@ -9,7 +9,7 @@
 
 namespace Dogma\Debug;
 
-use function func_get_args;
+use function array_unshift;
 use function microtime;
 use function min;
 
@@ -92,7 +92,13 @@ class ResourcesInterceptor
      */
     public static function register_tick_function(callable $callback, ...$args): bool
     {
-        return Intercept::handle(self::NAME, self::$interceptTicks, __FUNCTION__, func_get_args(), true);
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_TICK) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_TICK);
+        }
+
+        array_unshift($args, $callback);
+
+        return Intercept::handle(self::NAME, self::$interceptTicks, __FUNCTION__, $args, true);
     }
 
     public static function unregister_tick_function(callable $callback): void

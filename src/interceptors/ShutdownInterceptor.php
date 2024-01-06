@@ -10,7 +10,7 @@
 namespace Dogma\Debug;
 
 use LogicException;
-use function func_get_args;
+use function array_unshift;
 use function ignore_user_abort;
 
 /**
@@ -95,7 +95,13 @@ class ShutdownInterceptor
      */
     public static function register_shutdown_function(?callable $callback, ...$args): ?bool
     {
-        return Intercept::handle(self::NAME, self::$interceptShutdown, __FUNCTION__, func_get_args(), null);
+        if ($callback !== null && Intercept::$wrapEventHandlers & Intercept::EVENT_SHUTDOWN) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_SHUTDOWN);
+        }
+
+        array_unshift($args, $callback);
+
+        return Intercept::handle(self::NAME, self::$interceptShutdown, __FUNCTION__, $args, null);
     }
 
     public static function ignore_user_abort(?bool $ignore): int

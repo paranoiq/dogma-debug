@@ -139,6 +139,10 @@ class BuffersInterceptor
 
     public static function ob_start(?callable $callback = null, int $chunk_size = 0, int $flags = PHP_OUTPUT_HANDLER_STDFLAGS): bool
     {
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_OUTPUT) {
+            $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_OUTPUT);
+        }
+
         return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$callback, $chunk_size, $flags], true);
     }
 

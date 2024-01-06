@@ -15,6 +15,7 @@ use function in_array;
 use function pcntl_async_signals;
 use function pcntl_signal;
 use function sapi_windows_set_ctrl_handler;
+use function spl_object_hash;
 use const PHP_WINDOWS_EVENT_CTRL_BREAK;
 use const PHP_WINDOWS_EVENT_CTRL_C;
 use const SIG_DFL;
@@ -61,6 +62,8 @@ use const SIGXFSZ;
  * - turn off output layer (send HTTP headers, terminate output handlers etc.)
  *
  * @see https://phpfashion.com/jak-probiha-shutdown-v-php-a-volani-destruktoru
+ * @see https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html
+ * @see https://abhishekjakhotiya.medium.com/php-fpm-shutdown-behavior-814e49308ae0
  *
  * @see https://man7.org/linux/man-pages/man7/signal.7.html
  * @see https://stackoverflow.com/questions/3333276/signal-handling-on-windows
@@ -70,8 +73,16 @@ class ShutdownHandler
 
     public const NAME = 'shutdown';
 
+    /** @var bool - announce when event happens in destructor call after shutdown handlers has finished */
+    public static $announceDestructorCallsAfterShutdown = true;
+
+    // internals -------------------------------------------------------------------------------------------------------
+
     /** @var bool */
     private static $enabled = false;
+
+    /** @var string */
+    private static $currentDestructorObject;
 
     /** @var array<string, int> */
     private static $signals = [];
@@ -219,6 +230,30 @@ class ShutdownHandler
 
         //Debugger::send(Message::ERROR, Ansi::white(" Terminated by {$name} signal. ", Ansi::DRED));
         exit;
+    }
+
+    public static function announceDestructorCallAfterShutdown(): void
+    {
+        Debugger::guarded(static function (): void {
+            foreach (Callstack::get()->frames as $frame) {
+                if ($frame->object !== null && $frame->class !== null && $frame->function === '__destruct') {
+                    $object = $frame->object;
+                    $oid = spl_object_hash($object);
+
+                    if (self::$currentDestructorObject === $oid) {
+                        return;
+                    }
+                    self::$currentDestructorObject = $oid;
+
+                    $prevDepth = Dumper::$maxDepth;
+                    Dumper::$maxDepth = 2;
+                    $message = Ansi::white(" Called destructor of: ", Ansi::DBLUE) . ' ' . Dumper::dumpValue($object, 0);
+                    Dumper::$maxDepth = $prevDepth;
+
+                    Debugger::send(Message::EVENT, $message);
+                }
+            }
+        }, __CLASS__, __FUNCTION__);
     }
 
 }

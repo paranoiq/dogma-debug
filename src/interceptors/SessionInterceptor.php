@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use SessionHandlerInterface;
 use function func_get_args;
 use function session_cache_expire;
 use function session_cache_limiter;
@@ -216,10 +217,100 @@ class SessionInterceptor
 
     public static function session_set_save_handler(): bool
     {
-        // old: callable $open, callable $close, callable $read, callable $write, callable $destroy, callable $gc, $create_sid, $validate_sid, $update_timestamp
-        // new: SessionHandlerInterface $session_handler, $register_shutdown = true
+        $args = func_get_args();
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_SESSION) {
+            if (count($args) <= 5) {
+                // new: SessionHandlerInterface $session_handler, $register_shutdown = true
+                $callstack = Callstack::get();
+                $args[0] = new class($args[0], $callstack) implements SessionHandlerInterface
+                {
+                    /** @var SessionHandlerInterface */
+                    private $previous;
 
-        return Intercept::handle(self::NAME, self::$interceptHandlers, __FUNCTION__, func_get_args(), true);
+                    /** @var Callstack */
+                    private $callstack;
+
+                    public function __construct(SessionHandlerInterface $previous, Callstack $callstack)
+                    {
+                        $this->previous = $previous;
+                        $this->callstack = $callstack;
+                    }
+
+                    public function open($path, $name)
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'open');
+                        $result = $this->previous->open($path, $name);
+                        Intercept::eventEnd($this->callstack, Intercept::EVENT_SESSION, 'open');
+
+                        return $result;
+                    }
+
+                    public function close()
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'close');
+                        $result = $this->previous->close();
+                        Intercept::eventEnd($this->callstack, Intercept::EVENT_SESSION, 'close');
+
+                        return $result;
+                    }
+
+                    public function read($id)
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'read');
+                        $result = $this->previous->read($id);
+                        Intercept::eventEnd($this->callstack, Intercept::EVENT_SESSION, 'read');
+
+                        return $result;
+                    }
+
+                    public function write($id, $data)
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'write');
+                        $result = $this->previous->write($id, $data);
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'write');
+
+                        return $result;
+                    }
+
+                    public function destroy($id)
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'destroy');
+                        $result = $this->previous->destroy($id);
+                        Intercept::eventEnd($this->callstack, Intercept::EVENT_SESSION, 'destroy');
+
+                        return $result;
+                    }
+
+                    public function gc($max_lifetime)
+                    {
+                        Intercept::eventStart($this->callstack, Intercept::EVENT_SESSION, 'gc');
+                        $result = $this->previous->gc($max_lifetime);
+                        Intercept::eventEnd($this->callstack, Intercept::EVENT_SESSION, 'gc');
+
+                        return $result;
+                    }
+                };
+            } else {
+                // old: callable $open, callable $close, callable $read, callable $write, callable $destroy, callable $gc, $create_sid, $validate_sid, $update_timestamp
+                $args[0] = Intercept::wrapEventHandler($args[0], Intercept::EVENT_SESSION, 'open');
+                $args[1] = Intercept::wrapEventHandler($args[1], Intercept::EVENT_SESSION, 'close');
+                $args[2] = Intercept::wrapEventHandler($args[2], Intercept::EVENT_SESSION, 'read');
+                $args[3] = Intercept::wrapEventHandler($args[3], Intercept::EVENT_SESSION, 'write');
+                $args[4] = Intercept::wrapEventHandler($args[4], Intercept::EVENT_SESSION, 'destroy');
+                $args[5] = Intercept::wrapEventHandler($args[5], Intercept::EVENT_SESSION, 'gc');
+                if (isset($args[6])) {
+                    $args[6] = Intercept::wrapEventHandler($args[6], Intercept::EVENT_SESSION, 'create_sid');
+                }
+                if (isset($args[7])) {
+                    $args[7] = Intercept::wrapEventHandler($args[7], Intercept::EVENT_SESSION, 'validate_sid');
+                }
+                if (isset($args[8])) {
+                    $args[8] = Intercept::wrapEventHandler($args[8], Intercept::EVENT_SESSION, 'update_timestamp');
+                }
+            }
+        }
+
+        return Intercept::handle(self::NAME, self::$interceptHandlers, __FUNCTION__, $args, true);
     }
 
 }

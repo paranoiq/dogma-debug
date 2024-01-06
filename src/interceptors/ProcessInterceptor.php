@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use function implode;
+use function is_callable;
 use const SIG_DFL;
 
 /**
@@ -102,6 +103,10 @@ class ProcessInterceptor
      */
     public static function pcntl_signal(int $signal, $callable, bool $restartSysCalls = true): bool
     {
+        if (is_callable($callable) && Intercept::$wrapEventHandlers & Intercept::EVENT_SIGNAL) {
+            $callable = Intercept::wrapEventHandler($callable, Intercept::EVENT_SIGNAL);
+        }
+
         $name = ShutdownHandler::getSignalName($signal);
         $info = ' ' . Dumper::info("// {$name}");
 
@@ -180,6 +185,10 @@ class ProcessInterceptor
 
     public static function sapi_windows_set_ctrl_handler(callable $callable, bool $add): bool
     {
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_SIGNAL) {
+            $callable = Intercept::wrapEventHandler($callable, Intercept::EVENT_SIGNAL);
+        }
+
         // @phpstan-ignore-next-line
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$callable, $add], true);
     }

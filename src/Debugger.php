@@ -154,12 +154,11 @@ class Debugger
         AutoloadInterceptor::NAME => Ansi::DGREEN,
         CurlInterceptor::NAME => Ansi::DGREEN,
         DnsInterceptor::NAME => Ansi::DGREEN,
-        StreamInterceptor::NAME => Ansi::DGREEN,
         MailInterceptor::NAME => Ansi::DGREEN,
         SessionInterceptor::NAME => Ansi::DGREEN,
         SettingsInterceptor::NAME => Ansi::DGREEN,
-        //SocketsHandler::NAME => Ansi::DGREEN,
-        StreamWrapper::NAME => Ansi::DGREEN,
+        SocketsInterceptor::NAME => Ansi::DGREEN,
+        StreamInterceptor::NAME => Ansi::DGREEN,
         SyslogInterceptor::NAME => Ansi::DGREEN,
 
         // stream handlers
@@ -233,6 +232,9 @@ class Debugger
 
     /** @var bool */
     private static $initDone = false;
+
+    /** @var bool */
+    private static $shutdownPostponed = false;
 
     /** @var bool */
     private static $shutdownDone = false;
@@ -534,6 +536,9 @@ class Debugger
             if ($depth <= 1 && Request::$application === 'phpunit' && PhpUnitHandler::$announceTestCaseName) {
                 PhpUnitHandler::announceTestCaseName();
             }
+            if ($depth <= 1 && self::$shutdownDone) {
+                ShutdownHandler::announceDestructorCallAfterShutdown();
+            }
         } finally {
             $depth--;
         }
@@ -656,10 +661,11 @@ class Debugger
             }
         }
 
-        self::registerShutdown();
         self::$connected = true;
 
         if (!self::$initDone) {
+            self::registerShutdown();
+
             if (Message::$count === 0) {
                 $header = self::createHeader();
                 $flags = (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
@@ -718,9 +724,17 @@ class Debugger
 
     private static function registerShutdown(): void
     {
-        register_shutdown_function(static function (): void {
+        $handler = static function (): void {
             if (!self::$shutdownDone) {
                 self::$reserved = false;
+
+                if (!self::$shutdownPostponed) {
+                    // postpone debugger shutdown after other registered shutdown handlers
+                    self::$shutdownPostponed = true;
+                    self::registerShutdown();
+                    return;
+                }
+
                 try {
                     foreach (self::$beforeShutdown as $callback) {
                         $callback();
@@ -730,7 +744,11 @@ class Debugger
                     self::$shutdownDone = true;
                 }
             }
-        });
+        };
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_SHUTDOWN) {
+            $handler = Intercept::wrapEventHandler($handler, Intercept::EVENT_SHUTDOWN);
+        }
+        register_shutdown_function($handler);
     }
 
     /**
@@ -986,7 +1004,7 @@ class Debugger
         }
 
         // errors
-        ErrorHandler::disable();
+        ErrorHandler::removeLogLimits(); // display following errors
         $errors = ErrorHandler::getMessages();
         if ($errors !== []) {
             $err = Units::units(ErrorHandler::getCount(), 'error');

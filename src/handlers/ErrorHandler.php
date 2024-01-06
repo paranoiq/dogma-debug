@@ -52,7 +52,7 @@ class ErrorHandler
     /** @var bool Prevent error from bubbling to other error handlers (including the native handler) */
     public static $catch = false;
 
-    /** @var int Max count of errors printed to output */
+    /** @var int|null Max count of errors printed to output */
     public static $printLimit = 0;
 
     /** @var bool Print only unique error types and origins */
@@ -105,7 +105,11 @@ class ErrorHandler
         self::$printLimit = $printLimit;
         self::$uniqueOnly = $uniqueOnly;
 
-        self::$previous = set_error_handler([self::class, 'handleError'], $types);
+        $handler = [self::class, 'handleError'];
+        if (Intercept::$wrapEventHandlers & Intercept::EVENT_ERROR) {
+            $handler = Intercept::wrapEventHandler($handler, Intercept::EVENT_ERROR);
+        }
+        self::$previous = set_error_handler($handler, $types);
 
         if ($types & self::E_UNCATCHABLE_ERROR) {
             ob_start([self::class, 'handleOutput'], 1);
@@ -121,6 +125,12 @@ class ErrorHandler
     public static function disable(): void
     {
         restore_error_handler();
+    }
+
+    public static function removeLogLimits(): void
+    {
+        self::$printLimit = null;
+        self::$uniqueOnly = false;
     }
 
     public static function enabled(): bool

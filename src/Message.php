@@ -37,14 +37,15 @@ class Message
     public const ERROR = 8;
     public const EXCEPTION = 9;
     public const INTERCEPT = 10;
-    public const INFO = 11;
-    public const RAW = 12;
+    public const EVENT = 11;
+    public const INFO = 12;
+    public const RAW = 13;
 
-    public const STD_IO = 13;
-    public const STREAM_IO = 14;
-    public const SQL = 15;
-    public const REDIS = 16;
-    public const AMQP = 17;
+    public const STD_IO = 14;
+    public const STREAM_IO = 15;
+    public const SQL = 16;
+    public const REDIS = 17;
+    public const AMQP = 18;
 
     public const FLAG_SHOW_TIME = 1;
     public const FLAG_SHOW_PID = 2;
