@@ -94,6 +94,9 @@ class DebugServer
     /** @var array<int, string> */
     private $pidColors = [];
 
+    /** @var array<int, string> */
+    private $oldPidColors = [];
+
     /** @var array<string> */
     private $unusedPidColors;
 
@@ -235,6 +238,7 @@ class DebugServer
             unset($this->logPids[$pid], $this->deadPids[$pid]);
         }
         $color = $this->pidColors[$pid] ?? $this->defaultPidColor;
+        $this->oldPidColors[$pid] = $color;
         unset($this->pidColors[$pid]);
         if (!in_array($color, $this->unusedPidColors, true)) {
             $this->unusedPidColors[] = $color;
@@ -312,7 +316,7 @@ class DebugServer
         $isIntroOutro = $message->type === Message::INTRO || $message->type === Message::OUTRO;
         $showPids = $isIntroOutro || $this->alwaysShowPids || ($message->flags & Message::FLAG_SHOW_PID) || (count($this->connections) + count($this->logPids)) > 1;
         if ($showPids && $message->processId !== 0) {
-            $color = $this->pidColors[$message->processId] ?? $this->defaultPidColor;
+            $color = $this->pidColors[$message->processId] ?? $this->oldPidColors[$message->processId] ?? $this->defaultPidColor;
             echo Ansi::rgb(" #{$message->processId} ", null, $color) . ($isIntroOutro ? '' : ' ');
         }
 
