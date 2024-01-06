@@ -515,6 +515,10 @@ class FormattersDefault
             return Dumper::exceptions('json:') . ' ' . Dumper::dump($data) . ' ' . Dumper::info("// {$info}");
         }
 
+        if (strlen($string) < Dumper::$jsonPrettifyMinLength) {
+            return null;
+        }
+
         $json = json_encode($data, JSON_PRETTY_PRINT);
 
         return Dumper::exceptions('prettified:') . ' ' . $json . ' ' . Dumper::info("// {$info}");

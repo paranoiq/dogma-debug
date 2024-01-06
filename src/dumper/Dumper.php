@@ -156,6 +156,9 @@ class Dumper
     /** @var int - how to format strings detected as valid JSON */
     public static $jsonStrings = self::JSON_PRETTIFY;
 
+    /** @var int - length from which JSON strings are reformatted */
+    public static $jsonPrettifyMinLength = 100;
+
     // array settings --------------------------------------------------------------------------------------------------
 
     /** @var int - max items shown in an array dump */
