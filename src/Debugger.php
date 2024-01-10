@@ -32,6 +32,8 @@ use function http_response_code;
 use function implode;
 use function is_array;
 use function is_file;
+use function is_float;
+use function is_int;
 use function is_null;
 use function is_string;
 use function memory_get_peak_usage;
@@ -328,6 +330,12 @@ class Debugger
             $label = 'true';
         } elseif (is_string($label)) {
             $label = Dumper::escapeRawString($label, Dumper::$rawEscaping, Ansi::BLACK, $color);
+        } elseif (is_int($label) || is_float($label)) {
+            // pass
+        } else {
+            $message = Ansi::white(' Invalid value sent to Debugger::label() ', Ansi::LRED);
+            self::send(Message::LABEL, $message);
+            return $label;
         }
         if ($name !== null) {
             $name = Dumper::escapeRawString($name, Dumper::$rawEscaping, Ansi::BLACK, $color);
