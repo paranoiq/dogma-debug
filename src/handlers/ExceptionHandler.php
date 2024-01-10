@@ -196,7 +196,7 @@ class ExceptionHandler
                 }
                 $message .= "\n" . Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
             } catch (Throwable $exception) {
-                Debugger::label($exception->getMessage(), 'Exception formatting failed with:', 'r');
+                Debugger::label($exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine(), 'Exception formatting failed with', 'r');
                 Debugger::dump($exception, 4);
             }
 
