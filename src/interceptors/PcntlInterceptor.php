@@ -19,10 +19,10 @@ use const SIG_DFL;
  * @see https://man7.org/linux/man-pages/man7/signal.7.html
  * @see https://stackoverflow.com/questions/3333276/signal-handling-on-windows
  */
-class ProcessInterceptor
+class PcntlInterceptor
 {
 
-    public const NAME = 'process';
+    public const NAME = 'pcntl';
 
     /** @var int */
     private static $interceptSignals = Intercept::NONE;

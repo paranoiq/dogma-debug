@@ -69,7 +69,7 @@ use function substr;
  *      mail()
  * - MysqliInterceptor:
  *      mysqli_*()
- * - ProcessInterceptor:
+ * - PcntlInterceptor:
  *      pcntl_signal(), pcntl_async_signals(), pcntl_signal_dispatch(), pcntl_sigprocmask(), pcntl_sigwaitinfo(), pcntl_sigtimedwait()
  *      sapi_windows_set_ctrl_handler()
  *      pcntl_alarm()
