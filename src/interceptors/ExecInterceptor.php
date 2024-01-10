@@ -142,7 +142,7 @@ class ExecInterceptor
      * @param array<string, bool>|null $options
      * @return resource|false
      */
-    public static function proc_open($command, array $descriptor_spec, &$pipes, ?string $cwd, ?array $env_vars, ?array $options)
+    public static function proc_open($command, array $descriptor_spec, &$pipes, ?string $cwd = null, ?array $env_vars = null, ?array $options = null)
     {
         return Intercept::handle(self::NAME, self::$interceptExec, __FUNCTION__, [$command, $descriptor_spec, &$pipes, $cwd, $env_vars, $options], false);
     }
