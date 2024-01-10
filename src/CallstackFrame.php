@@ -125,12 +125,13 @@ class CallstackFrame
 
     public function isClosure(): bool
     {
-        return $this->class === null && str_ends_with($this->function, '{closure}');
+        return $this->class === null && $this->function !== null && str_ends_with($this->function, '{closure}');
     }
 
     public function isFunction(): bool
     {
-        return $this->class === null && !str_ends_with($this->function, '{closure}')
+        return $this->class === null && $this->function !== null
+            && !str_ends_with($this->function, '{closure}')
             && !in_array($this->function, Callstack::INCLUDES, true);
     }
 
