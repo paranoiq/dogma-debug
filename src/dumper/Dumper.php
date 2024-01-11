@@ -319,7 +319,7 @@ class Dumper
         '~filemode|permissions~i' => [FormattersDefault::class, 'dumpIntPermissions'],
         '~termsig|stopsig|signal~i' => [FormattersDefault::class, 'dumpIntSignal'],
         '~exit~i' => [FormattersDefault::class, 'dumpIntExitCode'],
-        '~time|\\Wts~i' => [FormattersDefault::class, 'dumpIntTime'],
+        '~time|until|since|\\Wts~i' => [FormattersDefault::class, 'dumpIntTime'],
         '~size|bytes|memory~i' => [FormattersDefault::class, 'dumpIntSize'],
         '~flags|options|headeropt|settings~i' => [FormattersDefault::class, 'dumpIntFlags'],
         '~(http|response)_?(code|status)~i' => [FormattersDefault::class, 'dumpIntHttpCode'],
@@ -328,7 +328,7 @@ class Dumper
 
     /** @var array<int|string, callable(float): ?string> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
-        '~time~i' => [FormattersDefault::class, 'dumpFloatTime'],
+        '~time|until|since~i' => [FormattersDefault::class, 'dumpFloatTime'],
     ];
 
     /** @var array<int|string, callable(string): ?string> - user formatters for string values. optionally indexed by key regexp */
