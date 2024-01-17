@@ -18,7 +18,7 @@ use function microtime;
 class FakePdoStatement extends PDOStatement
 {
 
-    public const NAME = 'PdoStatement';
+    public const NAME = 'pdo';
 
     /** @var int */
     public static $intercept = Intercept::SILENT;

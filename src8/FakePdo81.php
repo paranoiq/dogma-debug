@@ -83,7 +83,7 @@ class FakePdo81 extends PDO
     public const OCI_ATTR_MODULE = 1003;
     public const OCI_ATTR_CALL_TIMEOUT = 1004;
 
-    public const NAME = 'Pdo';
+    public const NAME = 'pdo';
 
     /** @var int */
     public static $intercept = Intercept::SILENT;

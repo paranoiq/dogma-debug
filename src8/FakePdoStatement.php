@@ -18,10 +18,13 @@ use function microtime;
 class FakePdoStatement extends PDOStatement
 {
 
-    public const NAME = 'PdoStatement';
+    public const NAME = 'pdo';
 
     /** @var int */
-    public static $intercept = Intercept::SILENT;
+    public static $interceptExec = Intercept::SILENT;
+
+    /** @var int */
+    public static $interceptBind = Intercept::SILENT;
 
     /** @var array<int|string, mixed> */
     private $params = [];
@@ -39,7 +42,14 @@ class FakePdoStatement extends PDOStatement
     ): bool {
         $this->params[$param] = $var;
 
-        return parent::bindParam($param, $var, $type, $maxLength, $driverOptions);
+        $result = false;
+        try {
+            $result = parent::bindParam($param, $var, $type, $maxLength, $driverOptions);
+        } finally {
+            Intercept::log(self::NAME, self::$interceptBind, 'PDOStatement::bindParam', [$param, $var, $type, $maxLength, $driverOptions], $result);
+        }
+
+        return $result;
     }
 
     public function bindValue(
@@ -49,7 +59,14 @@ class FakePdoStatement extends PDOStatement
     ): bool {
         $this->params[$param] = $value;
 
-        return parent::bindValue($param, $value, $type);
+        $result = false;
+        try {
+            $result = parent::bindValue($param, $value, $type);
+        } finally {
+            Intercept::log(self::NAME, self::$interceptBind, 'PDOStatement::bindValue', [$param, $value, $type], $result);
+        }
+
+        return $result;
     }
 
     public function execute(?array $params = null): bool
@@ -67,7 +84,7 @@ class FakePdoStatement extends PDOStatement
             $logged = true;
         } finally {
             $t = microtime(true) - $t;
-            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$params], $result);
+            Intercept::log(self::NAME, self::$interceptExec, 'PDOStatement::execute', [$params], $result);
             if (!$logged) {
                 SqlHandler::logPdoStatementExecute($this, $allParams, $this->rowCount(), $t);
             }
