@@ -487,6 +487,8 @@ trait DumperComponents
         }
         $params = implode(Ansi::color(', ', Dumper::$colors['call']), $formatted);
 
+        Dumper::$showInfo = $info;
+
         if ($return === null) {
             $output = '';
             $end = ')';
@@ -494,8 +496,6 @@ trait DumperComponents
             $output = ' ' . Dumper::dumpValue($return, 0);
             $end = '):';
         }
-
-        Dumper::$showInfo = $info;
 
         return self::func($function . '(', $params, $end, $output);
     }

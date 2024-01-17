@@ -108,8 +108,6 @@ class Intercept
     public const SILENT = 1; // do not change or log functionality (but still can track some stats etc.)
     public const LOG_CALLS = 2; // log calls to intercepted functions
     public const PREVENT_CALLS = 4; // prevent calls to intercepted functions
-    //public const ALWAYS_LAST = 6; // for register_x_handler() - process own handling after native functionality
-    //public const ALWAYS_FIRST = 8; // for register_x_handler() - process own handling before native functionality
 
     public const EVENT_ERROR = 1;
     public const EVENT_EXCEPTION = 2;
@@ -142,6 +140,7 @@ class Intercept
      *  - session_set_save_handler()
      *  - spl_autoload_register()
      *  - pcntl_signal()
+     *  - todo: sapi_windows_set_ctrl_handler()
      *  - ob_start()
      */
     public static $wrapEventHandlers = 0;
@@ -627,9 +626,6 @@ class Intercept
      */
     private static function callAndLogInternal(bool $call, string $function, array $params = [], $return = null): array
     {
-        $info = Dumper::$showInfo;
-        Dumper::$showInfo = null;
-
         $paramSeparator = Ansi::color(', ', Dumper::$colors['call']);
 
         $paramDumps = [];
@@ -657,8 +653,6 @@ class Intercept
             $output = ' ' . Dumper::dumpValue($return, 0);
             $end = '):';
         }
-
-        Dumper::$showInfo = $info;
 
         return [$return, Dumper::func($function . '(', $paramsDump, $end, $output)];
     }
