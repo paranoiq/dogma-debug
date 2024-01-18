@@ -43,7 +43,7 @@ class AutoloadInterceptor
         /** @var callable-string|null $cb */
         $cb = ini_get('unserialize_callback_func') ?: null;
         self::$unserializeCallback = $cb;
-        if (self::$unserializeCallback !== false) {
+        if (self::$unserializeCallback !== false && self::$unserializeCallback !== null) {
             // todo: can this be a static method?
             Intercept::registerFunction(self::NAME, self::$unserializeCallback, [self::class, 'fakeUnserializeCallback']);
         }
@@ -72,7 +72,10 @@ class AutoloadInterceptor
         return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$file_extensions], $default);
     }
 
-    public static function spl_autoload_functions(): string
+    /**
+     * @return array<callable>
+     */
+    public static function spl_autoload_functions(): array
     {
         return Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [], []);
     }
