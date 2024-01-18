@@ -889,7 +889,7 @@ class Dumper
                     ? self::info('$' . $name)
                     : self::info($cls) . self::info('::$' . $name);
                 continue;
-            } elseif (self::$groupNullAndUninitialized && $value === null) {
+            } elseif (self::$groupNullAndUninitialized && $value === $uninitialized) {
                 $empty[] = $cls === null || $cls === '*' || $cls === $class
                     ? self::info('$' . $name)
                     : self::info($cls) . self::info('::$' . $name);
