@@ -156,6 +156,22 @@ if (!function_exists('rd')) {
     {
         Debugger::raw($data);
     }
+
+    /**
+     * Extract private property from an object
+     *
+     * @param object $object
+     * @return mixed
+     */
+    function xp($object, string $property, ?string $class = null)
+    {
+        $prop = new ReflectionProperty($class ?? get_class($object), $property);
+        if (PHP_VERSION_ID <= 80000) {
+            $prop->setAccessible(true);
+        }
+
+        return $prop->getValue($object);
+    }
 }
 
 if (!require_once(__DIR__ . '/client.php')) {
