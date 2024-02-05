@@ -18,16 +18,16 @@ use function array_filter;
 use function func_get_args;
 use const MYSQLI_STORE_RESULT;
 
-class FakeMysqli extends mysqli
+class MysqliProxy extends mysqli
 {
 
     public const NAME = 'mysqli';
 
-    /** @var bool */
-    public static $logNextCall = true;
-
     /** @var int */
     public static $intercept = Intercept::LOG_CALLS;
+
+    /** @var bool */
+    public static $logNextCall = true;
 
     public function __construct(
         ?string $hostname = null,
@@ -325,6 +325,14 @@ class FakeMysqli extends mysqli
             $result = parent::prepare($query);
         } finally {
             Intercept::log(self::NAME, self::$intercept, 'mysqli::prepare', [$query], $result);
+        }
+
+        if ($result !== false) {
+            if (MysqliInterceptor::$wrapStatements === MysqliInterceptor::STATEMENT_WRAP_EXTENDING) {
+                return new MysqliStatementProxy($this, $query, $result);
+            } elseif (MysqliInterceptor::$wrapStatements === MysqliInterceptor::STATEMENT_WRAP_AGGRESSIVE) {
+                return new MysqliStatementWrapper($result);
+            }
         }
 
         return $result;

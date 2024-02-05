@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use mysqli;
+use mysqli_stmt;
 use function ini_get;
 
 /**
@@ -20,17 +21,32 @@ class MysqliInterceptor
 
     public const NAME = 'mysqli';
 
+    // the only safe value
+    public const STATEMENT_WRAP_NONE = 0;
+    /** @internal - statement proxy extends mysqli_proxy, but readonly properties on it do not work (cannot unset props on extension class). EXPERIMENTAL! */
+    public const STATEMENT_WRAP_EXTENDING = 1;
+    /** @internal - statement proxy does not extend mysqli_proxy, so more aggressive class name replacement must be done (may fail with aliases etc). EXPERIMENTAL! */
+    public const STATEMENT_WRAP_AGGRESSIVE = 2;
+
     /** @var int */
     private static $intercept = Intercept::NONE;
+
+    public static $wrapStatements = self::STATEMENT_WRAP_NONE;
 
     /**
      * Take control over majority of mysqli_*() functions
      *
      * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function interceptMysqli(int $level = Intercept::LOG_CALLS): void
+    public static function interceptMysqli(int $level = Intercept::LOG_CALLS, int $wrapStatements = self::STATEMENT_WRAP_NONE): void
     {
-        Intercept::registerClass(self::NAME, mysqli::class, FakeMysqli::class);
+        Intercept::registerClass(self::NAME, mysqli::class, MysqliProxy::class);
+        if ($wrapStatements === self::STATEMENT_WRAP_EXTENDING) {
+            Intercept::registerClass(self::NAME, mysqli_stmt::class, MysqliStatementProxy::class);
+        } elseif ($wrapStatements === self::STATEMENT_WRAP_AGGRESSIVE) {
+            Intercept::registerClass(self::NAME, mysqli_stmt::class, MysqliStatementWrapper::class, true);
+        }
+        self::$wrapStatements = $wrapStatements;
 
         /*Intercept::registerFunction(self::NAME, 'mysqli_affected_rows', self::class);
         Intercept::registerFunction(self::NAME, 'mysqli_autocommit', self::class);
@@ -147,8 +163,8 @@ class MysqliInterceptor
 
     public static function mysqli_init(): mysqli
     {
-        FakeMysqli::$logNextCall = false;
-        $mysqli = new FakeMysqli();
+        MysqliProxy::$logNextCall = false;
+        $mysqli = new MysqliProxy();
 
         Intercept::log(self::NAME, self::$intercept, __FUNCTION__, [], $mysqli);
 

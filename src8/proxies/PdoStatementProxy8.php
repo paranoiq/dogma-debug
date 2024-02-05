@@ -15,7 +15,7 @@ use PDOStatement;
 use function array_merge;
 use function microtime;
 
-class FakePdoStatement extends PDOStatement
+class PdoStatementProxy extends PDOStatement
 {
 
     public const NAME = 'pdo';

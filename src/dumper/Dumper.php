@@ -18,6 +18,8 @@ use DateTimeZone;
 use InvalidArgumentException;
 use LogicException;
 use mysqli;
+use mysqli_result;
+use mysqli_stmt;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
@@ -362,8 +364,10 @@ class Dumper
         BackedEnum::class => [FormattersDefault::class, 'dumpBackedEnum'],
         UnitEnum::class => [FormattersDefault::class, 'dumpUnitEnum'],
         WeakReference::class => [FormattersDefault::class, 'dumpWeakReference'],
-        mysqli::class => [FormattersDefault::class, 'dumpMysqli'],
         DateTimeInterface::class => [FormattersDefault::class, 'dumpDateTimeInterface'],
+        mysqli::class => [FormattersDefault::class, 'dumpMysqli'],
+        mysqli_stmt::class => [FormattersDefault::class, 'dumpMysqliStatement'],
+        mysqli_result::class => [FormattersDefault::class, 'dumpMysqliResult'],
 
         // Debug
         Callstack::class => [FormattersDefault::class, 'dumpCallstack'],

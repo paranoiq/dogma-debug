@@ -13,6 +13,8 @@ use BackedEnum;
 use DateTime;
 use DateTimeInterface;
 use mysqli;
+use mysqli_result;
+use mysqli_stmt;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionObject;
@@ -264,6 +266,48 @@ class FormattersDefault
 
         return Dumper::class(get_class($mysqli)) . ' ' . Dumper::bracket('{')
             . Dumper::dumpVariables($properties, $depth + 1) . Dumper::bracket('}') . $info;
+    }
+
+    public static function dumpMysqliStatement(mysqli_stmt $statement, int $depth = 0): string
+    {
+        $properties = [
+            'affected_rows' => $statement->affected_rows,
+            'insert_id' => $statement->insert_id,
+            'num_rows' => $statement->num_rows,
+            'param_count' => $statement->param_count,
+            'field_count' => $statement->field_count,
+            'errno' => $statement->errno,
+            'error' => $statement->error,
+            'error_list' => $statement->error_list,
+            'sqlstate' => $statement->sqlstate,
+            'id' => $statement->id,
+        ];
+        $properties = array_filter($properties);
+        if ($properties['sqlstate'] === '00000') {
+            unset($properties['sqlstate']);
+        }
+
+        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($statement)) : '';
+
+        return Dumper::class(get_class($statement)) . ' ' . Dumper::bracket('{')
+            . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . $info;
+    }
+
+    public static function dumpMysqliResult(mysqli_result $result, int $depth = 0): string
+    {
+        $properties = [
+            'current_field' => $result->current_field,
+            'field_count' => $result->field_count,
+            'lengths' => $result->lengths,
+            'num_rows' => $result->num_rows,
+            'type' => $result->type,
+        ];
+        $properties = array_filter($properties);
+
+        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($result)) : '';
+
+        return Dumper::class(get_class($result)) . ' ' . Dumper::bracket('{')
+            . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . $info;
     }
 
     public static function dumpIntTime(int $int): ?string

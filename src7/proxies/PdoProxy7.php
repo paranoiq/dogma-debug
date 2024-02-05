@@ -11,7 +11,7 @@ namespace Dogma\Debug;
 
 use PDO;
 
-class FakePdo extends PDO
+class PdoProxy extends PDO
 {
 
     public const ATTR_AUTOCOMMIT = 0;

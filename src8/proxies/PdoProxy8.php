@@ -10,11 +10,9 @@
 namespace Dogma\Debug;
 
 use PDO;
-use PDOException;
 use ReturnTypeWillChange;
-use function microtime;
 
-class FakePdo81 extends PDO
+class PdoProxy extends PDO
 {
 
     public const ATTR_AUTOCOMMIT = 0;
@@ -86,21 +84,13 @@ class FakePdo81 extends PDO
     public const NAME = 'pdo';
 
     /** @var int */
-    public static $intercept = Intercept::SILENT;
+    public static $intercept = Intercept::LOG_CALLS;
 
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
-        try {
-            $t = microtime(true);
+        Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
 
-            parent::__construct($dsn, $username, $password, $options);
-        } finally {
-            $t = microtime(true) - $t;
-            Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
-            SqlHandler::log(SqlHandler::CONNECT, null, 0, $t);
-        }
-
-        $this->setAttribute(self::ATTR_STATEMENT_CLASS, [FakePdoStatement::class]);
+        parent::__construct($dsn, $username, $password, $options);
     }
 
     #[ReturnTypeWillChange]
@@ -111,58 +101,52 @@ class FakePdo81 extends PDO
             $result = parent::prepare($query, $options);
         } finally {
             Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $result);
-            // todo: SqlHandler::logPrepare($query, $options);
         }
 
         return $result;
     }
 
-    public function beginTransaction(): bool
+    #[ReturnTypeWillChange]
+    public function beginTransaction()
     {
         $result = false;
         try {
-            $t = microtime(true);
             $result = parent::beginTransaction();
         } finally {
-            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::beginTransaction', [], $result);
-            SqlHandler::log(SqlHandler::BEGIN, 'PDO::beginTransaction()', 0, $t);
         }
 
         return $result;
     }
 
-    public function commit(): bool
+    #[ReturnTypeWillChange]
+    public function commit()
     {
         $result = false;
         try {
-            $t = microtime(true);
             $result = parent::commit();
         } finally {
-            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::commit', [], $result);
-            SqlHandler::log(SqlHandler::COMMIT, 'PDO::commit()', 0, $t);
         }
 
         return $result;
     }
 
-    public function rollBack(): bool
+    #[ReturnTypeWillChange]
+    public function rollBack()
     {
         $result = false;
         try {
-            $t = microtime(true);
             $result = parent::rollBack();
         } finally {
-            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::rollBack', [], $result);
-            SqlHandler::log(SqlHandler::ROLLBACK, 'PDO::rollback()', 0, $t);
         }
 
         return $result;
     }
 
-    public function inTransaction(): bool
+    #[ReturnTypeWillChange]
+    public function inTransaction()
     {
         $result = false;
         try {
@@ -174,7 +158,8 @@ class FakePdo81 extends PDO
         return $result;
     }
 
-    public function setAttribute(int $attribute, mixed $value): bool
+    #[ReturnTypeWillChange]
+    public function setAttribute($attribute, $value)
     {
         $result = false;
         try {
@@ -186,7 +171,8 @@ class FakePdo81 extends PDO
         return $result;
     }
 
-    public function getAttribute(int $attribute): mixed
+    #[ReturnTypeWillChange]
+    public function getAttribute($attribute)
     {
         $result = null;
         try {
@@ -201,48 +187,25 @@ class FakePdo81 extends PDO
     #[ReturnTypeWillChange]
     public function exec($statement)
     {
-        $logged = false;
         $result = false;
         try {
-            $t = microtime(true);
             $result = parent::exec($statement);
-        } catch (PDOException $e) {
-            $t = microtime(true) - $t;
-            SqlHandler::logUnknown($statement, 0, $t, null, $e->getMessage(), $e->getCode());
-            $logged = true;
         } finally {
-            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::exec', [$statement], $result);
-            if (!$logged) {
-                SqlHandler::logUnknown($statement, 0, $t);
-            }
         }
 
         return $result;
     }
 
+    // $mode = PDO::ATTR_DEFAULT_FETCH_MODE not working in 8.2+
     #[ReturnTypeWillChange]
-    public function query(?string $query, ?int $mode = null, mixed ...$fetch_mode_args)
+    public function query($query, $mode = PDO::FETCH_ASSOC, ...$fetch_mode_args)
     {
-        $logged = false;
         $result = false;
         try {
-            $t = microtime(true);
-            if ($mode === null) {
-                $result = parent::query($query);
-            } else {
-                $result = parent::query($query, $mode, ...$fetch_mode_args);
-            }
-        } catch (PDOException $e) {
-            $t = microtime(true) - $t;
-            SqlHandler::logUnknown($query, 0, $t, null, $e->getMessage(), $e->getCode());
-            $logged = true;
+            $result = parent::query($query, $mode, ...$fetch_mode_args);
         } finally {
-            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::query', [$query, $mode, ...$fetch_mode_args], $result);
-            if (!$logged) {
-                SqlHandler::logUnknown($query, 0, $t);
-            }
         }
 
         return $result;
@@ -261,7 +224,8 @@ class FakePdo81 extends PDO
         return $result;
     }
 
-    public function errorCode(): ?string
+    #[ReturnTypeWillChange]
+    public function errorCode()
     {
         $result = null;
         try {
@@ -273,7 +237,8 @@ class FakePdo81 extends PDO
         return $result;
     }
 
-    public function errorInfo(): array
+    #[ReturnTypeWillChange]
+    public function errorInfo()
     {
         $result = [];
         try {
@@ -310,7 +275,8 @@ class FakePdo81 extends PDO
         return $result;
     }
 
-    public static function getAvailableDrivers(): array
+    #[ReturnTypeWillChange]
+    public static function getAvailableDrivers()
     {
         $result = [];
         try {

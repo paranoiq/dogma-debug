@@ -117,19 +117,21 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/interceptors/SyslogInterceptor.php';
 
     if (extension_loaded('mysqli')) {
-        require_once __DIR__ . '/src/interceptors/FakeMysqli.php';
+        require_once __DIR__ . '/src/proxies/MysqliProxy.php';
+        require_once __DIR__ . '/src/proxies/MysqliStatementProxy.php';
+        require_once __DIR__ . '/src/proxies/MysqliStatementWrapper.php';
         require_once __DIR__ . '/src/interceptors/MysqliInterceptor.php';
     }
     if (extension_loaded('pdo')) {
         if (PHP_VERSION_ID < 80000) {
-            require_once __DIR__ . '/src7/FakePdo7.php';
-            require_once __DIR__ . '/src7/FakePdoStatement.php';
+            require_once __DIR__ . '/src7/proxies/PdoProxy7.php';
+            require_once __DIR__ . '/src7/proxies/PdoStatementProxy7.php';
         } elseif (PHP_VERSION_ID < 80100) {
-            require_once __DIR__ . '/src8/FakePdo8.php';
-            require_once __DIR__ . '/src8/FakePdoStatement.php';
+            require_once __DIR__ . '/src8/proxies/PdoProxy8.php';
+            require_once __DIR__ . '/src8/proxies/PdoStatementProxy8.php';
         } else {
-            require_once __DIR__ . '/src8/FakePdo81.php';
-            require_once __DIR__ . '/src8/FakePdoStatement.php';
+            require_once __DIR__ . '/src8/proxies/PdoProxy81.php';
+            require_once __DIR__ . '/src8/proxies/PdoStatementProxy8.php';
         }
     }
 
