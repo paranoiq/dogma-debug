@@ -389,7 +389,7 @@ class Debugger
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
     }
 
-    public static function function(bool $withLocation = false, bool $withDepth = false, ?string $function = null): void
+    public static function function(bool $withLocation = true, bool $withDepth = false, ?string $function = null): void
     {
         static $x = false;
         ob_start();
@@ -406,16 +406,16 @@ class Debugger
         }
         $location = '';
         if ($withLocation) {
-            $location = Dumper::fileLine($frame->file, $frame->line);
+            $location = ' in ' . Dumper::fileLine($frame->file, $frame->line);
         }
 
         if ($class !== null) {
             $class = explode('\\', $class);
             $class = end($class);
 
-            $message = Ansi::white(" {$depth}{$class}::{$function}() ", Ansi::DCYAN) . ' in ' . $location;
+            $message = Ansi::white(" {$depth}{$class}::{$function}() ", Ansi::DCYAN) . $location;
         } else {
-            $message = Ansi::white(" {$depth}{$function}() ", Ansi::DCYAN) . ' in ' . $location;
+            $message = Ansi::white(" {$depth}{$function}() ", Ansi::DCYAN) . $location;
         }
 
         self::send(Message::CALLSTACK, $message);

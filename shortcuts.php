@@ -103,7 +103,7 @@ if (!function_exists('rd')) {
     /**
      * Remotely print function/method name
      */
-    function rf(bool $withLocation = false, bool $withDepth = false, ?string $function = null): void
+    function rf(bool $withLocation = true, bool $withDepth = false, ?string $function = null): void
     {
         Debugger::function($withLocation, $withDepth, $function);
     }
