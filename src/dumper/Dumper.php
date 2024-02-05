@@ -199,7 +199,7 @@ class Dumper
     //public static $showReadonlyPropertiesFlag = false;
 
     /** @var bool - group null and undefined properties of object together */
-    public static $groupNullAndUninitialized = false;
+    public static $groupNullAndUninitialized = true;
 
     /** @var string[] (regexp $long => replacement $short) - replacements of namespaces for shorter class names in dumps */
     public static $namespaceReplacements = [];
