@@ -309,7 +309,7 @@ class DebugServer
         if ($message->flags & Message::FLAG_SHOW_TIME) {
             $formatted = number_format($message->time, 6, '.', '');
             $dateTime = DateTime::createFromFormat('U.u', $formatted, new DateTimeZone('UTC'));
-            echo $dateTime->format('H:i:s.u ');
+            echo str_replace('00 ', ' ', $dateTime->format('H:i:s.u '));
         }
 
         // process id

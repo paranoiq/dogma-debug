@@ -104,7 +104,7 @@ class Debugger
     /** @var callable[] Functions to call before starting the actual request */
     public static $beforeStart = [];
 
-    /** @var callable[] Functions to call before sending a message. Receives Message as first argument. Returns true to stop message from sending */
+    /** @var list<callable(string): bool> Functions to call before sending a message. Receives Message as first argument. Returns true to stop message from sending */
     public static $beforeSend = [];
 
     /** @var callable[] Functions to call before debugger shutdown. Can dump some final things before debug footer is sent */
