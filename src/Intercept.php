@@ -175,7 +175,7 @@ class Intercept
     /** @var array<string, array<string, array{string, array{class-string, string}}>> */
     private static $methods = [];
 
-    /** @var array<class-string, array{string, class-string}> */
+    /** @var array<class-string, array{string, class-string, bool}> */
     private static $classes = [];
 
     /** @var array<class-string, string> */
@@ -306,7 +306,7 @@ class Intercept
      * @param class-string $class
      * @param class-string $replace
      */
-    public static function registerClass(string $handler, string $class, string $replace): void
+    public static function registerClass(string $handler, string $class, string $replace, bool $aggressive = false): void
     {
         if (strpos($class, '\\') !== false) {
             throw new Exception('Replacing classes with namespace is not implemented yet.');
@@ -316,7 +316,7 @@ class Intercept
             self::startStreamHandlers();
         }
 
-        self::$classes[$class] = [$handler, $replace];
+        self::$classes[$class] = [$handler, $replace, $aggressive];
     }
 
     /**
@@ -490,7 +490,16 @@ class Intercept
             }
         }
 
-        foreach (self::$classes as $class => [$handler, $replace]) {
+        foreach (self::$classes as $class => [$handler, $replace, $aggressive]) {
+            if ($aggressive) {
+                $result = preg_replace("~\\\\?{$class}(?![A-Za-z0-9_])~", "\\$replace", $code);
+                if ($result !== $code) {
+                    $replaced[$handler][] = "{$class}";
+                }
+                $code = $result;
+                continue;
+            }
+
             $result1 = preg_replace("~new\s+\\\\?{$class}(?![A-Za-z0-9_])~", "new \\$replace", $code);
             if ($result1 !== $code) {
                 $replaced[$handler][] = "new {$class}";
