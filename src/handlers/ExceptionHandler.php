@@ -17,6 +17,7 @@ use function in_array;
 use function is_a;
 use function restore_exception_handler;
 use function set_exception_handler;
+use function spl_object_hash;
 use function str_repeat;
 
 /**
@@ -55,6 +56,9 @@ class ExceptionHandler
 
     /** @var bool */
     private static $enabled = false;
+
+    /** @var array<string, bool> */
+    private static $inspected = [];
 
     /**
      * @param class-string[] $log
@@ -116,7 +120,11 @@ class ExceptionHandler
 
     public static function logInspected(Throwable $exception): void
     {
-        self::log($exception, self::SOURCE_INSPECTED);
+        $hash = spl_object_hash($exception);
+        if (!isset(self::$inspected[$hash])) {
+            self::log($exception, self::SOURCE_INSPECTED);
+        }
+        self::$inspected[$hash] = true;
     }
 
     public static function logLogged(Throwable $exception): void
