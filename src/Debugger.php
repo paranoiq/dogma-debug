@@ -945,7 +945,7 @@ class Debugger
         $conn = $stats['events']['connect'];
         if ($conn > 0) {
             $connections = $conn > 1 ? Units::unitWs($conn, 'con') : '';
-            $queries = Units::unitWs($stats['events']['select'] + $stats['events']['insert'] + $stats['events']['update'] + $stats['events']['delete'] + $stats['events']['query'], 'q');
+            $queries = Units::unitWs($stats['events']['total'], 'q');
             $time = Units::timeWs($stats['time']['total']);
             $errorCount = $stats['errors']['total'];
             if ($errorCount === 0) {
