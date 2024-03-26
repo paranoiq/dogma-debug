@@ -95,28 +95,33 @@ class SqlHandler
     private static $errors = [];
 
     /**
+     * @param int|string|null $lastInsertId
      * @param int|string|null $errorCode
      */
     public static function logUnknown(
         string $query,
-        ?int $rows,
         float $duration,
+        ?int $rows = 0,
+        $lastInsertId = null,
         ?string $connection = null,
         ?string $errorMessage = null,
         $errorCode = null
     ): void
     {
-        self::log(self::getType($query), $query, $rows, $duration, $connection, $errorMessage, $errorCode);
+        $type = self::getType($query);
+        self::log($type, $query, $duration, $rows, $lastInsertId, $connection, $errorMessage, $errorCode);
     }
 
     /**
+     * @param int|string|null $lastInsertId
      * @param int|string|null $errorCode
      */
     public static function log(
         int $type,
         ?string $query,
-        ?int $rows,
         float $duration,
+        ?int $rows = null,
+        $lastInsertId = null,
         ?string $connection = null,
         ?string $errorMessage = null,
         $errorCode = null

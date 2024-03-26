@@ -25,7 +25,7 @@ class DoctrineSqlLogger implements SQLLogger
     {
         $this->connection = $connection;
 
-        SqlHandler::log(SqlHandler::CONNECT, null, null, 0.0, $this->connection);
+        SqlHandler::log(SqlHandler::CONNECT, null, 0.0, null, null, $this->connection);
     }
 
     /**
@@ -56,7 +56,7 @@ class DoctrineSqlLogger implements SQLLogger
     public function stopQuery(): void
     {
         $duration = microtime(true) - $this->start;
-        SqlHandler::log(SqlHandler::getType($this->sql), $this->sql, null, $duration, $this->connection);
+        SqlHandler::log(SqlHandler::getType($this->sql), $this->sql, $duration, null, null, $this->connection);
     }
 
 }
