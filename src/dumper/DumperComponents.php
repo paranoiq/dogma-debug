@@ -536,7 +536,11 @@ trait DumperComponents
      */
     public static function objectHash($object): string
     {
-        return substr(md5(spl_object_hash($object)), 0, 4);
+        if (Dumper::$showObjectHashes) {
+            return substr(md5(spl_object_hash($object)), 0, 4);
+        } else {
+            return '----';
+        }
     }
 
     /**

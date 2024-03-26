@@ -180,6 +180,9 @@ class Dumper
 
     // object settings -------------------------------------------------------------------------------------------------
 
+    /** @var bool - show hash uniquely identifying each object */
+    public static $showObjectHashes = true;
+
     /** @var int - ordering of dumped properties of objects */
     public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
 
