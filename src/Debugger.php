@@ -133,6 +133,17 @@ class Debugger
         ZlibStreamWrapper::class,
     ];
 
+    /** @var list<class-string<HandlerWithStats>> */
+    public static $footerHandlers = [
+        SqlHandler::class,
+        RedisHandler::class,
+        AmqpHandler::class,
+        HttpHandler::class,
+        ShutdownHandler::class,
+        RequestHandler::class,
+        ErrorHandler::class,
+    ];
+
     /** @var array<string, string> Background colors of handler labels */
     public static $handlerColors = [
         'default' => Ansi::DGREEN,
@@ -986,6 +997,16 @@ class Debugger
             $data = Units::memoryWs((int) $stats['data']['total']);
             $rows = Units::units($stats['rows']['total'], 'row');
             $footer .= Ansi::color("| amqp: {$queries}{$time}{$data}{$rows} ", self::$headerColor, self::$headerBg);
+        }
+
+        // http io
+        $stats = HttpHandler::getStats();
+        $events = $stats['events']['total'];
+        if ($events > 0) {
+            $queries = Units::unitWs($stats['events']['total'], 'r');
+            $time = Units::timeWs($stats['time']['total']);
+            $data = Units::memory((int) $stats['data']['total']);
+            $footer .= Ansi::color("| http: {$queries}{$time}{$data} ", self::$headerColor, self::$headerBg);
         }
 
         // termination reason

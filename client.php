@@ -90,6 +90,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/handlers/AmqpHandler.php';
     require_once __DIR__ . '/src/handlers/ErrorHandler.php';
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
+    require_once __DIR__ . '/src/handlers/HttpHandler.php';
     require_once __DIR__ . '/src/handlers/MemoryHandler.php';
     require_once __DIR__ . '/src/handlers/OutputHandler.php';
     require_once __DIR__ . '/src/handlers/PhpUnitHandler.php';
