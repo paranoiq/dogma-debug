@@ -184,11 +184,14 @@ class Debugger
         StreamInterceptor::PROTOCOL_TLS_12 => Ansi::DGREEN,
     ];
 
+    /** @var bool - show pid for all logged events (otherwise shown only on request start/end) */
+    public static $alwaysShowPid = false;
+
     /** @var bool - show time of all logged events (otherwise shown only on request start/end) */
     public static $alwaysShowTime = false;
 
-    /** @var bool - show pid for all logged events (otherwise shown only on request start/end) */
-    public static $alwaysShowPid = false;
+    /** @var bool - show duration of measured events */
+    public static $alwaysShowDuration = false;
 
     // internals -------------------------------------------------------------------------------------------------------
 
@@ -551,8 +554,9 @@ class Debugger
             $depth--;
         }
 
-        $flags = (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
-            | (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0);
+        $flags = (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0)
+            | (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
+            | (self::$alwaysShowDuration ? Message::FLAG_SHOW_DURATION : 0);
         $message = Message::create($type, $payload, $backtrace, $duration, $flags, $processId);
 
         foreach (self::$beforeSend as $function) {
@@ -676,8 +680,9 @@ class Debugger
 
             if (Message::$count === 0) {
                 $header = self::createHeader();
-                $flags = (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
-                    | (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0);
+                $flags = (self::$alwaysShowPid ? Message::FLAG_SHOW_PID : 0)
+                    | (self::$alwaysShowTime ? Message::FLAG_SHOW_TIME : 0)
+                    | (self::$alwaysShowDuration ? Message::FLAG_SHOW_DURATION : 0);
                 $message = Message::create(Message::INTRO, $header, null, $flags);
 
                 if (self::$connection === self::CONNECTION_LOCAL) {

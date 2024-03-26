@@ -324,7 +324,7 @@ class DebugServer
         echo ltrim($message->payload);
 
         // duration
-        if ($message->duration > 0.000000000001) {
+        if (($message->flags & Message::FLAG_SHOW_DURATION) && $message->duration > 0.000000000001) {
             echo ' ' . Ansi::dblue('(' . Units::time($message->duration) . ')');
         }
 
@@ -335,7 +335,7 @@ class DebugServer
 
         // duration sum for similar request from same place
         if ($message->backtrace && $this->durationSum !== $message->duration) {
-            if ($this->durationSum > 0.000000000001) {
+            if (($message->flags & Message::FLAG_SHOW_DURATION) && $this->durationSum > 0.000000000001) {
                 echo ' ' . Ansi::dblue('(total ' . Units::time($this->durationSum) . ')');
             }
         }

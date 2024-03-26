@@ -47,9 +47,10 @@ class Message
     public const REDIS = 17;
     public const AMQP = 18;
 
-    public const FLAG_SHOW_TIME = 1;
-    public const FLAG_SHOW_PID = 2;
-    public const FLAG_BELL = 4;
+    public const FLAG_SHOW_PID = 1;
+    public const FLAG_SHOW_TIME = 2;
+    public const FLAG_SHOW_DURATION = 4;
+    public const FLAG_BELL = 5;
 
     public const OUTPUT_WIDTH = 100;
 
