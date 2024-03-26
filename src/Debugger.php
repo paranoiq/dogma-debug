@@ -104,7 +104,7 @@ class Debugger
     /** @var callable[] Functions to call before starting the actual request */
     public static $beforeStart = [];
 
-    /** @var list<callable(string): bool> Functions to call before sending a message. Receives Message as first argument. Returns true to stop message from sending */
+    /** @var list<callable(string): bool> Functions to call before sending a message. Receives Message as first argument. Returns false to stop message from sending */
     public static $beforeSend = [];
 
     /** @var callable[] Functions to call before debugger shutdown. Can dump some final things before debug footer is sent */
@@ -560,8 +560,11 @@ class Debugger
         $message = Message::create($type, $payload, $backtrace, $duration, $flags, $processId);
 
         foreach (self::$beforeSend as $function) {
-            if ($function($message)) {
+            $result = $function($message);
+            if ($result === false) {
                 return;
+            } elseif ($result instanceof Message) {
+                $message = $result;
             }
         }
 
