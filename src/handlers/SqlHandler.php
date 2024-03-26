@@ -88,6 +88,9 @@ class SqlHandler
     /** @var array<int, float> */
     private static $time = [];
 
+    /** @var array<int, float> */
+    private static $maxTime = [];
+
     /** @var array<int, int> */
     private static $rows = [];
 
@@ -130,11 +133,13 @@ class SqlHandler
         if (!isset(self::$events[$type])) {
             self::$events[$type] = 0;
             self::$time[$type] = 0.0;
+            self::$maxTime[$type] = 0.0;
             self::$rows[$type] = 0;
             self::$errors[$type] = 0;
         }
         self::$events[$type]++;
         self::$time[$type] += $duration;
+        self::$maxTime[$type] = max(self::$maxTime[$type], $duration);
         if ($rows !== null) {
             self::$rows[$type] += $rows;
         }
@@ -209,6 +214,30 @@ class SqlHandler
                 'commit' => self::$time[self::COMMIT] ?? 0.0,
                 'rollback' => self::$time[self::ROLLBACK] ?? 0.0,
                 'other' => self::$time[self::OTHER] ?? 0.0,
+            ],
+            'avg_time' => [
+                'connect' => (self::$time[self::CONNECT] ?? 0.0) / (self::$events[self::CONNECT] ?? 1),
+                'select' => (self::$time[self::SELECT] ?? 0.0) / (self::$events[self::SELECT] ?? 1),
+                'insert' => (self::$time[self::INSERT] ?? 0.0) / (self::$events[self::INSERT] ?? 1),
+                'delete' => (self::$time[self::DELETE] ?? 0.0) / (self::$events[self::DELETE] ?? 1),
+                'update' => (self::$time[self::UPDATE] ?? 0.0) / (self::$events[self::UPDATE] ?? 1),
+                'query' => (self::$time[self::QUERY] ?? 0.0) / (self::$events[self::QUERY] ?? 1),
+                'begin' => (self::$time[self::BEGIN] ?? 0.0) / (self::$events[self::BEGIN] ?? 1),
+                'commit' => (self::$time[self::COMMIT] ?? 0.0) / (self::$events[self::COMMIT] ?? 1),
+                'rollback' => (self::$time[self::ROLLBACK] ?? 0.0) / (self::$events[self::ROLLBACK] ?? 1),
+                'other' => (self::$time[self::OTHER] ?? 0.0) / (self::$events[self::OTHER] ?? 1),
+            ],
+            'max_time' => [
+                'connect' => self::$maxTime[self::CONNECT] ?? 0.0,
+                'select' => self::$maxTime[self::SELECT] ?? 0.0,
+                'insert' => self::$maxTime[self::INSERT] ?? 0.0,
+                'delete' => self::$maxTime[self::DELETE] ?? 0.0,
+                'update' => self::$maxTime[self::UPDATE] ?? 0.0,
+                'query' => self::$maxTime[self::QUERY] ?? 0.0,
+                'begin' => self::$maxTime[self::BEGIN] ?? 0.0,
+                'commit' => self::$maxTime[self::COMMIT] ?? 0.0,
+                'rollback' => self::$maxTime[self::ROLLBACK] ?? 0.0,
+                'other' => self::$maxTime[self::OTHER] ?? 0.0,
             ],
             'rows' => [
                 'connect' => self::$rows[self::CONNECT] ?? 0,
