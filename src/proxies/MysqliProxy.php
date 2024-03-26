@@ -16,15 +16,13 @@ use mysqli;
 use ReturnTypeWillChange;
 use function array_filter;
 use function func_get_args;
+use function microtime;
 use const MYSQLI_STORE_RESULT;
 
 class MysqliProxy extends mysqli
 {
 
     public const NAME = 'mysqli';
-
-    /** @var int */
-    public static $intercept = Intercept::LOG_CALLS;
 
     /** @var bool */
     public static $logNextCall = true;
@@ -39,7 +37,7 @@ class MysqliProxy extends mysqli
     )
     {
         if (self::$logNextCall) {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::__construct', [], null);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::__construct', [], null);
         }
         self::$logNextCall = true;
 
@@ -55,7 +53,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::autocommit($enable);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::autocommit', [$enable], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::autocommit', [$enable], $result);
         }
 
         return $result;
@@ -65,9 +63,18 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::begin_transaction($flags, $name);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::begin_transaction', [$flags, $name], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::begin_transaction', [$flags, $name], $result);
+            if ($name !== null) {
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($flags !== 0) {
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags})", $t, null, null, null, $this->error, $this->errno);
+            } else {
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction()", $t, null, null, null, $this->error, $this->errno);
+            }
         }
 
         return $result;
@@ -78,9 +85,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::change_user($username, $password, $database);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::change_user', [$username, $password, $database], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::change_user', [$username, $password, $database], $result);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::change_user('{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -92,7 +102,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::character_set_name();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::character_set_name', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::character_set_name', [], $result);
         }
 
         return $result;
@@ -102,9 +112,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::close();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::close', [], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::close', [], $result);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::close()", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -115,9 +128,18 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::commit($flags, $name);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::commit', [$flags, $name], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::commit', [$flags, $name], $result);
+            if ($name !== null) {
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($flags !== 0) {
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags})", $t, null, null, null, $this->error, $this->errno);
+            } else {
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit()", $t, null, null, null, $this->error, $this->errno);
+            }
         }
 
         return $result;
@@ -135,9 +157,26 @@ class MysqliProxy extends mysqli
     {
         $result = null;
         try {
+            $t = microtime(true);
             $result = parent::connect($hostname, $username, $password, $database, $port, $socket);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'PDO::getAttribute', [$hostname, $username, $password, $database, $port, $socket], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'PDO::getAttribute', [$hostname, $username, $password, $database, $port, $socket], $result);
+            if ($socket !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($port !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($database !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($password !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($username !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($hostname !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}')", $t, null, null, null, $this->error, $this->errno);
+            } else {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect()", $t, null, null, null, $this->error, $this->errno);
+            }
         }
 
         return $result;
@@ -149,7 +188,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::dump_debug_info();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::dump_debug_info', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::dump_debug_info', [], $result);
         }
 
         return $result;
@@ -161,7 +200,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::debug($options);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::debug', [$options], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::debug', [$options], $result);
         }
 
         return $result;
@@ -174,7 +213,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::get_charset();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_charset', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_charset', [], $result);
         }
 
         return $result;
@@ -186,7 +225,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::get_client_info();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_client_info', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_client_info', [], $result);
         }
 
         return $result;
@@ -199,7 +238,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::get_connection_stats();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_connection_stats', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_connection_stats', [], $result);
         }
 
         return $result;
@@ -211,7 +250,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::get_server_info();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_server_info', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_server_info', [], $result);
         }
 
         return $result;
@@ -222,9 +261,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::get_warnings();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_warnings', [], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_warnings', [], $result);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::get_warnings()", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -236,7 +278,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::init();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::init', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::init', [], $result);
         }
 
         return $result;
@@ -247,9 +289,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::kill($process_id);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::kill', [$process_id], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::kill', [$process_id], $result);
+            SqlHandler::log(SqlHandler::CONNECT, "mysqli::kill()", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -259,10 +304,17 @@ class MysqliProxy extends mysqli
     public function multi_query($query)
     {
         $result = false;
+        $id = null;
         try {
+            $t = microtime(true);
             $result = parent::multi_query($query);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::multi_query', [$query], $result);
+            $t = microtime(true) - $t;
+            if ($result !== false) {
+                $id = $this->insert_id;
+            }
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::multi_query', [$query], $result);
+            SqlHandler::logUnknown($query, $t, 0, $id,  null, $this->error, $this->errno);
         }
 
         return $result;
@@ -274,7 +326,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::more_results();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::more_results', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::more_results', [], $result);
         }
 
         return $result;
@@ -286,7 +338,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::next_result();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::next_result', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::next_result', [], $result);
         }
 
         return $result;
@@ -299,7 +351,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::options($option, $value);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::options', [$option, $value], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::options', [$option, $value], $result);
         }
 
         return $result;
@@ -311,7 +363,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::ping();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::ping', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::ping', [], $result);
         }
 
         return $result;
@@ -324,7 +376,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::prepare($query);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::prepare', [$query], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::prepare', [$query], $result);
         }
 
         if ($result !== false) {
@@ -342,10 +394,19 @@ class MysqliProxy extends mysqli
     public function query($query, $result_mode = MYSQLI_STORE_RESULT)
     {
         $result = false;
+        $rows = null;
+        $id = null;
         try {
+            $t = microtime(true);
             $result = parent::query($query, $result_mode);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::query', [$query, $result_mode], $result);
+            $t = microtime(true) - $t;
+            if ($result !== false) {
+                $rows = $this->affected_rows;
+                $id = $this->insert_id;
+            }
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::query', [$query, $result_mode], $result);
+            SqlHandler::logUnknown($query, $t, $rows, $id, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -364,9 +425,26 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::real_connect($hostname, $username, $password, $database, $port, $socket, $flags);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::real_connect', [$hostname, $username, $password, $database, $port, $socket, $flags], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::real_connect', [$hostname, $username, $password, $database, $port, $socket, $flags], $result);
+            if ($socket !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($port !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($database !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($password !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($username !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($hostname !== null) {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}')", $t, null, null, null, $this->error, $this->errno);
+            } else {
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect()", $t, null, null, null, $this->error, $this->errno);
+            }
         }
 
         return $result;
@@ -379,7 +457,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::real_escape_string($string);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::real_escape_string', [$string], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::real_escape_string', [$string], $result);
         }
 
         return $result;
@@ -392,7 +470,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::reap_async_query();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::reap_async_query', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::reap_async_query', [], $result);
         }
 
         return $result;
@@ -405,7 +483,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::escape_string($string);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::escape_string', [$string], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::escape_string', [$string], $result);
         }
 
         return $result;
@@ -415,10 +493,17 @@ class MysqliProxy extends mysqli
     public function real_query($query)
     {
         $result = false;
+        $id = null;
         try {
+            $t = microtime(true);
             $result = parent::real_query($query);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::real_query', [], $result);
+            $t = microtime(true) - $t;
+            if ($result !== false) {
+                $id = $this->insert_id;
+            }
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::real_query', [], $result);
+            SqlHandler::logUnknown($query, $t, 0, $id, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -428,9 +513,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::release_savepoint($name);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::release_savepoint', [$name], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::release_savepoint', [$name], $result);
+            SqlHandler::log(SqlHandler::COMMIT, "mysqli::release_savepoint('{$name}')", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -440,9 +528,18 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::rollback($flags, $name);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::rollback', [$flags, $name], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::rollback', [$flags, $name], $result);
+            if ($name !== null) {
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+            } elseif ($flags !== 0) {
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags})", $t, null, null, null, $this->error, $this->errno);
+            } else {
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback()", $t, null, null, null, $this->error, $this->errno);
+            }
         }
 
         return $result;
@@ -452,9 +549,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::savepoint($name);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::savepoint', [$name], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::savepoint', [$name], $result);
+            SqlHandler::log(SqlHandler::BEGIN, "mysqli::savepoint('{$name}')", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -465,9 +565,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::select_db($database);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::select_db', [$database], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::select_db', [$database], $result);
+            SqlHandler::log(SqlHandler::BEGIN, "mysqli::select_db('{$database}')", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -478,9 +581,12 @@ class MysqliProxy extends mysqli
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::set_charset($charset);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::set_charset', [$charset], $result);
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::set_charset', [$charset], $result);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::set_charset('{$charset}')", $t, null, null, null, $this->error, $this->errno);
         }
 
         return $result;
@@ -493,7 +599,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::set_opt($option, $value);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::set_opt', [$option, $value], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::set_opt', [$option, $value], $result);
         }
 
         return $result;
@@ -505,7 +611,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::ssl_set($key, $certificate, $ca_certificate, $ca_path, $cipher_algos);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::get_warnings', [$key, $certificate, $ca_certificate, $ca_path, $cipher_algos], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_warnings', [$key, $certificate, $ca_certificate, $ca_path, $cipher_algos], $result);
         }
 
         return $result;
@@ -518,7 +624,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::stat();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::stat', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::stat', [], $result);
         }
 
         return $result;
@@ -531,7 +637,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::stmt_init();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::stmt_init', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::stmt_init', [], $result);
         }
 
         return $result;
@@ -544,7 +650,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::store_result($mode);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::store_result', [$mode], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::store_result', [$mode], $result);
         }
 
         return $result;
@@ -556,7 +662,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::thread_safe();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::thread_safe', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::thread_safe', [], $result);
         }
 
         return $result;
@@ -569,7 +675,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::use_result();
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::use_result', [], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::use_result', [], $result);
         }
 
         return $result;
@@ -581,7 +687,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::refresh($flags);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::refresh', [$flags], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::refresh', [$flags], $result);
         }
 
         return $result;
@@ -594,7 +700,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::poll($read, $error, $reject, $sec, $usec);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'mysqli::poll', [$read, $error, $reject, $sec, $usec], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::poll', [$read, $error, $reject, $sec, $usec], $result);
         }
 
         return $result;

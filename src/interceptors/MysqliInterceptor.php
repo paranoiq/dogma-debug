@@ -29,7 +29,7 @@ class MysqliInterceptor
     public const STATEMENT_WRAP_AGGRESSIVE = 2;
 
     /** @var int */
-    private static $intercept = Intercept::NONE;
+    public static $intercept = Intercept::NONE;
 
     public static $wrapStatements = self::STATEMENT_WRAP_NONE;
 

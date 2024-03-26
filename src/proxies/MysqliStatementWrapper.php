@@ -66,7 +66,7 @@ class MysqliStatementWrapper
         try {
             $result = $this->statement->close();
         } finally {
-            Intercept::log(MysqliProxy::NAME, MysqliProxy::$intercept, 'mysqli_stmt::close', [], $result);
+            Intercept::log(MysqliProxy::NAME, MysqliInterceptor::$intercept, 'mysqli_stmt::close', [], $result);
         }
 
         return $result;
@@ -83,7 +83,7 @@ class MysqliStatementWrapper
         try {
             $result = $this->statement->execute($params);
         } finally {
-            Intercept::log(MysqliProxy::NAME, MysqliProxy::$intercept, 'mysqli_stmt::execute', [], $result);
+            Intercept::log(MysqliProxy::NAME, MysqliInterceptor::$intercept, 'mysqli_stmt::execute', [], $result);
         }
 
         return $result;
