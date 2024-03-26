@@ -352,19 +352,20 @@ class SqlHandler
 
     public static function getType(string $sql): int
     {
-        if (preg_match('~^(SELECT|\\()~i', $sql) !== 0) {
+        $intro = '(?:(?:-- [^\n]+\n)|(?:/\\*[^*]+\\*/)|\s)*+';
+        if (preg_match("~^{$intro}(?:SELECT|\\()~i", $sql) !== 0) {
             return self::SELECT;
-        } elseif (preg_match('~^(INSERT|REPLACE)~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}(?:INSERT|REPLACE)~i", $sql) !== 0) {
             return self::INSERT;
-        } elseif (preg_match('~^UPDATE~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}UPDATE~i", $sql) !== 0) {
             return self::UPDATE;
-        } elseif (preg_match('~^DELETE~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}DELETE|TRUNCATE~i", $sql) !== 0) {
             return self::DELETE;
-        } elseif (preg_match('~^(BEGIN|START TRANSACTION|SAVEPOINT)~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}(?:BEGIN|START TRANSACTION|SAVEPOINT)~i", $sql) !== 0) {
             return self::BEGIN;
-        } elseif (preg_match('~^(COMMIT|RELEASE SAVEPOINT)~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}(?:COMMIT|RELEASE SAVEPOINT)~i", $sql) !== 0) {
             return self::COMMIT;
-        } elseif (preg_match('~^ROLLBACK~i', $sql) !== 0) {
+        } elseif (preg_match("~^{$intro}ROLLBACK~i", $sql) !== 0) {
             return self::ROLLBACK;
         } else {
             return self::OTHER;
