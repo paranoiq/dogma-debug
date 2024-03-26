@@ -16,10 +16,12 @@ use Closure;
 use DateTimeInterface;
 use DateTimeZone;
 use InvalidArgumentException;
+use IteratorIterator;
 use LogicException;
 use mysqli;
 use mysqli_result;
 use mysqli_stmt;
+use OuterIterator;
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionObject;
@@ -367,6 +369,8 @@ class Dumper
         BackedEnum::class => [FormattersDefault::class, 'dumpBackedEnum'],
         UnitEnum::class => [FormattersDefault::class, 'dumpUnitEnum'],
         WeakReference::class => [FormattersDefault::class, 'dumpWeakReference'],
+        OuterIterator::class => [FormattersDefault::class, 'dumpOuterIterator'],
+        IteratorIterator::class => [FormattersDefault::class, 'dumpOuterIterator'],
         DateTimeInterface::class => [FormattersDefault::class, 'dumpDateTimeInterface'],
         mysqli::class => [FormattersDefault::class, 'dumpMysqli'],
         mysqli_stmt::class => [FormattersDefault::class, 'dumpMysqliStatement'],

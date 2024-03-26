@@ -15,6 +15,7 @@ use DateTimeInterface;
 use mysqli;
 use mysqli_result;
 use mysqli_stmt;
+use OuterIterator;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionObject;
@@ -237,6 +238,16 @@ class FormattersDefault
         return Dumper::class(get_class($dt)) . Dumper::bracket('(')
             . Dumper::value($value) . Dumper::value2($dt->format('P')) . $timeZone . $dst
             . Dumper::bracket(')') . $info;
+    }
+
+    public static function dumpOuterIterator(OuterIterator $iterator, int $depth = 0): string
+    {
+        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($iterator)) : '';
+
+        return Dumper::class(get_class($iterator)) . Dumper::bracket(' {') . "\n"
+            . Dumper::indent($depth + 1)
+            . Dumper::dumpValue($iterator->getInnerIterator(), $depth + 1) . "\n"
+            . Dumper::bracket('}') . $info;
     }
 
     public static function dumpMysqli(mysqli $mysqli, int $depth = 0): string
