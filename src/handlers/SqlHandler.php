@@ -16,8 +16,6 @@ use PDOStatement;
 use function array_merge;
 use function array_shift;
 use function array_sum;
-use function array_unique;
-use function explode;
 use function implode;
 use function is_int;
 use function preg_match;
@@ -78,8 +76,10 @@ class SqlHandler
     /** @var array<int|string, callable> - Query filters for modifying logged SQL, optionally indexed by connection name */
     public static $queryFilters = [
         [self::class, 'normalizeWhitespace'],
-        'doctrine' => [self::class, 'filterDoctrineSelects'],
-        [self::class, 'simpleHighlighting']
+        [self::class, 'stripComments'],
+        [self::class, 'stripDoctrineSelectColumns'],
+        //[self::class, 'stripInsertColumnList'],
+        [self::class, 'simpleHighlighting'],
     ];
 
     /** @var array<int, int> */
@@ -338,13 +338,17 @@ class SqlHandler
         self::$traceFilters = array_merge(self::$traceFilters, [
             '~^Doctrine\\\\DBAL\\\\Connection~',
             '~^Doctrine\\\\DBAL\\\\Driver~',
-            '~^Doctrine\\\\ORM\\\\UnitOfWork~',
+            '~^Doctrine\\\\DBAL\\\\Logging~',
+            '~^Doctrine\\\\DBAL\\\\Statement~',
             '~^Doctrine\\\\ORM\\\\AbstractQuery~',
+            '~^Doctrine\\\\ORM\\\\EntityManager~',
+            '~^Doctrine\\\\ORM\\\\EntityRepository~',
             '~^Doctrine\\\\ORM\\\\Query~',
-            '~^Doctrine\\\\ORM\\\\Query\\\\Exec\\\\SingleSelectExecutor~',
-            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\ObjectHydrator~',
-            '~^Doctrine\\\\ORM\\\\Internal\\\\Hydration\\\\AbstractHydrator~',
-            '~^Doctrine\\\\ORM\\\\Persisters\\\\Entity\\\\BasicEntityPersister~',
+            '~^Doctrine\\\\ORM\\\\Proxy~',
+            '~^Doctrine\\\\ORM\\\\UnitOfWork~',
+            '~^Doctrine\\\\ORM\\\\Internal~',
+            '~^Doctrine\\\\ORM\\\\Persisters~',
+            '~^Doctrine\\\\ORM\\\\PersistentCollection~'
         ]);
     }
 
@@ -387,37 +391,69 @@ class SqlHandler
         $commentColor = Ansi::colorStart(Dumper::$colors['info']);
         $keywordColor = Ansi::colorStart(Dumper::$colors['value2']);
         $textColor = Ansi::colorStart(Dumper::$colors['value']);
+        $numberColor = Ansi::colorStart(Dumper::$colors['int']);
+        $stringColor = Ansi::colorStart(Dumper::$colors['string']);
         $reserved = implode('|', Sql::getKeywords());
 
-        $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|$)~i", "{$keywordColor}\\1{$textColor}", $query); // highlight keywords
-        $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query); // indent non-keywords
-        $query = preg_replace_callback("~-- [^\n]+\n~", static function (array $match) use ($commentColor, $textColor): string {
+        // highlight keywords
+        $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|,|$)~i", "{$keywordColor}\\1{$textColor}", $query);
+        // indent non-keywords
+        $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query);
+        // highlight comments
+        $query = preg_replace_callback("~-- [^\n]++\n~", static function (array $match) use ($commentColor, $textColor): string {
             return $commentColor . Ansi::removeColors($match[0]) . $textColor;
         }, $query);
-        $query = preg_replace_callback("~/\\*[^*]+\\*/~", static function (array $match) use ($commentColor, $textColor): string {
+        $query = preg_replace_callback("~/\\*[^*]++\\*/~", static function (array $match) use ($commentColor, $textColor): string {
             return $commentColor . Ansi::removeColors($match[0]) . $textColor;
+        }, $query);
+        // highlight strings and numbers (skip names)
+        // todo: very crude. detect numbers better
+        $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
+            if ($match[0][0] === "'" || $match[0][0] === '"') {
+                return $stringColor . Ansi::removeColors($match[0]) . $textColor;
+            } elseif ($match[0][0] === '`') {
+                return $match[0];
+            } else {
+                return $numberColor . Ansi::removeColors($match[0]) . $textColor;
+            }
         }, $query);
 
         return $query;
     }
 
-    public static function filterDoctrineSelects(string $query): string
+    public static function stripComments(string $query): string
     {
-        static $column = '[a-z\d_]+\.[a-z\d_]+(?: AS [a-z\d_]+)?';
+        $query = preg_replace('~-- [^\\n]++\n~', '', $query);
 
-        if (preg_match("~SELECT ({$column}(?:, {$column})*) FROM~i", $query, $m) === 0) {
-            return $query;
-        }
+        return preg_replace('~/\\*(?!\\+).*?\\*/~', '', $query);
+    }
 
-        $tables = [];
-        foreach (explode(', ', $m[1]) as $item) {
-            $table = explode('.', $item)[0];
-            $tables[] = $table . '.?';
-        }
-        $tables = array_unique($tables);
-        $tables = implode(', ', $tables);
+    public static function stripInsertColumnList(string $query): string
+    {
+        return preg_replace( // https://regex101.com/r/KQ7VYt/2
+            "~(INTO [a-z0-9_]+) \\([a-z0-9_]+(?:, ?[a-z0-9_]+)*\\)~i",
+            '$1 (...)',
+            $query
+        );
+    }
 
-        return preg_replace("~SELECT {$column}(?:, {$column})* FROM~i", "SELECT {$tables} FROM", $query);
+    public static function stripDoctrineSelectColumns(string $query): string
+    {
+        $maxFieldsToKeep = 3;
+
+        return preg_replace( // https://regex101.com/r/KQ7VYt/2
+            "~
+                (SELECT(?:\s+/\\*\\+[^*]++\\*/)?)\s*+
+                (
+                    \w++\.\w++\s*+
+                    (?:AS\s*+\w++)?+\s*+
+                )
+                (?:,\s*+(?2)){{$maxFieldsToKeep},}\s*+
+                (FROM)
+            ~xi",
+            '$1 ... $3',
+            $query
+        );
     }
 
 }
