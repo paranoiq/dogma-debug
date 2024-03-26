@@ -225,7 +225,7 @@ class FormattersDefault
 
     public static function dumpCallstack(Callstack $callstack, int $depth = 0): string
     {
-        return Dumper::class(get_class($callstack)) . ' ' . Dumper::dumpValue($callstack->frames, $depth /* no increment */);
+        return Dumper::class(get_class($callstack)) . ' ' . Dumper::dumpValue($callstack->frames, $depth + 1);
     }
 
     public static function dumpDateTimeInterface(DateTimeInterface $dt): string
