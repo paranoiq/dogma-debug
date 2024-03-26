@@ -143,7 +143,7 @@ class SqlHandler
         if ($rows !== null) {
             self::$rows[$type] += $rows;
         }
-        $isError = $errorCode !== null || $errorMessage !== null;
+        $isError = ($errorCode !== null && $errorCode !== 0) || ($errorMessage !== null && $errorMessage !== '');
         if ($isError) {
             self::$errors[$type]++;
         }
@@ -163,13 +163,15 @@ class SqlHandler
             $message = Ansi::lyellow(strtoupper(self::TYPES[$type]) . ';');
         }
 
+        $parts = [];
         if ($rows !== null) {
-            $result = $isError ? ', FAILED' : ', OK';
-            $info = Ansi::color(' -- ' . Units::units($rows, 'row') . $result, Dumper::$colors['info']);
-        } else {
-            $result = $isError ? 'FAILED' : 'OK';
-            $info = Ansi::color(' -- ' . $result, Dumper::$colors['info']);
+            $parts[] = Units::units($rows, 'row');
         }
+        if ($lastInsertId !== null && $lastInsertId !== 0) {
+            $parts[] = 'last id: ' . $lastInsertId;
+        }
+        $parts[] = $isError ? 'FAILED' : 'OK';
+        $info = Ansi::color(' -- ' . implode(', ', $parts), Dumper::$colors['info']);
 
         $message = Ansi::white($connection ? " DB {$connection}: " : ' DB: ', Debugger::$handlerColors[self::NAME])
             . ' ' . $message . $info;
