@@ -269,7 +269,7 @@ class Intercept
     public static function registerFunction(string $handler, string $function, $callable): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$functions[$function] = is_string($callable) ? [$handler, [$callable, $function]] : [$handler, $callable];
@@ -291,7 +291,7 @@ class Intercept
         }
 
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__ . '('. $method[1] . ')');
         }
 
         self::$methods[$method[0]][$method[1]] = is_string($callable) ? [$handler, [$callable, $method[1]]] : [$handler, $callable];
@@ -313,7 +313,7 @@ class Intercept
         }
 
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$classes[$class] = [$handler, $replace, $aggressive];
@@ -334,7 +334,7 @@ class Intercept
         }
 
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$exceptions[$exception] = $handler;
@@ -349,7 +349,7 @@ class Intercept
     public static function inspectCaughtExceptions(string $handler, array $callback): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$exceptionCallable = [$handler, $callback];
@@ -361,7 +361,7 @@ class Intercept
     public static function removeSensitiveParameterAttributes(bool $remove): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$removeSensitiveParameter = $remove;
@@ -374,7 +374,7 @@ class Intercept
     public static function strictTypes(?bool $on): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$strictTypes = $on;
@@ -387,37 +387,33 @@ class Intercept
     public static function insertDeclareTicks(int $ticks): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers();
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
         }
 
         self::$ticks = $ticks;
     }
 
-    private static function startStreamHandlers(): void
+    private static function startStreamHandlers(string $by): void
     {
         if (!FileStreamWrapper::enabled()) {
             FileStreamWrapper::enable();
             $activated = FileStreamWrapper::class;
-            $by = __CLASS__ . '::' . __METHOD__;
             Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
         }
         if (!PharStreamWrapper::enabled()) {
             PharStreamWrapper::enable();
             $activated = PharStreamWrapper::class;
-            $by = __CLASS__ . '::' . __METHOD__;
             Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
         }
         if (ini_get('allow_url_include')) {
             if (!HttpStreamWrapper::enabled()) {
                 HttpStreamWrapper::enable();
                 $activated = HttpStreamWrapper::class;
-                $by = __CLASS__ . '::' . __METHOD__;
                 Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
             }
             if (!FtpStreamWrapper::enabled()) {
                 FtpStreamWrapper::enable();
                 $activated = FtpStreamWrapper::class;
-                $by = __CLASS__ . '::' . __METHOD__;
                 Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
             }
         }
