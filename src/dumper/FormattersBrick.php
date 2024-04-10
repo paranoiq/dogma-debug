@@ -12,14 +12,21 @@ namespace Dogma\Debug;
 use Brick\DateTime\Instant;
 use Brick\DateTime\LocalDate;
 use Brick\DateTime\LocalTime;
+use Brick\Math\BigInteger;
+use Brick\Math\BigRational;
 use Brick\Money\Currency;
 use function get_class;
+use function intval;
 
 class FormattersBrick
 {
 
     public static function register(): void
     {
+        // math
+        Dumper::$objectFormatters[BigInteger::class] = [self::class, 'dumpBigInteger'];
+        Dumper::$objectFormatters[BigRational::class] = [self::class, 'dumpBigRational'];
+
         // money
         Dumper::$objectFormatters[Currency::class] = [self::class, 'dumpCurrency'];
 
@@ -27,6 +34,29 @@ class FormattersBrick
         Dumper::$objectFormatters[Instant::class] = [self::class, 'dumpInstant'];
         Dumper::$objectFormatters[LocalDate::class] = [self::class, 'dumpLocalDate'];
         Dumper::$objectFormatters[LocalTime::class] = [self::class, 'dumpLocalTime'];
+    }
+
+    public static function dumpBigInteger(BigInteger $integer): string
+    {
+        $value = $integer->__toString();
+
+        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($integer)) : '';
+
+        return Dumper::class(get_class($integer)) . Dumper::bracket('(')
+            . Dumper::value($value)
+            . Dumper::bracket(')') . $info;
+    }
+
+    public static function dumpBigRational(BigRational $rational): string
+    {
+        $numerator = $rational->getNumerator()->__toString();
+        $denominator = $rational->getDenominator()->__toString();
+
+        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($rational)) : '';
+
+        return Dumper::class(get_class($rational)) . Dumper::bracket('(')
+            . Dumper::value($numerator . ' / ' . $denominator) . ' (' . Dumper::value2('~' . (intval($numerator) / intval($denominator))) . ')'
+            . Dumper::bracket(')') . $info;
     }
 
     public static function dumpCurrency(Currency $currency): string
