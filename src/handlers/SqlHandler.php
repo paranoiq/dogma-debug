@@ -178,13 +178,27 @@ class SqlHandler
 
         if ($isError) {
             $errorMessage = str_replace('; check the manual that corresponds to your MySQL server version for the right syntax to use', '', (string) $errorMessage);
-            $message .= "\n " . Ansi::color($errorCode . ' ' . $errorMessage, Dumper::$colors['errors']);
+            $message .= "\n" . Ansi::white(' ' . $errorCode . ' ' . $errorMessage . ' ', Dumper::$colors['errors']);
         }
 
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
 
         Debugger::send(Message::SQL, $message, $backtrace, $duration);
+    }
+
+    public static function getEvents(): array
+    {
+        return self::$events;
+    }
+
+    public static function resetStats(): void
+    {
+        self::$events = [];
+        self::$time = [];
+        self::$maxTime = [];
+        self::$rows = [];
+        self::$errors = [];
     }
 
     /**
@@ -336,6 +350,7 @@ class SqlHandler
     public static function useDoctrineTraceFilters(): void
     {
         self::$traceFilters = array_merge(self::$traceFilters, [
+            '~^Doctrine\\\\Common\\\\Collections~',
             '~^Doctrine\\\\DBAL\\\\Connection~',
             '~^Doctrine\\\\DBAL\\\\Driver~',
             '~^Doctrine\\\\DBAL\\\\Logging~',
@@ -393,7 +408,7 @@ class SqlHandler
         $textColor = Ansi::colorStart(Dumper::$colors['value']);
         $numberColor = Ansi::colorStart(Dumper::$colors['int']);
         $stringColor = Ansi::colorStart(Dumper::$colors['string']);
-        $reserved = implode('|', Sql::getKeywords());
+        $reserved = implode('|', Sql::getReserved());
 
         // highlight keywords
         $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|,|$)~i", "{$keywordColor}\\1{$textColor}", $query);

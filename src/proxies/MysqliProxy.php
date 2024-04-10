@@ -611,7 +611,7 @@ class MysqliProxy extends mysqli
         try {
             $result = parent::ssl_set($key, $certificate, $ca_certificate, $ca_path, $cipher_algos);
         } finally {
-            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_warnings', [$key, $certificate, $ca_certificate, $ca_path, $cipher_algos], $result);
+            Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::ssl_set', [$key, $certificate, $ca_certificate, $ca_path, $cipher_algos], $result);
         }
 
         return $result;
