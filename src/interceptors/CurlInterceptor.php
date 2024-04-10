@@ -13,8 +13,11 @@ namespace Dogma\Debug;
 
 use CurlHandle;
 use CurlMultiHandle;
+use function curl_errno;
+use function curl_exec;
 use function fread;
 use function fseek;
+use function microtime;
 use const CURLE_OK;
 use const CURLINFO_APPCONNECT_TIME;
 use const CURLINFO_CERTINFO;
@@ -254,9 +257,6 @@ class CurlInterceptor
 
     /** @var int */
     private static $intercept = Intercept::NONE;
-
-    /** @var resource[] */
-    private static $files = [];
 
     /** @var array<int, string> */
     private static $opt = [
@@ -502,6 +502,17 @@ class CurlInterceptor
         CURLINFO_PRIVATE => 'CURLINFO_PRIVATE',
     ];
 
+    // request data ----------------------------------------------------------------------------------------------------
+
+    /** @var array<int, resource> */
+    private static $files = [];
+
+    /** @var array<int, string> */
+    private static $methods = [];
+
+    /** @var array<int, string> */
+    private static $urls = [];
+
     public static function getCurlSetoptArrayKeyInfo(int $key): string
     {
         return self::$opt[$key] ?? '';
@@ -567,6 +578,9 @@ class CurlInterceptor
      */
     public static function curl_close($handle): void
     {
+        $id = Dumper::objectId($handle);
+        unset(self::$files[$id], self::$methods[$id], self::$urls[$id]);
+
         Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], null);
     }
 
@@ -576,9 +590,18 @@ class CurlInterceptor
      */
     public static function curl_exec($handle)
     {
-        $result = Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], false);
-
         $id = Dumper::objectId($handle);
+
+        $t = microtime(true);
+        $result = Intercept::handle(self::NAME, self::$intercept, __FUNCTION__, [$handle], false);
+        $t = microtime(true) - $t;
+
+        $errorCode = null;
+        if ($result === false) {
+            $errorCode = curl_errno($handle);
+        }
+        $responseCode = curl_getinfo($handle, CURLINFO_HTTP_CODE);
+
         if (isset(self::$files[$id])) {
             fseek(self::$files[$id], 0);
             $contents = fread(self::$files[$id], 2000);
@@ -591,6 +614,9 @@ class CurlInterceptor
                 Debugger::send(Message::DUMP, Ansi::white("response:") . ' ' . Dumper::dumpString($contents));
             }
         }
+
+        $dataSize = is_string($result) ? strlen($result) : (isset($contents) ? strlen($contents) : null);
+        HttpHandler::log(self::$methods[$id] ?? 'get', self::$urls[$id] ?? '', $dataSize, $t, $responseCode, $errorCode);
 
         return $result;
     }
