@@ -53,9 +53,9 @@ if (!function_exists('rd')) {
      * @param T $value
      * @return T
      */
-    function rd($value, ?int $maxDepth = null, ?int $traceLength = null)
+    function rd($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
     {
-        return Debugger::dump($value, $maxDepth, $traceLength);
+        return Debugger::dump($value, $maxDepth, $traceLength, $name);
     }
 
     /**

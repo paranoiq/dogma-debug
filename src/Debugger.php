@@ -260,11 +260,11 @@ class Debugger
      * @param T $value
      * @return T
      */
-    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null)
+    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
     {
         ob_start();
 
-        $dump = Dumper::dump($value, $maxDepth, $traceLength);
+        $dump = Dumper::dump($value, $maxDepth, $traceLength, $name);
         self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);

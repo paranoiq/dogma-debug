@@ -466,7 +466,7 @@ class Dumper
      *
      * @param mixed $value
      */
-    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null): string
+    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null): string
     {
         self::$objects = [];
 
@@ -482,7 +482,7 @@ class Dumper
         try {
             $callstack = Callstack::get(self::$traceFilters);
 
-            $expression = self::$dumpExpressions ? self::findExpression($callstack) : null;
+            $expression = $name ?? (self::$dumpExpressions ? self::findExpression($callstack) : null);
 
             $result = self::dumpValue($value, 0, $expression === true ? null : $expression);
 
