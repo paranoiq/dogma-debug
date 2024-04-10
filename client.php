@@ -88,6 +88,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/dumper/FormattersConsistence.php';
 
     require_once __DIR__ . '/src/handlers/AmqpHandler.php';
+    require_once __DIR__ . '/src/handlers/DependenciesHandler.php';
     require_once __DIR__ . '/src/handlers/ErrorHandler.php';
     require_once __DIR__ . '/src/handlers/ExceptionHandler.php';
     require_once __DIR__ . '/src/handlers/HttpHandler.php';

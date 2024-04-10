@@ -804,7 +804,8 @@ class Debugger
         $dt = new DateTime();
         $time = $dt->format(self::$headerTimeFormat);
         $php = PHP_VERSION . ' ' . Request::$sapi;
-        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} ", self::$headerColor, self::$headerBg) . ' ';
+        $packages = DependenciesHandler::getPackagesInfo();
+        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} " . $packages, self::$headerColor, self::$headerBg) . ' ';
         if (Request::$application && Request::$environment) {
             $header .= Ansi::white(' ' . Request::$application . '/' . Request::$environment . ' ', Ansi::DBLUE) . ' ';
         } elseif (Request::$application) {
@@ -824,7 +825,8 @@ class Debugger
         $dt = DateTime::createFromFormat('U.u', number_format(self::$timerStarts[''], 6, '.', ''));
         $time = $dt->format(self::$headerTimeFormat);
         $php = PHP_VERSION . ' ' . Request::$sapi;
-        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} ", self::$headerColor, self::$headerBg) . ' ';
+        $packages = DependenciesHandler::getPackagesInfo();
+        $header = "\n" . Ansi::color(" START {$time} | PHP {$php} " . $packages, self::$headerColor, self::$headerBg) . ' ';
         if (Request::$application && Request::$environment) {
             $header .= Ansi::white(' ' . Request::$application . '/' . Request::$environment . ' ', Ansi::DBLUE) . ' ';
         } elseif (Request::$application) {
