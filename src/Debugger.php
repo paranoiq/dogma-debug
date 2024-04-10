@@ -35,6 +35,7 @@ use function is_file;
 use function is_float;
 use function is_int;
 use function is_null;
+use function is_object;
 use function is_string;
 use function memory_get_peak_usage;
 use function memory_get_usage;
@@ -327,8 +328,8 @@ class Debugger
     }
 
     /**
-     * @param string|int|float|bool|null $label
-     * @return string|int|float|bool|null
+     * @param string|int|float|bool|object|null $label
+     * @return string|int|float|bool|object|null
      */
     public static function label($label, ?string $name = null, ?string $color = null)
     {
@@ -337,15 +338,17 @@ class Debugger
         $color = $color ?? Ansi::LGRAY;
 
         if ($label === null) {
-            $label = 'null';
+            $value = 'null';
         } elseif ($label === false) {
-            $label = 'false';
+            $value = 'false';
         } elseif ($label === true) {
-            $label = 'true';
+            $value = 'true';
         } elseif (is_string($label)) {
-            $label = Dumper::escapeRawString($label, Dumper::$rawEscaping, Ansi::BLACK, $color);
+            $value = Dumper::escapeRawString($label, Dumper::$rawEscaping, Ansi::BLACK, $color);
         } elseif (is_int($label) || is_float($label)) {
-            // pass
+            $value = $label;
+        } elseif (is_object($label)) {
+            $value = get_class($label) . ' #' . Dumper::objectHash($label);
         } else {
             $message = Ansi::white(' Invalid value sent to Debugger::label() ', Ansi::LRED);
             self::send(Message::LABEL, $message);
@@ -355,7 +358,7 @@ class Debugger
             $name = Dumper::escapeRawString($name, Dumper::$rawEscaping, Ansi::BLACK, $color);
         }
 
-        $message = Ansi::black($name ? " {$name}: {$label} " : " {$label} ", $color);
+        $message = Ansi::black($name ? " {$name}: {$value} " : " {$value} ", $color);
 
         self::send(Message::LABEL, $message);
 

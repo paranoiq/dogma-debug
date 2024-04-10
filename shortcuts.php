@@ -121,8 +121,8 @@ if (!function_exists('rd')) {
     /**
      * Remote label print
      *
-     * @param string|int|float|bool|null $label
-     * @return string|int|float|bool|null
+     * @param string|int|float|bool|object|null $label
+     * @return string|int|float|bool|object|null
      */
     function rl($label, ?string $name = null, ?string $color = null)
     {
