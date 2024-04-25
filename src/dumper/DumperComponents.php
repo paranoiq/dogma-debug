@@ -366,6 +366,7 @@ trait DumperComponents
 
     public static function class(string $class): string
     {
+        $class = str_replace("\x00", '¤', $class);
         $short = $class;
         if (self::$namespaceReplacements) {
             $short = preg_replace(array_keys(self::$namespaceReplacements), array_values(self::$namespaceReplacements), $class);

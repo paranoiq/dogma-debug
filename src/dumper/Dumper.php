@@ -882,10 +882,13 @@ class Dumper
         $empty = [];
         foreach ($properties as $key => $value) {
             $parts = explode("\0", $key);
-            if (count($parts) === 3) {
+            if (count($parts) === 4) { // \0Class@anonymous\0path:line$foo\0var
+                $name = $parts[3];
+                $cls = $parts[1] . "\x00" . $parts[2];
+            } elseif (count($parts) === 3) { // \0Class\0var
                 $name = $parts[2];
                 $cls = $parts[1];
-            } else {
+            } else { // var
                 $name = $parts[0];
                 $cls = null;
             }

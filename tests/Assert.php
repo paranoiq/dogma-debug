@@ -74,7 +74,7 @@ class Assert
 
         $string = preg_replace('~[/:A-Za-z0-9-]+\\.php:\\d+~', '?path?file:?line', $string);
 
-        $string = preg_replace('~\\(stream ([0-9]+)\\)~', '(stream ?id)', $string);
+        $string = preg_replace('~\\(stream ([0-9]+)~', '(stream ?id', $string);
 
         return $string;
     }
