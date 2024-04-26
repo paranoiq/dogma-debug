@@ -157,12 +157,12 @@ $closure = Closure::fromCallable('date');
 Assert::dump($closure, '<$closure>: <Closure> function <date>(<$format>, <$timestamp>) <{><}>');
 
 $closure = Closure::fromCallable([$foo, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.objects.phpt<:><27>
+Assert::dump($closure, '<$closure>: <Closure> function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.objects.phpt<:><23>
     <static> <$x> = <42>;
 <}>');
 
 $closure = Closure::fromCallable([Bar::class, 'bar']);
-Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.objects.phpt<:><38>
+Assert::dump($closure, '<$closure>: <Closure> static function <bar>(int <$c>): int <{>< // ><tests/php71/>Dumper.objects.phpt<:><34>
     <static> <$x> = <42>;
 <}>');
 

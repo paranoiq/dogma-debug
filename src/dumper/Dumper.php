@@ -788,9 +788,9 @@ class Dumper
             if ($handler !== null) {
                 $handlerResult = $handler($object);
             }
-            if ($handlerResult === null) {
+            if ($handlerResult === null || $handlerResult === '') {
                 foreach (self::$objectFormatters as $cl => $handler) {
-                    if (is_a($object, $cl)) {
+                    if (is_a($object, $cl) && $cl !== $class) {
                         $handlerResult = $handler($object, $depth);
                         if ($handlerResult !== null) {
                             break;

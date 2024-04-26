@@ -173,7 +173,7 @@ if (!class_exists(Debugger::class)) {
     Request::init();
 
     // configure client, unless the current process is actually a starting server
-    if (is_readable(__DIR__ . '/debug-config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
+    if (!isset($_dogma_debug_no_config) && is_readable(__DIR__ . '/debug-config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
         require_once __DIR__ . '/debug-config.php';
     }
 
