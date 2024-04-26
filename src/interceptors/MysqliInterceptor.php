@@ -11,6 +11,7 @@ namespace Dogma\Debug;
 
 use mysqli;
 use mysqli_stmt;
+use function extension_loaded;
 use function ini_get;
 
 /**
@@ -40,6 +41,10 @@ class MysqliInterceptor
      */
     public static function interceptMysqli(int $level = Intercept::LOG_CALLS, int $wrapStatements = self::STATEMENT_WRAP_NONE): void
     {
+        if (!extension_loaded('mysqli')) {
+            return;
+        }
+
         Intercept::registerClass(self::NAME, mysqli::class, MysqliProxy::class);
         if ($wrapStatements === self::STATEMENT_WRAP_EXTENDING) {
             Intercept::registerClass(self::NAME, mysqli_stmt::class, MysqliStatementProxy::class);

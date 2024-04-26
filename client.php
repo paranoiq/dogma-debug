@@ -109,6 +109,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/interceptors/ExecInterceptor.php';
     require_once __DIR__ . '/src/interceptors/HeadersInterceptor.php';
     require_once __DIR__ . '/src/interceptors/MailInterceptor.php';
+    require_once __DIR__ . '/src/interceptors/MysqliInterceptor.php';
     require_once __DIR__ . '/src/interceptors/PcntlInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SessionInterceptor.php';
     require_once __DIR__ . '/src/interceptors/SettingsInterceptor.php';
@@ -122,7 +123,6 @@ if (!class_exists(Debugger::class)) {
         require_once __DIR__ . '/src/proxies/MysqliProxy.php';
         require_once __DIR__ . '/src/proxies/MysqliStatementProxy.php';
         require_once __DIR__ . '/src/proxies/MysqliStatementWrapper.php';
-        require_once __DIR__ . '/src/interceptors/MysqliInterceptor.php';
     }
     if (extension_loaded('pdo')) {
         if (PHP_VERSION_ID < 80000) {
