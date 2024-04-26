@@ -155,7 +155,7 @@ class Callstack
             $number = $trace[$i]['number'] ?? count($trace) - $i;
             $time = $trace[$j]['time'] ?? null;
             $memory = $trace[$j]['memory'] ?? null;
-            if ($number === 0 && $line === 0) {
+            if ($number === 0 && $line < 1) {
                 continue;
             }
 
