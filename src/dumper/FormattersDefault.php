@@ -324,7 +324,7 @@ class FormattersDefault
     public static function dumpIntTime(int $int): ?string
     {
         if ($int >= 10000000) {
-            return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . Dumper::intToFormattedDate($int));
+            return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . Dumper::timestampToFormattedDate($int));
         }
 
         return null;
@@ -494,12 +494,18 @@ class FormattersDefault
     {
         static $uuidRe = '~^(?:urn:uuid:)?{?([0-9a-f]{8})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{4})-?([0-9a-f]{12})}?$~';
 
-        $bytes = strlen($string);
-        // phpcs:disable SlevomatCodingStandard.ControlStructures.AssignmentInCondition.AssignmentInCondition
-        if ((preg_match($uuidRe, $string, $m) && $uuidInfo = Dumper::uuidInfo(array_slice($m, 1)))
-            || ($bytes === 32 && preg_match('~id$~i', $key) && $uuidInfo = Dumper::binaryUuidInfo($string))
-        ) {
-            return Dumper::string($string, $depth) . ' ' . Dumper::info('// ' . $uuidInfo);
+        if (strlen($string) === 16 && (Str::isBinary($string) || preg_match('~uuid~i', $key))) {
+            $uuidInfo = Dumper::binaryUuidInfo($string);
+            if ($uuidInfo !== null) {
+                return Dumper::stripInfo(Dumper::string($string, $depth)) . ' ' . Dumper::info('// ' . $uuidInfo);
+            }
+        }
+
+        if (preg_match($uuidRe, $string, $m)) {
+            $uuidInfo = Dumper::uuidInfo(array_slice($m, 1));
+            if ($uuidInfo !== null) {
+                return Dumper::string($string, $depth) . ' ' . Dumper::info('// ' . $uuidInfo);
+            }
         }
 
         return null;

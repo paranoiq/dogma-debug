@@ -896,9 +896,9 @@ trait StreamWrapperMixin
                 //'links' => $stat['nlink'],
                 //'uid' => $stat['uid'],
                 //'gid' => $stat['gid'],
-                //'ctime' => Dumper::intToFormattedDate($stat['ctime']),
-                'mtime' => Dumper::intToFormattedDate($stat['mtime']),
-                //'atime' => Dumper::intToFormattedDate($stat['atime']),
+                //'ctime' => Dumper::timestampToFormattedDate($stat['ctime']),
+                'mtime' => Dumper::timestampToFormattedDate($stat['mtime']),
+                //'atime' => Dumper::timestampToFormattedDate($stat['atime']),
             ];
     }
 

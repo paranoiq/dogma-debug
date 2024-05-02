@@ -27,10 +27,13 @@ use function dechex;
 use function dirname;
 use function end;
 use function explode;
+use function floatval;
 use function function_exists;
 use function hexdec;
 use function implode;
 use function ini_get;
+use function intval;
+use function is_float;
 use function is_infinite;
 use function is_int;
 use function is_nan;
@@ -44,6 +47,7 @@ use function ord;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function round;
 use function rtrim;
 use function spl_object_hash;
 use function spl_object_id;
@@ -57,6 +61,7 @@ use function strpos;
 use function strrev;
 use function strtolower;
 use function strtoupper;
+use function strval;
 use function substr;
 use function trim;
 use const PHP_VERSION_ID;
@@ -585,20 +590,29 @@ trait DumperComponents
      */
     public static function uuidInfo(array $parts): ?string
     {
-        [$timeLow, $timeMid, $timeHigh, $sequence] = $parts;
-        $version = hexdec($timeHigh[0]) + (hexdec($sequence[0]) & 0b1110) * 16;
+        [$timeLow, $timeMid, $timeHigh, $sequence, $node] = $parts;
+        $version = hexdec($timeHigh[0]);
 
         if ($version === 1) {
-            /** @var positive-int $time */
-            $time = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
-            $dateTime = self::intToFormattedDate((int) $time);
+            /** @var positive-int $timestamp */
+            $timestamp = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
+            $dateTime = self::timestampToFormattedDate($timestamp);
             // not valid date. probably not UUID
             if (intval(explode('-', $dateTime)[0]) > 3000) {
                 return null;
             }
 
             return 'UUID v' . $version . ', ' . $dateTime;
-        } elseif ($version > 0 && $version < 6) {
+        } elseif ($version === 7) {
+            $timestamp = hexdec($timeLow . $timeMid) / 1000;
+            $dateTime = self::timestampToFormattedDate($timestamp);
+            // not valid date. probably not UUID
+            if (intval(explode('-', $dateTime)[0]) > 3000) {
+                return null;
+            }
+
+            return 'UUID v' . $version . ', ' . $dateTime;
+        } elseif ($version > 0 && $version < 8) {
             return 'UUID v' . $version;
         } else {
             return null;
@@ -606,15 +620,24 @@ trait DumperComponents
     }
 
     /**
-     * @param positive-int $int
-     * @return string
+     * @param int|float $timestamp
      */
-    public static function intToFormattedDate(int $int): string
+    public static function timestampToFormattedDate($timestamp): string
     {
-        /** @var DateTime $time */
-        $time = DateTime::createFromFormat('UP', $int . 'Z');
+        $miliseconds = '';
+        if (is_float($timestamp)) {
+            $int = intval($timestamp);
+            if (floatval($int) !== $timestamp) {
+                $miliseconds = '.' . explode('.', strval(round($timestamp - $int, 3)))[1];
+            }
+            /** @var DateTime $time */
+            $time = DateTime::createFromFormat('UP', $int . 'Z');
+        } else {
+            /** @var DateTime $time */
+            $time = DateTime::createFromFormat('UP', $timestamp . 'Z');
+        }
 
-        return $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:sP');
+        return $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s') . $miliseconds . 'Z';
     }
 
     public static function getTimeZone(): DateTimeZone
@@ -917,6 +940,13 @@ trait DumperComponents
         }
 
         return $translations;
+    }
+
+    public static function stripInfo(string $dump): string
+    {
+        $parts = explode(self::infoPrefix(), $dump);
+
+        return $parts[0];
     }
 
 }
