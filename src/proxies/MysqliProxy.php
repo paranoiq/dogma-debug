@@ -27,6 +27,15 @@ class MysqliProxy extends mysqli
     /** @var bool */
     public static $logNextCall = true;
 
+    /** @var int */
+    private static $connections = 0;
+
+    /** @var string */
+    private $name;
+
+    /** @var string */
+    private $serverInfo = 'mysql';
+
     public function __construct(
         ?string $hostname = null,
         ?string $username = null,
@@ -36,6 +45,8 @@ class MysqliProxy extends mysqli
         ?string $socket = null
     )
     {
+        $this->name = 'mysqli' . (++self::$connections);
+
         if (self::$logNextCall) {
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::__construct', [], null);
         }
@@ -69,11 +80,11 @@ class MysqliProxy extends mysqli
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::begin_transaction', [$flags, $name], $result);
             if ($name !== null) {
-                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags}, '{$name}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($flags !== 0) {
-                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags})", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction({$flags})", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } else {
-                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction()", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::BEGIN, "mysqli::begin_transaction()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             }
         }
 
@@ -90,7 +101,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::change_user', [$username, $password, $database], $result);
-            SqlHandler::log(SqlHandler::OTHER, "mysqli::change_user('{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::change_user('{$username}', '*****', '{$database}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -117,7 +128,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::close', [], $result);
-            SqlHandler::log(SqlHandler::OTHER, "mysqli::close()", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::close()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -134,11 +145,11 @@ class MysqliProxy extends mysqli
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::commit', [$flags, $name], $result);
             if ($name !== null) {
-                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags}, '{$name}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($flags !== 0) {
-                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags})", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit({$flags})", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } else {
-                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit()", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::COMMIT, "mysqli::commit()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             }
         }
 
@@ -163,19 +174,19 @@ class MysqliProxy extends mysqli
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'PDO::getAttribute', [$hostname, $username, $password, $database, $port, $socket], $result);
             if ($socket !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($port !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($database !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($password !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}', '*****')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($username !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}', '{$username}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($hostname !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect('{$hostname}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } else {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect()", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::connect()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             }
         }
 
@@ -266,7 +277,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::get_warnings', [], $result);
-            SqlHandler::log(SqlHandler::OTHER, "mysqli::get_warnings()", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::get_warnings()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -294,7 +305,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::kill', [$process_id], $result);
-            SqlHandler::log(SqlHandler::CONNECT, "mysqli::kill()", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::CONNECT, "mysqli::kill()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -314,7 +325,7 @@ class MysqliProxy extends mysqli
                 $id = $this->insert_id;
             }
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::multi_query', [$query], $result);
-            SqlHandler::logUnknown($query, $t, 0, $id,  null, $this->error, $this->errno);
+            SqlHandler::logUnknown($query, $t, 0, $id,  $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -406,7 +417,7 @@ class MysqliProxy extends mysqli
                 $id = $this->insert_id;
             }
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::query', [$query, $result_mode], $result);
-            SqlHandler::logUnknown($query, $t, $rows, $id, null, $this->error, $this->errno);
+            SqlHandler::logUnknown($query, $t, $rows, $id, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -427,23 +438,24 @@ class MysqliProxy extends mysqli
         try {
             $t = microtime(true);
             $result = parent::real_connect($hostname, $username, $password, $database, $port, $socket, $flags);
+            $this->serverInfo = 'mysql ' . $this->server_info; // e.g. "mysql 8.0.32"
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::real_connect', [$hostname, $username, $password, $database, $port, $socket, $flags], $result);
             if ($socket !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port}, \$socket)", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($port !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}', {$port})", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($database !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****', '{$database}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($password !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}', '*****')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($username !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}', '{$username}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($hostname !== null) {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect('{$hostname}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } else {
-                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect()", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::CONNECT, "mysqli::real_connect()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             }
         }
 
@@ -503,7 +515,7 @@ class MysqliProxy extends mysqli
                 $id = $this->insert_id;
             }
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::real_query', [], $result);
-            SqlHandler::logUnknown($query, $t, 0, $id, null, $this->error, $this->errno);
+            SqlHandler::logUnknown($query, $t, 0, $id, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -518,7 +530,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::release_savepoint', [$name], $result);
-            SqlHandler::log(SqlHandler::COMMIT, "mysqli::release_savepoint('{$name}')", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::COMMIT, "mysqli::release_savepoint('{$name}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -534,11 +546,11 @@ class MysqliProxy extends mysqli
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::rollback', [$flags, $name], $result);
             if ($name !== null) {
-                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags}, '{$name}')", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags}, '{$name}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } elseif ($flags !== 0) {
-                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags})", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback({$flags})", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             } else {
-                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback()", $t, null, null, null, $this->error, $this->errno);
+                SqlHandler::log(SqlHandler::ROLLBACK, "mysqli::rollback()", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
             }
         }
 
@@ -554,7 +566,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::savepoint', [$name], $result);
-            SqlHandler::log(SqlHandler::BEGIN, "mysqli::savepoint('{$name}')", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::BEGIN, "mysqli::savepoint('{$name}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -570,7 +582,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::select_db', [$database], $result);
-            SqlHandler::log(SqlHandler::BEGIN, "mysqli::select_db('{$database}')", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::BEGIN, "mysqli::select_db('{$database}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;
@@ -586,7 +598,7 @@ class MysqliProxy extends mysqli
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::set_charset', [$charset], $result);
-            SqlHandler::log(SqlHandler::OTHER, "mysqli::set_charset('{$charset}')", $t, null, null, null, $this->error, $this->errno);
+            SqlHandler::log(SqlHandler::OTHER, "mysqli::set_charset('{$charset}')", $t, null, null, $this->name, $this->serverInfo, $this->error, $this->errno);
         }
 
         return $result;

@@ -13,11 +13,23 @@ use Dibi\DriverException;
 use Dibi\Event;
 use Doctrine\ORM\EntityManager;
 use PDOStatement;
+use SqlFtw\Formatter\Formatter;
+use SqlFtw\Parser\Parser;
+use SqlFtw\Platform\Platform;
+use SqlFtw\Session\Session;
+use SqlFtw\Sql\Assignment;
+use SqlFtw\Sql\Dml\Insert\InsertSetCommand;
+use SqlFtw\Sql\Dml\Insert\InsertValuesCommand;
+use SqlFtw\Sql\Expression\Operator;
 use function array_merge;
 use function array_shift;
 use function array_sum;
+use function class_exists;
+use function count;
+use function explode;
 use function implode;
 use function is_int;
+use function iterator_to_array;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
@@ -75,12 +87,16 @@ class SqlHandler
 
     /** @var array<int|string, callable> - Query filters for modifying logged SQL, optionally indexed by connection name */
     public static $queryFilters = [
-        [self::class, 'normalizeWhitespace'],
+        [self::class, 'convertInsertToInsertSet'], // skipped when SQLFTW is not available
         [self::class, 'stripComments'],
         [self::class, 'stripDoctrineSelectColumns'],
         //[self::class, 'stripInsertColumnList'],
+        [self::class, 'normalizeWhitespace'],
         [self::class, 'simpleHighlighting'],
     ];
+
+    /** @var string - Default server name and version for query parsing */
+    public static $defaultServerInfo = 'mysql 8.0';
 
     /** @var array<int, int> */
     private static $events = [];
@@ -107,12 +123,13 @@ class SqlHandler
         ?int $rows = 0,
         $lastInsertId = null,
         ?string $connection = null,
+        ?string $serverInfo = null,
         ?string $errorMessage = null,
         $errorCode = null
     ): void
     {
         $type = self::getType($query);
-        self::log($type, $query, $duration, $rows, $lastInsertId, $connection, $errorMessage, $errorCode);
+        self::log($type, $query, $duration, $rows, $lastInsertId, $connection, $serverInfo, $errorMessage, $errorCode);
     }
 
     /**
@@ -126,6 +143,7 @@ class SqlHandler
         ?int $rows = null,
         $lastInsertId = null,
         ?string $connection = null,
+        ?string $serverInfo = null, // e.g. "mysql 8.0.32"
         ?string $errorMessage = null,
         $errorCode = null
     ): void
@@ -155,7 +173,7 @@ class SqlHandler
         if ($query) {
             foreach (self::$queryFilters as $forConnection => $filter) {
                 if ($forConnection === $connection || is_int($forConnection)) {
-                    $query = $filter($query);
+                    $query = $filter($query, $serverInfo);
                 }
             }
             $message = Ansi::lyellow($query . ';');
@@ -173,7 +191,7 @@ class SqlHandler
         $parts[] = $isError ? 'FAILED' : 'OK';
         $info = Ansi::color(' -- ' . implode(', ', $parts), Dumper::$colors['info']);
 
-        $message = Ansi::white($connection ? " DB {$connection}: " : ' DB: ', Debugger::$handlerColors[self::NAME])
+        $message = Ansi::white($connection ? " {$connection}: " : ' DB: ', Debugger::$handlerColors[self::NAME])
             . ' ' . $message . $info;
 
         if ($isError) {
@@ -469,6 +487,57 @@ class SqlHandler
             '$1 ... $3',
             $query
         );
+    }
+
+    /**
+     * Converts inserts from syntax `INSERT INTO ... (...) VALUES (...)` to `INSERT INTO ... SET key = val, ...`
+     */
+    public static function convertInsertToInsertSet(string $query, ?string $serverInfo): string
+    {
+        $serverInfo = $serverInfo ?? self::$defaultServerInfo;
+        [$serverName, $serverVersion] = explode(' ', $serverInfo);
+        if ($serverName === 'mysql' && class_exists(Parser::class, true)) {
+            $platform = Platform::get($serverName, $serverVersion);
+            $session = new Session($platform);
+            $parser = new Parser($session);
+            $commands = iterator_to_array($parser->parse($query));
+            if (count($commands) > 1) {
+                return $query;
+            }
+            [$insertInto, ] = $commands[0];
+            if (!$insertInto instanceof InsertValuesCommand) {
+                return $query;
+            }
+            $rows = $insertInto->getRows();
+            if (count($rows) > 1) {
+                return $query;
+            }
+            $columns = $insertInto->getColumns();
+            $row = $rows[0];
+            if ($columns === null || array_keys($columns) !== array_keys($row)) {
+                return $query;
+            }
+            $assignments = [];
+            foreach ($columns as $i => $column) {
+                $assignments[] = new Assignment($column, $row[$i], Operator::EQUAL);
+            }
+            $insertSet = new InsertSetCommand(
+                $insertInto->getTable(),
+                $assignments,
+                null,
+                $insertInto->getAlias(),
+                $insertInto->getPartitions(),
+                $insertInto->getPriority(),
+                $insertInto->getIgnore(),
+                $insertInto->getOptimizerHints(),
+                $insertInto->getOnDuplicateKeyAction()
+            );
+            $formatter = new Formatter($session);
+
+            return $insertSet->serialize($formatter);
+        }
+
+        return $query;
     }
 
 }
