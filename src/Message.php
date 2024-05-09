@@ -23,6 +23,7 @@ use function str_ends_with;
 use function strlen;
 use function strpos;
 use function substr;
+use const STR_PAD_LEFT;
 
 class Message
 {
@@ -127,7 +128,7 @@ class Message
         // todo: somehow some special chars are avoiding detection and escaping :E
         $char = Str::isBinary($payload, self::ALLOWED_CHARS);
         if ($char !== null) {
-            $hex = dechex(ord($char));
+            $hex = str_pad(dechex(ord($char)), 2, '0', STR_PAD_LEFT);
             $pos = strpos($payload, $char);
             Debugger::send(self::ERROR, "Payload can not contain special characters. Found \\x{$hex} at position {$pos}.");
             $payload = preg_replace_callback("~[\\x00-\\x08\\x0B-\\x1A\\x1C-\\x1F]~", static function (array $m): string {
