@@ -158,16 +158,16 @@ if (!class_exists(Debugger::class)) {
         FileStreamWrapper::class, HttpStreamWrapper::class, FtpStreamWrapper::class, PharStreamWrapper::class, PhpStreamWrapper::class, ZlibStreamWrapper::class,
         StreamInterceptor::class,
     ];
-    $x = [];
-    array_map(static function ($class) use ($x): void {
+    $_dogma_debug_force_load_objects = [];
+    array_map(static function ($class) use ($_dogma_debug_force_load_objects): void {
         // just calling class_exists() is not enough in some cases : E
-        $x[] = new $class();
+        $_dogma_debug_force_load_objects[] = new $class();
     }, $_dogma_debug_force_load_classes);
-    $x[] = new CallstackFrame(null, null);
-    $x[] = new Callstack([]);
-    $x[] = Message::create(Message::OUTPUT_WIDTH, '');
-    $x[] = StreamInterceptor::enabled();
-    $x[] = FileStreamWrapper::enabled();
+    $_dogma_debug_force_load_objects[] = new CallstackFrame(null, null);
+    $_dogma_debug_force_load_objects[] = new Callstack([]);
+    $_dogma_debug_force_load_objects[] = Message::create(Message::OUTPUT_WIDTH, '');
+    $_dogma_debug_force_load_objects[] = StreamInterceptor::enabled();
+    $_dogma_debug_force_load_objects[] = FileStreamWrapper::enabled();
 
     Debugger::setStart($_dogma_debug_start);
     Request::init();
@@ -182,7 +182,7 @@ if (!class_exists(Debugger::class)) {
     }
 }
 
-unset($_dogma_debug_start, $_dogma_debug_force_load_classes);
+unset($_dogma_debug_start, $_dogma_debug_force_load_classes, $_dogma_debug_force_load_objects);
 
 foreach (Debugger::$beforeStart as $function) {
     $function();
