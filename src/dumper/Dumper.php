@@ -323,6 +323,9 @@ class Dumper
 
     /** @var array<int|string, callable(int): ?string> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
+        '~stdClass::charsetnr~' => [FormattersDefault::class, 'dumpIntMysqlCharset'],
+        '~stdClass::type~' => [FormattersDefault::class, 'dumpIntMysqlType'],
+        '~stdClass::flags~' => [FormattersDefault::class, 'dumpIntMysqlFlags'],
         '~filemode|permissions~i' => [FormattersDefault::class, 'dumpIntPermissions'],
         '~termsig|stopsig|signal~i' => [FormattersDefault::class, 'dumpIntSignal'],
         '~exit~i' => [FormattersDefault::class, 'dumpIntExitCode'],
@@ -896,7 +899,7 @@ class Dumper
             $doNotTraverse = in_array($class . '::$' . $name, self::$doNotTraverse, true) ? 1000 : 0;
             $valueDump = $value === $uninitialized
                 ? self::exceptions('uninitialized')
-                : self::dumpValue($value, $depth + 1 + $doNotTraverse, $name);
+                : self::dumpValue($value, $depth + 1 + $doNotTraverse, $class . '::' . $name);
 
             if (self::$groupNullAndUninitialized && $value === null) {
                 $nulls[] = $cls === null || $cls === '*' || $cls === $class

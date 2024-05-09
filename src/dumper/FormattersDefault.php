@@ -435,6 +435,43 @@ class FormattersDefault
         return Dumper::int((string) $int) . ' ' . Dumper::info("// 2^{$exp}");
     }
 
+    public static function dumpIntMysqlCharset(int $int): ?string
+    {
+        if (!isset(MysqlResultInfo::CHARACTER_SETS[$int])) {
+            return null;
+        }
+
+        return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . MysqlResultInfo::CHARACTER_SETS[$int]);
+    }
+
+    public static function dumpIntMysqlType(int $int): ?string
+    {
+        if (!isset(MysqlResultInfo::DATA_TYPES[$int])) {
+            return null;
+        }
+
+        return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . MysqlResultInfo::DATA_TYPES[$int]);
+    }
+
+    public static function dumpIntMysqlFlags(int $int): ?string
+    {
+        if ($int >= 1048576) {
+            return null;
+        }
+        $flags = [];
+        for ($n = 1; $n <= 524288; $n *= 2) {
+            if (($int & $n) !== 0) {
+                if (!isset(MysqlResultInfo::FLAGS[$n])) {
+                    return null;
+                }
+                $flags[] = MysqlResultInfo::FLAGS[$n];
+            }
+        }
+        $flags = implode('|', $flags);
+
+        return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . $flags);
+    }
+
     public static function dumpStringHidden(string $string, string $info, string $key, int $depth): ?string
     {
         $key2 = ltrim($key, '$');
