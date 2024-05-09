@@ -43,33 +43,39 @@ class Str
 
     public static function length(string $string, string $encoding = 'utf-8'): int
     {
-        if (!preg_match('~~u', $string)) {
-            // not utf-8
-            return strlen($string);
+        if ($encoding === 'utf-8' && function_exists('grapheme_strlen')) {
+            return grapheme_strlen($string);
         } elseif (function_exists('mb_strlen')) {
             return mb_strlen($string, $encoding);
+        } elseif (!preg_match('~~u', $string)) {
+            // not utf-8
+            return strlen($string);
         } elseif (function_exists('iconv_strlen')) {
             return iconv_strlen($string, $encoding);
-        } elseif (function_exists('grapheme_strlen')) {
-            return grapheme_strlen($string);
         } else {
+
             return strlen($string);
         }
     }
 
-    public static function trim(string $string, int $length, string $encoding = 'utf-8'): string
+    public static function substring(string $string, int $start, int $length = null, string $encoding = 'utf-8'): string
     {
-        if (!preg_match('~~u', $string)) {
-            // not utf-8
-            return substr($string, 0, $length);
+        if ($encoding === 'utf-8' && function_exists('grapheme_substr')) {
+            return grapheme_substr($string, $start, $length);
         } elseif (function_exists('mb_substr')) {
-            return mb_substr($string, 0, $length, $encoding);
+            return mb_substr($string, $start, $length, $encoding);
+        } elseif (!preg_match('~~u', $string)) {
+            // not utf-8
+            return substr($string, $start, $length);
         } elseif (function_exists('iconv_substr')) {
-            return iconv_substr($string, 0, $length, $encoding);
-        } elseif (function_exists('grapheme_substr')) {
-            return grapheme_substr($string, 0, $length);
+            if ($length === null) {
+                $length = self::length($string, $encoding);
+            } elseif ($start < 0 && $length < 0) {
+                $start += self::length($string, $encoding);
+            }
+            return iconv_substr($string, $start, $length, $encoding);
         } else {
-            return substr($string, 0, $length);
+            return substr($string, $start, $length);
         }
     }
 

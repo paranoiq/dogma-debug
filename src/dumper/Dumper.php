@@ -612,7 +612,7 @@ class Dumper
         $chars = $size !== $length ? ", {$length} ch" : '';
         $trimmed = '';
         if ($length > self::$maxLength) {
-            $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
+            $string = Str::substring($string, 0, self::$maxLength, self::$inputEncoding);
             $trimmed = $bytes || $chars ? ', trimmed' : 'trimmed';
         }
         $info = self::$showInfo ? $bytes . $chars . $trimmed : '';

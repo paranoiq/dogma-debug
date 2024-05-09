@@ -261,6 +261,23 @@ class Debugger
      * @param T $value
      * @return T
      */
+    public static function varDump($value, bool $colors = true)
+    {
+        ob_start();
+
+        $dump = Dumper::varDump($value, $colors);
+        self::send(Message::DUMP, $dump);
+
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
+
+        return $value;
+    }
+
+    /**
+     * @template T
+     * @param T $value
+     * @return T
+     */
     public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
     {
         ob_start();
@@ -278,11 +295,11 @@ class Debugger
      * @param T $value
      * @return T
      */
-    public static function varDump($value, bool $colors = true)
+    public static function dumpTable($value, ?int $traceLength = null, ?string $name = null)
     {
         ob_start();
 
-        $dump = Dumper::varDump($value, $colors);
+        $dump = TableDumper::dump($value);
         self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);

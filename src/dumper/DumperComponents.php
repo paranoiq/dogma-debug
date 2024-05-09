@@ -676,12 +676,12 @@ trait DumperComponents
      *
      * @param non-empty-string|null $splitBy
      */
-    public static function string(string $string, ?int $depth = null, ?string $splitBy = null): string
+    public static function string(string $string, ?int $depth = null, ?string $splitBy = null, bool $noQuotes = false): string
     {
         $length = strlen($string);
         $ellipsis = '';
         if ($length > self::$maxLength) {
-            $string = Str::trim($string, self::$maxLength, self::$inputEncoding);
+            $string = Str::substring($string, 0, self::$maxLength, self::$inputEncoding);
             $ellipsis = Ansi::between('...', self::$colors['exceptions'], self::$colors['string']);
         }
 
@@ -723,7 +723,8 @@ trait DumperComponents
         }
         if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
             // not chunked (one chunk)
-            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, $binary, $ellipsis, $apos ? "'" : '"');
+            $quote = $noQuotes ? '' : ($apos ? "'" : '"');
+            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, $binary, $ellipsis, $quote);
         }
 
         // chunked
@@ -747,7 +748,8 @@ trait DumperComponents
         $offsetChars = strlen((string) strlen($string));
         foreach ($chunks as $i => $chunk) {
             $e = $i === count($chunks) - 1 ? $ellipsis : '';
-            $chunk = self::stringChunk($i * self::$binaryChunkLength, $chunk, $escaping, $pattern, $translations, $binary, $e, '"', $offsetChars);
+            $quote = $noQuotes ? '' : '"';
+            $chunk = self::stringChunk($i * self::$binaryChunkLength, $chunk, $escaping, $pattern, $translations, $binary, $e, $quote, $offsetChars);
             if ($last === $chunk) {
                 $lastCount++;
             } elseif ($lastCount > 1) {

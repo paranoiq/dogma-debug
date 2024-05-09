@@ -19,6 +19,20 @@ use Dogma\Debug\Message;
 
 if (!function_exists('rd')) {
     /**
+     * Remote dump implemented with native var_dump() + some colors
+     *
+     * @template T
+     * @param T $value
+     * @return T
+     */
+    function lvd($value, bool $colors = true)
+    {
+        Debugger::print(Dumper::varDump($value, $colors));
+
+        return $value;
+    }
+
+    /**
      * Local dump
      *
      * @template T
@@ -39,11 +53,9 @@ if (!function_exists('rd')) {
      * @param T $value
      * @return T
      */
-    function lvd($value, bool $colors = true)
+    function rvd($value, bool $colors = true)
     {
-        Debugger::print(Dumper::varDump($value, $colors));
-
-        return $value;
+        return Debugger::varDump($value, $colors);
     }
 
     /**
@@ -59,15 +71,15 @@ if (!function_exists('rd')) {
     }
 
     /**
-     * Remote dump implemented with native var_dump() + some colors
+     * Remote dump table
      *
      * @template T
      * @param T $value
      * @return T
      */
-    function rvd($value, bool $colors = true)
+    function rdt($value, ?int $traceLength = null, ?string $name = null)
     {
-        return Debugger::varDump($value, $colors);
+        return Debugger::dumpTable($value, $traceLength, $name);
     }
 
     /**

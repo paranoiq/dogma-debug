@@ -77,6 +77,7 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/Debugger.php';
     require_once __DIR__ . '/src/Info.php';
 
+    require_once __DIR__ . '/src/dumper/TableDumper.php';
     require_once __DIR__ . '/src/dumper/DumperComponents.php';
     require_once __DIR__ . '/src/dumper/DumperTraces.php';
     require_once __DIR__ . '/src/dumper/Dumper.php';
