@@ -59,11 +59,11 @@ if (!class_exists(Debugger::class)) {
     require_once __DIR__ . '/src/tools/Diff.php';
     require_once __DIR__ . '/src/tools/Http.php';
     require_once __DIR__ . '/src/tools/Links.php';
+    require_once __DIR__ . '/src/tools/RedisParser.php';
+    require_once __DIR__ . '/src/tools/Resources.php';
     require_once __DIR__ . '/src/tools/System.php';
     require_once __DIR__ . '/src/tools/Sapi.php';
     require_once __DIR__ . '/src/tools/Sql.php';
-    require_once __DIR__ . '/src/tools/RedisParser.php';
-    require_once __DIR__ . '/src/tools/Resources.php';
     require_once __DIR__ . '/src/tools/Units.php';
     require_once __DIR__ . '/src/tools/VirtualFile.php';
 
