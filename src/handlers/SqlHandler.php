@@ -331,7 +331,7 @@ class SqlHandler
             $errorCode = $event->result->getCode();
         }
 
-        self::log($event->type ?: self::OTHER, $event->sql, $event->count, $event->time, $connection, $errorMessage, $errorCode);
+        self::log($event->type ?: self::OTHER, $event->sql, $event->time, $event->count, $connection, $errorMessage, $errorCode);
     }
 
     /**
@@ -362,7 +362,7 @@ class SqlHandler
             }
             return $value . Ansi::colorStart(Dumper::$colors['value']);
         }, $query);
-        self::log(self::getType($query), $query, $rows, $duration, $connection, $errorMessage, $errorCode);
+        self::log(self::getType($query), $query, $duration, $rows, $connection, $errorMessage, $errorCode);
     }
 
     public static function useDoctrineTraceFilters(): void
