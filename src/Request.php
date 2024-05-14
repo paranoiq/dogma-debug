@@ -70,6 +70,7 @@ class Request
         '~show --format=json -a --name-only~' => self::APPLICATION_COMPOSER,
         '~composer-require-checker~' => self::APPLICATION_REQUIRE_CHECKER,
         '~squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
+        '~vendor/bin/phpcs~' => self::APPLICATION_PHPCS,
         '~php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
         '~vendor/spell-checker/spell-checker~' => self::APPLICATION_SPELL_CHECKER,
     ];
