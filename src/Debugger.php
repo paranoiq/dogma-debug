@@ -78,6 +78,8 @@ class Debugger
     public const CONNECTION_SOCKET = 2;
     public const CONNECTION_FILE = 3;
 
+    // connection ------------------------------------------------------------------------------------------------------
+
     /** @var int Switching between dumps to local STDOUT or remote console over a socket or through a log file */
     public static $connection = self::CONNECTION_FILE;
 
@@ -90,11 +92,18 @@ class Debugger
     /** @var string|null */
     public static $logFile;
 
+    // debugging the debugger ------------------------------------------------------------------------------------------
+
+    /** @var bool Show how debugger client is configured */
+    public static $printConfiguration = false;
+
     /** @var bool Show notice when a debugger component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) */
     public static $showDependenciesInfo = true;
 
     /** @var bool Show notice when a debugger component accidentally outputs anything to stdout */
     public static $reportDebuggerAccidentalOutput = true;
+
+    // configuration ---------------------------------------------------------------------------------------------------
 
     /** @var int Max length of a dump message [bytes after all formatting] */
     public static $maxMessageLength = 20000;

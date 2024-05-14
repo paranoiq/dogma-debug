@@ -179,9 +179,22 @@ return (static function (): bool {
     Debugger::setStart($start);
     Request::init();
 
-    // configure client, unless the current process is actually a starting server
-    if (!isset($_dogma_debug_no_config) && is_readable(__DIR__ . '/debug-config.php') && $_SERVER['PHP_SELF'] !== 'server.php') {
-        require_once __DIR__ . '/debug-config.php';
+    if ($_SERVER['PHP_SELF'] !== 'server.php') {
+        $configFile = __DIR__ . '/debug-config.php';
+        if (isset($_dogma_debug_no_config)) {
+            $configFile = "turned off ({$configFile})";
+        } elseif (!file_exists($configFile)) {
+            $configFile = "does not exist ({$configFile})";
+        } else {
+            require_once $configFile;
+        }
+        if (Debugger::$printConfiguration) {
+            $connection = Debugger::$connection;
+            $address = Debugger::$remoteAddress;
+            $port = Debugger::$remotePort;
+            $logFile = Debugger::$logFile ?? 'default';
+            echo "Debugger - connection: {$connection}, logSocket: {$address}:{$port}, logFile: {$logFile}, configFile: {$configFile}\n";
+        }
     }
 
     if (ini_get('allow_url_include')) {
