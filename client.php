@@ -32,25 +32,30 @@ use Dogma\Debug\StreamWrapperMixin;
 use Dogma\Debug\System;
 use Dogma\Debug\ZlibStreamWrapper;
 
-$_dogma_debug_start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+return (static function (): bool {
+    global $_dogma_debug_start, $_dogma_debug_no_config;
 
-// do not load auto-prepended libs from other location than tests are when in tests
-// tester loads local copy, which may differ from stable auto-prepended version
-$_dogma_debug_prepend = (string) ini_get('auto_prepend_file');
-$_dogma_debug_script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
-if($_dogma_debug_prepend !== ''
-    && $_dogma_debug_prepend !== str_replace('\\', '/', __FILE__)
-    && $_dogma_debug_prepend !== str_replace(['\\', 'client'], ['/', 'shortcuts'], __FILE__)
-    && substr($_dogma_debug_script, -5) === '.phpt'
-    && substr($_dogma_debug_script, 0, (int) strpos($_dogma_debug_script, 'dogma-debug'))
-        !== substr($_dogma_debug_prepend, 0, (int) strpos($_dogma_debug_prepend, 'dogma-debug'))
-) {
-    unset($_dogma_debug_prepend, $_dogma_debug_script);
-    return false;
-}
-unset($_dogma_debug_prepend, $_dogma_debug_script);
+    $start = $_dogma_debug_start ?? $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
 
-if (!class_exists(Debugger::class)) {
+    // do not load auto-prepended libs from other location than tests are when in tests
+    // tester loads local copy, which may differ from stable auto-prepended version
+    $prepend = (string)ini_get('auto_prepend_file');
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
+    if ($prepend !== ''
+        && $prepend !== str_replace('\\', '/', __FILE__)
+        && $prepend !== str_replace(['\\', 'client'], ['/', 'shortcuts'], __FILE__)
+        && substr($script, -5) === '.phpt'
+        && substr($script, 0, (int) strpos($script, 'dogma-debug'))
+            !== substr($prepend, 0, (int) strpos($prepend, 'dogma-debug'))
+    ) {
+        return false;
+    }
+
+    // already loaded
+    if (class_exists(Debugger::class)) {
+        return false;
+    }
+
     require_once __DIR__ . '/src/tools/polyfils.php';
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Color.php';
@@ -155,23 +160,23 @@ if (!class_exists(Debugger::class)) {
     // a stream_wrapper call used by require or include, where loading and finalizing other classes is not possible.
     // @see: https://www.npopov.com/2021/10/20/Early-binding-in-PHP.html)
     trait_exists(StreamWrapperMixin::class);
-    $_dogma_debug_force_load_classes = [
+    $forceLoadClasses = [
         Str::class, Ansi::class, Http::class, Request::class, System::class, Intercept::class, Debugger::class, Dumper::class,
         FileStreamWrapper::class, HttpStreamWrapper::class, FtpStreamWrapper::class, PharStreamWrapper::class, PhpStreamWrapper::class, ZlibStreamWrapper::class,
         StreamInterceptor::class,
     ];
-    $_dogma_debug_force_load_objects = [];
-    array_map(static function ($class) use ($_dogma_debug_force_load_objects): void {
+    $forceLoadObjects = [];
+    array_map(static function ($class) use ($forceLoadObjects): void {
         // just calling class_exists() is not enough in some cases : E
-        $_dogma_debug_force_load_objects[] = new $class();
-    }, $_dogma_debug_force_load_classes);
-    $_dogma_debug_force_load_objects[] = new CallstackFrame(null, null);
-    $_dogma_debug_force_load_objects[] = new Callstack([]);
-    $_dogma_debug_force_load_objects[] = Message::create(Message::OUTPUT_WIDTH, '');
-    $_dogma_debug_force_load_objects[] = StreamInterceptor::enabled();
-    $_dogma_debug_force_load_objects[] = FileStreamWrapper::enabled();
+        $forceLoadObjects[] = new $class();
+    }, $forceLoadClasses);
+    $forceLoadObjects[] = new CallstackFrame(null, null);
+    $forceLoadObjects[] = new Callstack([]);
+    $forceLoadObjects[] = Message::create(Message::OUTPUT_WIDTH, '');
+    $forceLoadObjects[] = StreamInterceptor::enabled();
+    $forceLoadObjects[] = FileStreamWrapper::enabled();
 
-    Debugger::setStart($_dogma_debug_start);
+    Debugger::setStart($start);
     Request::init();
 
     // configure client, unless the current process is actually a starting server
@@ -182,14 +187,12 @@ if (!class_exists(Debugger::class)) {
     if (ini_get('allow_url_include')) {
         Debugger::error('Security warning: ini directive allow_url_include should be off.');
     }
-}
 
-unset($_dogma_debug_start, $_dogma_debug_force_load_classes, $_dogma_debug_force_load_objects);
+    foreach (Debugger::$beforeStart as $function) {
+        $function();
+    }
 
-foreach (Debugger::$beforeStart as $function) {
-    $function();
-}
-
-return true;
+    return true;
+})();
 
 ?>
