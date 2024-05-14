@@ -10,4 +10,9 @@ class TestCase
         return '';
     }
 
+    public function getDataSetAsString(): string
+    {
+        return '';
+    }
+
 }

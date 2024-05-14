@@ -44,7 +44,11 @@ class PhpUnitHandler
 
                     /** @var TestCase $testCase */
                     $testCase = $frame->object;
-                    $dataSetName = $testCase->dataSetAsString();
+                    if (method_exists($testCase, 'dataSetAsString')) {
+                        $dataSetName = $testCase->dataSetAsString();
+                    } else {
+                        $dataSetName = $testCase->getDataSetAsString();
+                    }
 
                     $args = Dumper::dumpArguments($frame->getNamedArgs());
                     $args = ltrim(rtrim($args, ','));
