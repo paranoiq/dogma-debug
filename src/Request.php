@@ -16,7 +16,6 @@ use function implode;
 use function in_array;
 use function preg_match;
 use function str_replace;
-use const PHP_SAPI;
 
 /**
  * Helpers for detecting which application and in which environment is running
@@ -145,7 +144,7 @@ class Request
 
         $args = $argv;
         if (isset($args[0])) {
-            $args[0] = str_replace('\\', '/', $args[0]);
+            $args[0] = Dumper::normalizePath($args[0]);
         }
 
         return implode(' ', $args ?? []);
