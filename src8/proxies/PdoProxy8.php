@@ -10,7 +10,9 @@
 namespace Dogma\Debug;
 
 use PDO;
+use PDOException;
 use ReturnTypeWillChange;
+use function microtime;
 
 class PdoProxy extends PDO
 {
@@ -86,24 +88,48 @@ class PdoProxy extends PDO
     /** @var int */
     public static $intercept = Intercept::LOG_CALLS;
 
+    /** @var int */
+    private static $connections = 0;
+
+    /** @var string */
+    private $name;
+
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
-        Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
+        $this->name = 'pdo' . (++self::$connections);
 
-        parent::__construct($dsn, $username, $password, $options);
+        try {
+            $t = microtime(true);
+
+            parent::__construct($dsn, $username, $password, $options);
+        } finally {
+            $t = microtime(true) - $t;
+            Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
+            SqlHandler::log(SqlHandler::CONNECT, null, $t, null, null, $this->name);
+        }
+
+        $this->setAttribute(self::ATTR_STATEMENT_CLASS, [PdoStatementProxy::class]);
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     #[ReturnTypeWillChange]
     public function prepare($query, $options = [])
     {
-        $result = false;
+        $statement = false;
         try {
-            $result = parent::prepare($query, $options);
+            /** @var PdoStatementProxy $statement */
+            $statement = parent::prepare($query, $options);
+            $statement->setConnection($this);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $result);
+            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $statement);
+            // todo: SqlHandler::logPrepare($query, $options);
         }
 
-        return $result;
+        return $statement;
     }
 
     #[ReturnTypeWillChange]
@@ -111,9 +137,12 @@ class PdoProxy extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::beginTransaction();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::beginTransaction', [], $result);
+            SqlHandler::log(SqlHandler::BEGIN, 'PDO::beginTransaction()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -124,9 +153,12 @@ class PdoProxy extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::commit();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::commit', [], $result);
+            SqlHandler::log(SqlHandler::COMMIT, 'PDO::commit()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -137,9 +169,12 @@ class PdoProxy extends PDO
     {
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::rollBack();
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::rollBack', [], $result);
+            SqlHandler::log(SqlHandler::ROLLBACK, 'PDO::rollback()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -187,11 +222,21 @@ class PdoProxy extends PDO
     #[ReturnTypeWillChange]
     public function exec($statement)
     {
+        $logged = false;
         $result = false;
         try {
+            $t = microtime(true);
             $result = parent::exec($statement);
+        } catch (PDOException $e) {
+            $t = microtime(true) - $t;
+            SqlHandler::logUnknown($statement, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
+            $logged = true;
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::exec', [$statement], $result);
+            if (!$logged) {
+                SqlHandler::logUnknown($statement, $t, null, null, $this->name);
+            }
         }
 
         return $result;
@@ -201,11 +246,25 @@ class PdoProxy extends PDO
     #[ReturnTypeWillChange]
     public function query($query, $mode = PDO::FETCH_ASSOC, ...$fetch_mode_args)
     {
+        $logged = false;
         $result = false;
         try {
-            $result = parent::query($query, $mode, ...$fetch_mode_args);
+            $t = microtime(true);
+            if ($mode === null) {
+                $result = parent::query($query);
+            } else {
+                $result = parent::query($query, $mode, ...$fetch_mode_args);
+            }
+        } catch (PDOException $e) {
+            $t = microtime(true) - $t;
+            SqlHandler::logUnknown($query, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
+            $logged = true;
         } finally {
+            $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::query', [$query, $mode, ...$fetch_mode_args], $result);
+            if (!$logged) {
+                SqlHandler::logUnknown($query, $t, null, null, $this->name);
+            }
         }
 
         return $result;

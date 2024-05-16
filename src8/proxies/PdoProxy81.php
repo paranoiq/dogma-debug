@@ -88,8 +88,16 @@ class PdoProxy extends PDO
     /** @var int */
     public static $intercept = Intercept::SILENT;
 
+    /** @var int */
+    private static $connections = 0;
+
+    /** @var string */
+    private $name;
+
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
+        $this->name = 'pdo' . (++self::$connections);
+
         try {
             $t = microtime(true);
 
@@ -97,24 +105,31 @@ class PdoProxy extends PDO
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
-            SqlHandler::log(SqlHandler::CONNECT, null, $t);
+            SqlHandler::log(SqlHandler::CONNECT, null, $t, null, null, $this->name);
         }
 
         $this->setAttribute(self::ATTR_STATEMENT_CLASS, [PdoStatementProxy::class]);
     }
 
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
     #[ReturnTypeWillChange]
     public function prepare($query, $options = [])
     {
-        $result = false;
+        $statement = false;
         try {
-            $result = parent::prepare($query, $options);
+            /** @var PdoStatementProxy $statement */
+            $statement = parent::prepare($query, $options);
+            $statement->setConnection($this);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $result);
+            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $statement);
             // todo: SqlHandler::logPrepare($query, $options);
         }
 
-        return $result;
+        return $statement;
     }
 
     public function beginTransaction(): bool
@@ -126,7 +141,7 @@ class PdoProxy extends PDO
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::beginTransaction', [], $result);
-            SqlHandler::log(SqlHandler::BEGIN, 'PDO::beginTransaction()', $t);
+            SqlHandler::log(SqlHandler::BEGIN, 'PDO::beginTransaction()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -141,7 +156,7 @@ class PdoProxy extends PDO
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::commit', [], $result);
-            SqlHandler::log(SqlHandler::COMMIT, 'PDO::commit()', $t);
+            SqlHandler::log(SqlHandler::COMMIT, 'PDO::commit()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -156,7 +171,7 @@ class PdoProxy extends PDO
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::rollBack', [], $result);
-            SqlHandler::log(SqlHandler::ROLLBACK, 'PDO::rollback()', $t);
+            SqlHandler::log(SqlHandler::ROLLBACK, 'PDO::rollback()', $t, null, null, $this->name);
         }
 
         return $result;
@@ -208,13 +223,13 @@ class PdoProxy extends PDO
             $result = parent::exec($statement);
         } catch (PDOException $e) {
             $t = microtime(true) - $t;
-            SqlHandler::logUnknown($statement, $t, 0, null, null, $e->getMessage(), $e->getCode());
+            SqlHandler::logUnknown($statement, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
             $logged = true;
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::exec', [$statement], $result);
             if (!$logged) {
-                SqlHandler::logUnknown($statement, $t);
+                SqlHandler::logUnknown($statement, $t, null, null, $this->name);
             }
         }
 
@@ -235,13 +250,13 @@ class PdoProxy extends PDO
             }
         } catch (PDOException $e) {
             $t = microtime(true) - $t;
-            SqlHandler::logUnknown($query, $t, 0, null, null, $e->getMessage(), $e->getCode());
+            SqlHandler::logUnknown($query, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
             $logged = true;
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::query', [$query, $mode, ...$fetch_mode_args], $result);
             if (!$logged) {
-                SqlHandler::logUnknown($query, $t);
+                SqlHandler::logUnknown($query, $t, null, null, $this->name);
             }
         }
 

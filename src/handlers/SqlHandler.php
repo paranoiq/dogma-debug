@@ -29,6 +29,7 @@ use function count;
 use function explode;
 use function implode;
 use function is_int;
+use function is_string;
 use function iterator_to_array;
 use function preg_match;
 use function preg_replace;
@@ -341,8 +342,9 @@ class SqlHandler
     public static function logPdoStatementExecute(
         PDOStatement $statement,
         array $params,
-        ?int $rows,
         float $duration,
+        ?int $rows,
+        ?int $lastInsertId,
         ?string $connection = null,
         ?string $errorMessage = null,
         $errorCode = null
@@ -362,7 +364,7 @@ class SqlHandler
             }
             return $value . Ansi::colorStart(Dumper::$colors['value']);
         }, $query);
-        self::log(self::getType($query), $query, $duration, $rows, $connection, $errorMessage, $errorCode);
+        self::log(self::getType($query), $query, $duration, $rows, $lastInsertId, $connection, $errorMessage, $errorCode);
     }
 
     public static function useDoctrineTraceFilters(): void
