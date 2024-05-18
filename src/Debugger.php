@@ -1062,12 +1062,7 @@ class Debugger
         $status = http_response_code();
         if ($status !== false) {
             $message = Http::RESPONSE_MESSAGES[$status] ?? 'Unknown';
-            $color = RequestHandler::$responseColors[$status] ?? Ansi::DYELLOW;
-            foreach (RequestHandler::$responseColors as $code => $color) {
-                if (str_ends_with((string) $status, (string) $code)) {
-                    break;
-                }
-            }
+            $color = RequestHandler::$responseColors[substr($status, 0, 1)] ?? Ansi::DYELLOW;
             $footer .= ' ' . Ansi::white(" {$status} {$message} ", $color);
         }
 
