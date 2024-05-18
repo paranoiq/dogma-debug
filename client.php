@@ -57,6 +57,7 @@ return (static function (): bool {
     }
 
     require_once __DIR__ . '/src/tools/polyfils.php';
+    require_once __DIR__ . '/src/tools/App.php';
     require_once __DIR__ . '/src/tools/Str.php';
     require_once __DIR__ . '/src/tools/Color.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
