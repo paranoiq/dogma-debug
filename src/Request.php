@@ -25,21 +25,6 @@ use function str_replace;
 class Request
 {
 
-    public const APPLICATION_SELF_TEST = 'self-test';
-    public const APPLICATION_PHPSTAN = 'phpstan';
-    public const APPLICATION_RECTOR = 'rector';
-    public const APPLICATION_PHPUNIT = 'phpunit';
-    public const APPLICATION_CODECEPTION = 'codeception';
-    public const APPLICATION_NETTE_TESTER = 'nette-tester';
-    public const APPLICATION_NETTE_TEST = 'nette-test';
-    public const APPLICATION_COMPOSER = 'composer';
-    public const APPLICATION_REQUIRE_CHECKER = 'require-checker';
-    public const APPLICATION_PHPCS = 'phpcs';
-    public const APPLICATION_PARALLEL_LINT = 'parallel-lint';
-    public const APPLICATION_SPELL_CHECKER = 'spell-checker';
-    public const APPLICATION_ADMINER = 'adminer';
-    public const APPLICATION_ROUNDCUBE = 'roundcube';
-
     /** @var Sapi::* - Through which SAPI is PHP request initiated? ('cli', 'fpm-fcgi', 'apache'...) */
     public static $sapi;
 
@@ -54,34 +39,37 @@ class Request
 
     /** @var array<string, string> */
     public static $appCommandMatches = [
-        '~dogma-debug/tests/.*\.phpt~' => self::APPLICATION_SELF_TEST,
-        '~(?:phpstan/phpstan|vendor/bin)/phpstan~' => self::APPLICATION_PHPSTAN,
-        '~phpstan (?:analyse|analyze|worker)~' => self::APPLICATION_PHPSTAN,
-        '~vendor/bin/rector (?:process|worker)~' => self::APPLICATION_RECTOR,
-        '~phpunit/phpunit/phpunit~' => self::APPLICATION_PHPUNIT,
-        '~codeception/codeception/codecept~' => self::APPLICATION_CODECEPTION,
-        '~nette/tester/src/tester~' => self::APPLICATION_NETTE_TESTER,
-        '~nette/tester/src/Runner/info.php~' => self::APPLICATION_NETTE_TESTER,
-        '~tests/.*\.phpt~' => self::APPLICATION_NETTE_TEST,
-        '~composer[^/]*.phar~' => self::APPLICATION_COMPOSER,
-        '~update --dry-run~' => self::APPLICATION_COMPOSER,
-        '~validate --no-check-publish~' => self::APPLICATION_COMPOSER,
-        '~show --format=json -a --name-only~' => self::APPLICATION_COMPOSER,
-        '~composer-require-checker~' => self::APPLICATION_REQUIRE_CHECKER,
-        '~squizlabs/php_codesniffer/bin/phpcs~' => self::APPLICATION_PHPCS,
-        '~vendor/bin/phpcs~' => self::APPLICATION_PHPCS,
-        '~php-parallel-lint/php-parallel-lint/parallel-lint~' => self::APPLICATION_PARALLEL_LINT,
-        '~vendor/spell-checker/spell-checker~' => self::APPLICATION_SPELL_CHECKER,
+        '~(?:phpstan/phpstan|vendor/bin)/phpstan~' => App::PHPSTAN,
+        '~codeception/codeception/codecept~' => App::CODECEPTION,
+        '~composer-require-checker~' => App::REQUIRE_CHECKER,
+        '~composer[^/]*.phar~' => App::COMPOSER,
+        '~dogma-debug/tests/.*\.phpt~' => App::SELF_TEST,
+        '~nette/tester/src/Runner/info.php~' => App::NETTE_TESTER,
+        '~nette/tester/src/tester~' => App::NETTE_TESTER,
+        '~php-parallel-lint/php-parallel-lint/parallel-lint~' => App::PARALLEL_LINT,
+        '~phpstan (?:analyse|analyze|worker)~' => App::PHPSTAN,
+        '~phpunit/phpunit/phpunit~' => App::PHPUNIT,
+        '~show --format=json -a --name-only~' => App::COMPOSER,
+        '~squizlabs/php_codesniffer/bin/phpcs~' => App::PHPCS,
+        '~tests/.*\.phpt~' => App::NETTE_TEST,
+        '~update --dry-run~' => App::COMPOSER,
+        '~validate --no-check-publish~' => App::COMPOSER,
+        '~vendor/bin/composer-dependency-analyser~' => App::DEPENDENCY_ANALYZER,
+        '~vendor/bin/phpcs~' => App::PHPCS,
+        '~vendor/bin/phpunit~' => App::PHPUNIT,
+        '~vendor/bin/rector (?:process|worker)~' => App::RECTOR,
+        '~vendor/editorconfig-checker/editorconfig-checker~' => App::EDITORCONFIG_CHECKER,
+        '~vendor/spell-checker/spell-checker~' => App::SPELL_CHECKER,
     ];
 
     /** @var array<string, string> */
     public static $appUrlMatches = [
-        '~/adminer/adminer~' => self::APPLICATION_ADMINER,
+        '~/adminer/adminer~' => App::ADMINER,
     ];
 
     /** @var array<string, string> */
     public static $appFileMatches = [
-        '~/var/www/roundcube/~' => self::APPLICATION_ROUNDCUBE,
+        '~/var/www/roundcube/~' => App::ROUNDCUBE,
     ];
 
     public static function init(): void

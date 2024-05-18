@@ -111,13 +111,13 @@ class Debugger
     /** @var int Amount of memory reserved for OOM shutdown */
     public static $reserveMemory = 100000;
 
-    /** @var callable[] Functions to call before starting the actual request */
+    /** @var list<callable(): void> Functions to call before starting the actual request */
     public static $beforeStart = [];
 
     /** @var list<callable(string): bool> Functions to call before sending a message. Receives Message as first argument. Returns false to stop message from sending */
     public static $beforeSend = [];
 
-    /** @var callable[] Functions to call before debugger shutdown. Can dump some final things before debug footer is sent */
+    /** @var list<callable(): void> Functions to call before debugger shutdown. Can dump some final things before debug footer is sent */
     public static $beforeShutdown = [];
 
     /** @var int|null Output console width (affects how dumps are formatted) */
