@@ -1069,9 +1069,14 @@ class Debugger
         // errors
         ErrorHandler::removeLogLimits(); // display following errors
         $errors = ErrorHandler::getMessages();
-        if ($errors !== []) {
-            $err = Units::units(ErrorHandler::getCount(), 'error');
-            $list = ErrorHandler::$listErrors ? ':' : '';
+        $count = ErrorHandler::getCount();
+        $muted = ErrorHandler::getMutedCount();
+        if ($count + $muted > 0) {
+            $err = Units::units($count, 'error');
+            if ($muted) {
+                $err .= " ({$muted} muted)";
+            }
+            $list = ErrorHandler::$listErrors && $errors !== [] ? ':' : '';
             $footer .= ' ' . Ansi::white(" {$err}{$list} ", Ansi::LRED);
             if ($list) {
                 foreach ($errors as $error => $files) {
