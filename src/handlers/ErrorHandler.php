@@ -64,9 +64,6 @@ class ErrorHandler
     /** @var bool Show last error which could have been hidden by another error handler */
     public static $showLastError = true;
 
-    /** @var bool Count errors muted with @ */
-    public static $countMutedErrors = false;
-
     /** @var bool Show errors muted with @ */
     public static $showMutedErrors = false;
 
@@ -86,6 +83,9 @@ class ErrorHandler
 
     /** @var int */
     private static $count = 0;
+
+    /** @var int */
+    private static $mutedCount = 0;
 
     /** @var array<int, int> */
     private static $types = [];
@@ -200,11 +200,12 @@ class ErrorHandler
         }
 
         $muted = (error_reporting() & $type) === 0;
-        if ($muted && !self::$countMutedErrors) {
-            return;
+        if ($muted) {
+            self::$mutedCount++;
+        } else {
+            self::$count++;
         }
 
-        self::$count++;
         if (!isset(self::$types[$type])) {
             self::$types[$type] = 0;
         }
@@ -299,6 +300,11 @@ class ErrorHandler
     public static function getCount(): int
     {
         return self::$count;
+    }
+
+    public static function getMutedCount(): int
+    {
+        return self::$mutedCount;
     }
 
     /**
