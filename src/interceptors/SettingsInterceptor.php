@@ -49,9 +49,13 @@ class SettingsInterceptor
         self::$interceptEnv = $level;
     }
 
-    public static function ini_set(string $name, string $value): void
+    /**
+     * @param string|int|float|bool|null $value
+     * @return string|false
+     */
+    public static function ini_set($name, string $value)
     {
-        Intercept::handle(self::NAME, self::$interceptIni, __FUNCTION__, [$name, $value], ini_get($name));
+        return Intercept::handle(self::NAME, self::$interceptIni, __FUNCTION__, [$name, $value], ini_get($name));
     }
 
     public static function ini_restore(string $name): void
