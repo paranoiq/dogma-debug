@@ -434,13 +434,6 @@ class SqlHandler
         $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|,|$)~i", "{$keywordColor}\\1{$textColor}", $query);
         // indent non-keywords
         $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query);
-        // highlight comments
-        $query = preg_replace_callback("~-- [^\n]++\n~", static function (array $match) use ($commentColor, $textColor): string {
-            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
-        }, $query);
-        $query = preg_replace_callback("~/\\*[^*]++\\*/~", static function (array $match) use ($commentColor, $textColor): string {
-            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
-        }, $query);
         // highlight strings and numbers (skip names)
         // todo: very crude. detect numbers better
         $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
@@ -451,6 +444,13 @@ class SqlHandler
             } else {
                 return $numberColor . Ansi::removeColors($match[0]) . $textColor;
             }
+        }, $query);
+        // highlight comments
+        $query = preg_replace_callback("~-- [^\n]++\n~", static function (array $match) use ($commentColor, $textColor): string {
+            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
+        }, $query);
+        $query = preg_replace_callback("~/\\*[^*]++\\*/~", static function (array $match) use ($commentColor, $textColor): string {
+            return $commentColor . Ansi::removeColors($match[0]) . $textColor;
         }, $query);
 
         return $query;
