@@ -56,16 +56,19 @@ class ErrorHandler
     public static $printLimit = 0;
 
     /** @var bool Print only unique error types and origins */
-    public static $uniqueOnly = true;
+    public static $printUniqueOnly = true;
+
+    /** @var bool Show last error which could have been hidden by another error handler */
+    public static $printLastError = true;
+
+    /** @var bool Show errors muted with @ */
+    public static $printMutedErrors = false;
 
     /** @var bool List errors on end of request */
     public static $listErrors = true;
 
-    /** @var bool Show last error which could have been hidden by another error handler */
-    public static $showLastError = true;
-
-    /** @var bool Show errors muted with @ */
-    public static $showMutedErrors = false;
+    /** @var bool List also muted errors on end of request */
+    public static $listMutedErrors = true;
 
     /** @var string[][] (string $typeAndMessage => string[] $fileAndLine) */
     public static $ignore = [];
@@ -103,7 +106,7 @@ class ErrorHandler
     {
         self::$catch = $catch;
         self::$printLimit = $printLimit;
-        self::$uniqueOnly = $uniqueOnly;
+        self::$printUniqueOnly = $uniqueOnly;
 
         $handler = [self::class, 'handleError'];
         if (Intercept::$wrapEventHandlers & Intercept::EVENT_ERROR) {
@@ -130,7 +133,7 @@ class ErrorHandler
     public static function removeLogLimits(): void
     {
         self::$printLimit = null;
-        self::$uniqueOnly = false;
+        self::$printUniqueOnly = false;
     }
 
     public static function enabled(): bool
@@ -241,10 +244,12 @@ class ErrorHandler
         if ($muted) {
             $typeMessage = '[muted] ' . $typeMessage;
         }
-        if (!isset(self::$messages[$typeMessage][$fileLine])) {
-            self::$messages[$typeMessage][$fileLine] = 0;
+        if (!$muted || self::$listMutedErrors) {
+            if (!isset(self::$messages[$typeMessage][$fileLine])) {
+                self::$messages[$typeMessage][$fileLine] = 0;
+            }
+            self::$messages[$typeMessage][$fileLine]++;
         }
-        self::$messages[$typeMessage][$fileLine]++;
 
         if (self::$printLimit !== null && self::$printCount >= self::$printLimit) {
             return;
@@ -253,12 +258,10 @@ class ErrorHandler
         //if (self::$uniqueOnly && self::$messages[$typeMessage][$fileLine] < 2) {
         //    return;
         //}
-        if ($muted && !self::$showMutedErrors) {
-            return;
+        if (!$muted || self::$printMutedErrors) {
+            self::$printCount++;
+            self::log($type, $message);
         }
-
-        self::$printCount++;
-        self::log($type, $message);
     }
 
     public static function log(int $type, string $message): void
