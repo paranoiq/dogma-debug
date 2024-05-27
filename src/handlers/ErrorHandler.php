@@ -70,7 +70,7 @@ class ErrorHandler
     /** @var bool List also muted errors on end of request */
     public static $listMutedErrors = true;
 
-    /** @var string[][] (string $typeAndMessage => string[] $fileAndLine) */
+    /** @var array<string, array<string, bool>> (string $typeAndMessage => string $fileAndLine => bool $stopPropagation) */
     public static $ignore = [];
 
     /** @var bool */
@@ -152,21 +152,25 @@ class ErrorHandler
             $file = str_replace('\\', '/', $file);
         }
 
+        $stopPropagation = false;
         try {
             Debugger::init();
-            self::logCounts($type, $message, $file, $line);
+            $stopPropagation = self::logCounts($type, $message, $file, $line);
 
             if (self::$catch) {
                 return true;
             } elseif (self::$previous !== null) {
-                return (bool) (self::$previous)($type, $message, $file, $line, null);
+                $stop = (bool) (self::$previous)($type, $message, $file, $line, null);
+
+                return $stop || $stopPropagation;
             } else {
-                return false;
+                return $stopPropagation;
             }
         } catch (Throwable $e) {
             $trace = Dumper::info('^--- ') . Dumper::fileLine($e->getFile(), $e->getLine());
             Debugger::send(Message::ERROR, $e->getMessage(), $trace);
-            return false;
+
+            return $stopPropagation;
         }
     }
 
@@ -195,11 +199,11 @@ class ErrorHandler
         return false;
     }
 
-    private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): void
+    private static function logCounts(int $type, string $message, ?string $file = null, ?int $line = null): bool
     {
         // todo: filter better (spams logs when $count/showMutedErrors is on and is useless)
         if (str_starts_with($message, 'stat(): stat failed for')) {
-            return;
+            return false;
         }
 
         $muted = (error_reporting() & $type) === 0;
@@ -233,11 +237,11 @@ class ErrorHandler
                 }
             }
         }
-        foreach ($places as $place) {
+        foreach ($places as $place => $stopPropagation) {
             // place match
             if (str_contains($fileLine, $place)) {
                 self::$ignoreCount++;
-                return;
+                return $stopPropagation;
             }
         }
 
@@ -252,7 +256,7 @@ class ErrorHandler
         }
 
         if (self::$printLimit !== null && self::$printCount >= self::$printLimit) {
-            return;
+            return false;
         }
         // todo: wtf?
         //if (self::$uniqueOnly && self::$messages[$typeMessage][$fileLine] < 2) {
@@ -262,6 +266,8 @@ class ErrorHandler
             self::$printCount++;
             self::log($type, $message);
         }
+
+        return false;
     }
 
     public static function log(int $type, string $message): void
