@@ -436,8 +436,10 @@ class SqlHandler
         $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query);
         // highlight strings and numbers (skip names)
         // todo: very crude. detect numbers better
-        $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
+        $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|0x[0-9a-f]{32}|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
             if ($match[0][0] === "'" || $match[0][0] === '"') {
+                return $stringColor . Ansi::removeColors($match[0]) . $textColor;
+            } elseif ($match[0][0] === '0' && $match[0][1] === 'x') {
                 return $stringColor . Ansi::removeColors($match[0]) . $textColor;
             } elseif ($match[0][0] === '`') {
                 return $match[0];

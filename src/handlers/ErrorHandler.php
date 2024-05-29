@@ -223,14 +223,15 @@ class ErrorHandler
 
         // complete match (faster)
         $places = self::$ignore[$typeMessage] ?? [];
-        // start match
         if ($places === []) {
             foreach (self::$ignore as $m => $p) {
                 if (str_starts_with($m, '~')) {
+                    // regexp match
                     if (preg_match($m, $typeMessage)) {
                         $places = $p;
                     }
                 } else {
+                    // start match
                     if (str_starts_with($typeMessage, $m)) {
                         $places = $p;
                     }
