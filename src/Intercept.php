@@ -196,6 +196,9 @@ class Intercept
     /** @var array<int, int> */
     private static $wrappedHandlerCounts = [];
 
+    /** @var array<string, int> */
+    public static $interceptedCallCounts = [];
+
     /** @var array<int, string> */
     private static $eventHandlerNames = [
         self::EVENT_ERROR => 'error handler',
@@ -577,6 +580,12 @@ class Intercept
         string $info = ''
     )
     {
+        if (isset(self::$interceptedCallCounts[$handler][$function])) {
+            self::$interceptedCallCounts[$handler][$function]++;
+        } else {
+            self::$interceptedCallCounts[$handler][$function] = 1;
+        }
+
         if ($allowed || $level === self::NONE || $level === self::SILENT) {
             return call_user_func_array($function, $params);
         } elseif ($level & self::LOG_CALLS) {
