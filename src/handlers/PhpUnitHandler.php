@@ -33,6 +33,8 @@ class PhpUnitHandler
     public static function announceTestCaseName(): void
     {
         Debugger::guarded(static function (): void {
+            // not officially hooked into PHPUnit
+            // just fetches test case object from backtrace method call params and gets current test case from there
             foreach (Callstack::get()->frames as $frame) {
                 if (is_a($frame->class, TestCase::class, true) && str_starts_with($frame->function, 'test')) {
                     if (self::$useFullTestCaseName) {
