@@ -121,9 +121,8 @@ class Message
         ?int $processId = null
     ): self
     {
-        // todo: temporary
         if (str_ends_with($payload, "\n")) {
-            throw new Exception('Payload should not end with new line.');
+            Debugger::send(self::ERROR, "Payload should not end with new line.");
         }
         // todo: somehow some special chars are avoiding detection and escaping :E
         $char = Str::isBinary($payload, self::ALLOWED_CHARS);
