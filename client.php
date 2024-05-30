@@ -90,6 +90,7 @@ return (static function (): bool {
 
     require_once __DIR__ . '/src/dumper/FormattersReflection.php';
     require_once __DIR__ . '/src/dumper/FormattersDefault.php';
+    require_once __DIR__ . '/src/dumper/FormattersDoctrine.php';
     require_once __DIR__ . '/src/dumper/FormattersDom.php';
     require_once __DIR__ . '/src/dumper/FormattersDogma.php';
     require_once __DIR__ . '/src/dumper/FormattersBrick.php';
