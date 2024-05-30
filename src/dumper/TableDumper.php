@@ -132,6 +132,10 @@ class TableDumper
         $availableWidth = Debugger::$outputWidth - count($columns) * ($padding + 1) - 2;
         $columnWidths = self::calculateColumnWidths($textRows, $availableWidth, count($columns), $formats);
 
+        if (min($columnWidths) < 1) {
+            return Dumper::exceptions("Data too wide for table view:") . "\n" . Dumper::dump($source);
+        }
+
         $result .= self::renderDivider($columnWidths, $padding);
         foreach ($source as $j => $row) {
             if ($j === 0) {
@@ -155,7 +159,10 @@ class TableDumper
             if ($i !== 0) {
                 $row .= '+';
             }
-            $row .= str_repeat('-', $columnWidth + $padding);
+            $width = $columnWidth + $padding;
+            if ($width > 0) {
+                $row .= str_repeat('-', $columnWidth + $padding);
+            }
         }
 
         return self::formatLayout($row . "+\n");
