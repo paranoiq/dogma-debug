@@ -323,9 +323,13 @@ class Debugger
      */
     public static function dumpException(Throwable $exception): Throwable
     {
+        ob_start();
+
         $message = ExceptionHandler::formatException($exception, ExceptionHandler::SOURCE_DUMPED);
 
         self::send(Message::EXCEPTION, $message);
+
+        self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
         return $exception;
     }
