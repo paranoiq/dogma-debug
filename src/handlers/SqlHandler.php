@@ -439,10 +439,10 @@ class SqlHandler
         $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|0x[0-9a-f]{32}|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
             if ($match[0][0] === "'" || $match[0][0] === '"') {
                 return $stringColor . Ansi::removeColors($match[0]) . $textColor;
-            } elseif ($match[0][0] === '0' && $match[0][1] === 'x') {
-                return $stringColor . Ansi::removeColors($match[0]) . $textColor;
             } elseif ($match[0][0] === '`') {
                 return $match[0];
+            } elseif (str_starts_with($match[0], '0x')) {
+                return $stringColor . Ansi::removeColors($match[0]) . $textColor;
             } else {
                 return $numberColor . Ansi::removeColors($match[0]) . $textColor;
             }
