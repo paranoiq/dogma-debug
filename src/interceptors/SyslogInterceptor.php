@@ -27,6 +27,10 @@ class SyslogInterceptor
      */
     public static function interceptSyslog(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for syslog functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'openlog', self::class);
         Intercept::registerFunction(self::NAME, 'closelog', self::class);
         Intercept::registerFunction(self::NAME, 'syslog', self::class);

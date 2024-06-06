@@ -29,6 +29,10 @@ class MailInterceptor
      */
     public static function interceptMail(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for mail function.");
+        }
+
         Intercept::registerFunction(self::NAME, 'mail', self::class);
         self::$intercept = $level;
     }

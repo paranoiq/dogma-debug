@@ -79,6 +79,10 @@ class ExecInterceptor
      */
     public static function interceptExec(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for process executing functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'exec', self::class);
         Intercept::registerFunction(self::NAME, 'passthru', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_exec', self::class);

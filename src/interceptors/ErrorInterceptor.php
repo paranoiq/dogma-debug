@@ -44,6 +44,10 @@ class ErrorInterceptor
      */
     public static function interceptExceptionHandlers(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for set_exception_handler and restore_exception_handler.");
+        }
+
         Intercept::registerFunction(self::NAME, 'set_exception_handler', self::class);
         Intercept::registerFunction(self::NAME, 'restore_exception_handler', self::class);
         self::$interceptExceptionHandlers = $level;
@@ -56,6 +60,10 @@ class ErrorInterceptor
      */
     public static function interceptErrorHandlers(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for set_error_handler and restore_error_handler.");
+        }
+
         Intercept::registerFunction(self::NAME, 'set_error_handler', self::class);
         Intercept::registerFunction(self::NAME, 'restore_error_handler', self::class);
         self::$interceptErrorHandlers = $level;
@@ -68,6 +76,10 @@ class ErrorInterceptor
      */
     public static function interceptReporting(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for error_reporting.");
+        }
+
         Intercept::registerFunction(self::NAME, 'error_reporting', self::class);
         self::$interceptErrorReporting = $level;
     }

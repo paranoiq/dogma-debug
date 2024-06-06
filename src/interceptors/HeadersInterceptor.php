@@ -33,6 +33,10 @@ class HeadersInterceptor
      */
     public static function interceptHeaders(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for HTTP headers related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'header', self::class);
         Intercept::registerFunction(self::NAME, 'header_remove', self::class);
         Intercept::registerFunction(self::NAME, 'header_register_callback', self::class);
@@ -47,6 +51,10 @@ class HeadersInterceptor
      */
     public static function interceptCookies(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for HTTP cookies related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'setcookie', self::class);
         Intercept::registerFunction(self::NAME, 'setrawcookie', self::class);
         self::$interceptCookies = $level;

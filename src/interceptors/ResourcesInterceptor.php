@@ -40,6 +40,10 @@ class ResourcesInterceptor
      */
     public static function interceptTicks(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for tick related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'register_tick_function', self::class);
         Intercept::registerFunction(self::NAME, 'unregister_tick_function', self::class);
         self::$interceptTicks = $level;
@@ -52,6 +56,10 @@ class ResourcesInterceptor
      */
     public static function interceptTimeLimit(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for set_time_limit.");
+        }
+
         Intercept::registerFunction(self::NAME, 'set_time_limit', self::class);
         self::$interceptTimeLimit = $level;
     }
@@ -63,6 +71,10 @@ class ResourcesInterceptor
      */
     public static function interceptSleep(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for sleep functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'sleep', self::class);
         Intercept::registerFunction(self::NAME, 'usleep', self::class);
         Intercept::registerFunction(self::NAME, 'time_nanosleep', self::class);
@@ -77,6 +89,10 @@ class ResourcesInterceptor
      */
     public static function interceptGc(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for garbage collection related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'gc_enable', self::class);
         Intercept::registerFunction(self::NAME, 'gc_disable', self::class);
         Intercept::registerFunction(self::NAME, 'gc_collect_cycles', self::class);

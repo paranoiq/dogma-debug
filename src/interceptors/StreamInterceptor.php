@@ -218,6 +218,10 @@ class StreamInterceptor
      */
     public static function interceptFileFunctions(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for file reading/writing functions.");
+        }
+
         // as in stream wrappers
         Intercept::registerFunction(self::NAME, 'fopen', self::class);
         Intercept::registerFunction(self::NAME, 'fclose', self::class);

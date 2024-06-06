@@ -44,6 +44,10 @@ class ShutdownInterceptor
      */
     public static function interceptExit(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for exit and die.");
+        }
+
         self::$interceptExit = $level;
         Intercept::registerFunction(self::NAME, 'exit', [self::class, 'fakeExit']);
         Intercept::registerFunction(self::NAME, 'die', [self::class, 'fakeExit']); // die() is just synonym of exit()
@@ -56,6 +60,10 @@ class ShutdownInterceptor
      */
     public static function interceptAbort(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for ignore_user_abort.");
+        }
+
         Intercept::registerFunction(self::NAME, 'ignore_user_abort', self::class);
         self::$interceptAbort = $level;
     }
@@ -67,6 +75,10 @@ class ShutdownInterceptor
      */
     public static function interceptShutdown(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for register_shutdown_function.");
+        }
+
         self::$interceptShutdown = $level;
         Intercept::registerFunction(self::NAME, 'register_shutdown_function', self::class);
     }

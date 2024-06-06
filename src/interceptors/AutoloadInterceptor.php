@@ -29,6 +29,10 @@ class AutoloadInterceptor
      */
     public static function interceptAutoload(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for autoload functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'spl_autoload_register', self::class);
         Intercept::registerFunction(self::NAME, 'spl_autoload_unregister', self::class);
         Intercept::registerFunction(self::NAME, 'spl_autoload_extensions', self::class);

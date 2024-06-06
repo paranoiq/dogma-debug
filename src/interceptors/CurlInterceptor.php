@@ -525,6 +525,10 @@ class CurlInterceptor
      */
     public static function interceptCurl(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for curl_* and curl_multi_* functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'curl_init', self::class);
         Intercept::registerFunction(self::NAME, 'curl_close', self::class);
         Intercept::registerFunction(self::NAME, 'curl_exec', self::class);

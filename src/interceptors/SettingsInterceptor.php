@@ -32,6 +32,10 @@ class SettingsInterceptor
      */
     public static function interceptIni(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for ini altering functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'ini_set', self::class);
         Intercept::registerFunction(self::NAME, 'ini_alter', [self::class, 'ini_set']); // alias ^
         Intercept::registerFunction(self::NAME, 'ini_restore', self::class);
@@ -45,6 +49,10 @@ class SettingsInterceptor
      */
     public static function interceptEnv(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for putenv.");
+        }
+
         Intercept::registerFunction(self::NAME, 'putenv', self::class);
         self::$interceptEnv = $level;
     }

@@ -23,8 +23,12 @@ class BuffersInterceptor
      *
      * @param int $level Intercept::SILENT|Intercept::LOG_CALLS|intercept::PREVENT_CALLS
      */
-    public static function interceptAutoload(int $level = Intercept::LOG_CALLS): void
+    public static function interceptBuffers(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for output buffering functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'flush', self::class);
         Intercept::registerFunction(self::NAME, 'ob_clean', self::class);
         Intercept::registerFunction(self::NAME, 'ob_end_clean', self::class);

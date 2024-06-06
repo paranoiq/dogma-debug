@@ -30,6 +30,10 @@ class StreamWrapperInterceptor
      */
     public static function interceptWrappers(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for stream wrapper functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'stream_wrapper_register', self::class);
         Intercept::registerFunction(self::NAME, 'stream_wrapper_unregister', self::class);
         Intercept::registerFunction(self::NAME, 'stream_wrapper_restore', self::class);
@@ -43,6 +47,10 @@ class StreamWrapperInterceptor
      */
     public static function interceptFilters(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for stream filter functions.");
+        }
+
         // @see https://www.php.net/manual/en/class.php-user-filter.php
         Intercept::registerFunction(self::NAME, 'stream_filter_register', self::class);
         Intercept::registerFunction(self::NAME, 'stream_filter_remove', self::class);

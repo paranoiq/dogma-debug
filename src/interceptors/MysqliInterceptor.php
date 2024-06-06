@@ -45,6 +45,10 @@ class MysqliInterceptor
             return;
         }
 
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for mysqli class and mysqli init functions.");
+        }
+
         Intercept::registerClass(self::NAME, mysqli::class, MysqliProxy::class);
         if ($wrapStatements === self::STATEMENT_WRAP_EXTENDING) {
             Intercept::registerClass(self::NAME, mysqli_stmt::class, MysqliStatementProxy::class);

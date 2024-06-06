@@ -42,6 +42,10 @@ class SessionInterceptor
      */
     public static function interceptSessions(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for session related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'session_abort', self::class);
         Intercept::registerFunction(self::NAME, 'session_cache_expire', self::class);
         Intercept::registerFunction(self::NAME, 'session_cache_limiter', self::class);

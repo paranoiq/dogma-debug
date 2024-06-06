@@ -108,6 +108,7 @@ class Intercept
     public const SILENT = 1; // do not change or log functionality (but still can track some stats etc.)
     public const LOG_CALLS = 2; // log calls to intercepted functions
     public const PREVENT_CALLS = 4; // prevent calls to intercepted functions
+    public const ANNOUNCE = 8; // announce registered interceptors
 
     public const EVENT_ERROR = 1;
     public const EVENT_EXCEPTION = 2;

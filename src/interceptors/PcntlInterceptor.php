@@ -43,6 +43,10 @@ class PcntlInterceptor
      */
     public static function interceptSignals(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for pcntl_* and sapi_windows_* signal related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'pcntl_signal', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_async_signals', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_signal_dispatch', self::class);
@@ -62,6 +66,10 @@ class PcntlInterceptor
      */
     public static function interceptAlarm(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for pcntl_alarm.");
+        }
+
         Intercept::registerFunction(self::NAME, 'pcntl_alarm', self::class);
         self::$interceptAlarm = $level;
     }
@@ -73,6 +81,10 @@ class PcntlInterceptor
      */
     public static function interceptChildren(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for pcntl_* child process related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'pcntl_fork', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_unshare', self::class);
         Intercept::registerFunction(self::NAME, 'pcntl_wait', self::class);
@@ -91,6 +103,10 @@ class PcntlInterceptor
      */
     public static function interceptPosixKill(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for posix_kill.");
+        }
+
         Intercept::registerFunction(self::NAME, 'posix_kill', self::class);
 
         self::$interceptKill = $level;

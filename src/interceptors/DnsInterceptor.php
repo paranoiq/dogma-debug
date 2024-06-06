@@ -32,6 +32,10 @@ class DnsInterceptor
      */
     public static function interceptDns(int $level = Intercept::LOG_CALLS): void
     {
+        if ($level & Intercept::ANNOUNCE) {
+            Debugger::dependencyInfo("Registered interceptors for NDS related functions.");
+        }
+
         Intercept::registerFunction(self::NAME, 'gethostbyaddr', self::class);
         Intercept::registerFunction(self::NAME, 'gethostbyname', self::class);
         Intercept::registerFunction(self::NAME, 'gethostbynamel', self::class);
