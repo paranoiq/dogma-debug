@@ -306,6 +306,9 @@ class Dumper
         'indent' => Ansi::DGRAY, // |
         'info' => Ansi::DGRAY, // // 5 items
 
+        'table' => Ansi::LGREEN,
+        //'column' => Ansi::LYELLOW,
+
         'path' => Ansi::DGRAY, // C:/foo/bar/...
         'file' => Ansi::LGRAY, // .../baz.php
         'line' => Ansi::DGRAY, // :42

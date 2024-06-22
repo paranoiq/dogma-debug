@@ -27,6 +27,7 @@ use function array_sum;
 use function class_exists;
 use function count;
 use function explode;
+use function func_get_args;
 use function implode;
 use function is_int;
 use function is_string;
@@ -34,6 +35,8 @@ use function iterator_to_array;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function str_starts_with;
+use function strlen;
 use function strtoupper;
 
 /**
@@ -95,6 +98,9 @@ class SqlHandler
         [self::class, 'normalizeWhitespace'],
         [self::class, 'simpleHighlighting'],
     ];
+
+    /** @var bool - Show query execution time */
+    public static $showQueryTime = true;
 
     /** @var string - Default server name and version for query parsing */
     public static $defaultServerInfo = 'mysql 8.0';
@@ -203,7 +209,7 @@ class SqlHandler
         $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
 
-        Debugger::send(Message::SQL, $message, $backtrace, $duration);
+        Debugger::send(Message::SQL, $message, $backtrace, self::$showQueryTime ? $duration : null);
     }
 
     public static function getEvents(): array
@@ -428,8 +434,13 @@ class SqlHandler
         $textColor = Ansi::colorStart(Dumper::$colors['value']);
         $numberColor = Ansi::colorStart(Dumper::$colors['int']);
         $stringColor = Ansi::colorStart(Dumper::$colors['string']);
+        $tableColor = Ansi::colorStart(Dumper::$colors['table']);
         $reserved = implode('|', Sql::getReserved());
 
+        // highlight table names
+        $query = preg_replace_callback("~(?<=INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE )(?!LOW_PRIORITY)([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
+            return $tableColor . Ansi::removeColors($match[1]) . $textColor;
+        }, $query);
         // highlight keywords
         $query = preg_replace("~(?<=\s|\(|^)({$reserved})(?=\s|\)|;|,|$)~i", "{$keywordColor}\\1{$textColor}", $query);
         // indent non-keywords
