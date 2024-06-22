@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use Attribute;
 use LogicException;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -55,6 +56,15 @@ class FormattersReflection
         2 => 'PHP_INI_PERDIR',
         4 => 'PHP_INI_SYSTEM',
         7 => 'PHP_INI_ALL',
+    ];
+
+    public const ATTRIBUTE_TARGETS = [
+        Attribute::TARGET_CLASS => 'class',
+        Attribute::TARGET_FUNCTION => 'function',
+        Attribute::TARGET_METHOD => 'method',
+        Attribute::TARGET_PROPERTY => 'property',
+        Attribute::TARGET_CLASS_CONSTANT => 'constant',
+        Attribute::TARGET_PARAMETER => 'parameter',
     ];
 
     /** @var bool */
@@ -585,9 +595,22 @@ class FormattersReflection
 
     public static function dumpReflectionAttribute(ReflectionAttribute $attribute, int $depth = 0): string
     {
-        $result = $depth === 0 ? Dumper::class(get_class($attribute)) . ' of ' . "\n" : '';
+        $t = $attribute->getTarget();
+        $target = [];
+        foreach (self::ATTRIBUTE_TARGETS as $value => $name) {
+            if (($t & $value) !== 0) {
+                $target[] = $name;
+            }
+        }
+        $target = implode('|', $target);
+        if ($target !== '') {
+            $target = Dumper::value($target) . ' ';
+        }
+        $repeated = $attribute->isRepeated() ? Dumper::value('repeated') . ' ' : '';
 
-        return $result . self::formatAttributes([$attribute], $depth);
+        $result = $depth === 0 ? Dumper::class(get_class($attribute)) . ' of ' : '';
+
+        return $result . $repeated . $target . 'attribute ' . self::formatAttributes([$attribute], $depth);
     }
 
     /**
@@ -626,8 +649,8 @@ class FormattersReflection
         $attrs = [];
         foreach ($attributes as $attribute) {
             $args = [];
-            foreach (PHP_VERSION_ID >= 80000 ? $attribute->getArguments() : [] as $argument) {
-                $args[] = Dumper::dumpValue($argument, $depth + 1);
+            foreach (PHP_VERSION_ID >= 80000 ? $attribute->getArguments() : [] as $name => $argument) {
+                $args[] = Dumper::key($name) . ': ' . Dumper::dumpValue($argument, $depth + 1);
             }
 
             $args = $args !== []
@@ -639,7 +662,7 @@ class FormattersReflection
         }
 
         return $attrs !== []
-            ? implode("\n", $attrs) . "\n"
+            ? implode("\n", $attrs)
             : '';
     }
 
