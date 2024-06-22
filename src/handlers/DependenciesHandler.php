@@ -55,7 +55,10 @@ class DependenciesHandler
     {
         $path = str_replace('\\', '/', dirname($_SERVER['PHP_SELF']));
         do {
-            if (file_exists($path . '/composer.lock')) {
+            if (str_ends_with($path, 'vendor/phpunit/phpunit')) {
+                // skip when running from tests
+            } elseif (file_exists($path . '/composer.lock')) {
+                // todo: of course .lock can lie if composer install has not been run yet
                 try {
                     self::$composerData = json_decode(file_get_contents($path . '/composer.lock'), true);
                 } catch (\Throwable $e) {
@@ -63,6 +66,9 @@ class DependenciesHandler
                     return;
                 }
                 break;
+            }
+            if ($path === dirname($path)) {
+                return;
             }
             $path = dirname($path);
         } while ($path !== '/' && !str_ends_with($path, ':'));
