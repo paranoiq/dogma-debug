@@ -90,6 +90,8 @@ class PdoStatementProxy extends PDOStatement
             $t = microtime(true) - $t;
             SqlHandler::logPdoStatementExecute($this, $allParams, $t, null, null, $this->connection->getName(), $e->getMessage(), $e->getCode());
             $logged = true;
+
+            throw $e;
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$interceptExec, 'PDOStatement::execute', [$params], $result);

@@ -96,18 +96,19 @@ class PdoProxy extends PDO
 
     public function __construct($dsn, $username = null, $password = null, $options = null)
     {
-        $this->name = 'pdo' . (++self::$connections);
-
         try {
             $t = microtime(true);
 
             parent::__construct($dsn, $username, $password, $options);
         } finally {
+            $name = 'pdo' . (++self::$connections);
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::__construct', [$dsn, $username, $password, $options], null);
-            SqlHandler::log(SqlHandler::CONNECT, null, $t, null, null, $this->name);
+            SqlHandler::log(SqlHandler::CONNECT, null, $t, null, null, $name);
         }
 
+        // $this cannot be touched before parent::__construct() call, otherwise magic driver methods like sqliteCreateFunction etc. are not registered
+        $this->name = $name;
         $this->setAttribute(self::ATTR_STATEMENT_CLASS, [PdoStatementProxy::class]);
     }
 
@@ -225,6 +226,8 @@ class PdoProxy extends PDO
             $t = microtime(true) - $t;
             SqlHandler::logUnknown($statement, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
             $logged = true;
+
+            throw $e;
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::exec', [$statement], $result);
@@ -252,6 +255,8 @@ class PdoProxy extends PDO
             $t = microtime(true) - $t;
             SqlHandler::logUnknown($query, $t, null, null, $this->name, null, $e->getMessage(), $e->getCode());
             $logged = true;
+
+            throw $e;
         } finally {
             $t = microtime(true) - $t;
             Intercept::log(self::NAME, self::$intercept, 'PDO::query', [$query, $mode, ...$fetch_mode_args], $result);
