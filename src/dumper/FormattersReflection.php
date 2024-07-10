@@ -229,6 +229,9 @@ class FormattersReflection
     {
         $doc = self::formatDocComment($class->getDocComment() ?: '', $depth);
         $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $class->getAttributes() : [], $depth);
+        if ($attrs !== '') {
+            $attrs .= "\n";
+        }
 
         // todo: colors
         $abstract = $class->isAbstract() ? 'abstract ' : '';
