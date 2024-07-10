@@ -9,20 +9,9 @@
 
 namespace Dogma\Debug;
 
-use Dibi\DriverException;
-use Dibi\Event;
-use Doctrine\ORM\EntityManager;
-use PDOStatement;
 use function array_merge;
 use function array_search;
-use function array_shift;
 use function array_sum;
-use function array_unique;
-use function explode;
-use function implode;
-use function preg_match;
-use function preg_replace;
-use function preg_replace_callback;
 use function strtolower;
 use function strtoupper;
 
@@ -100,7 +89,7 @@ class HttpHandler
         if ($dataSize !== null) {
             self::$data[$method] += $dataSize;
         }
-rd(self::$events);
+
         $methodId = array_search($method, self::METHODS);
         if (!($methodId & self::$logEvents)) {
             return;

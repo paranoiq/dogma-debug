@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use function getmypid;
 use function implode;
 use function is_callable;
 use const SIG_DFL;

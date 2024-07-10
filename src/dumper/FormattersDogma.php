@@ -139,7 +139,6 @@ class FormattersDogma
 
     /**
      * @param DateInterval|NightInterval $interval
-     * @return string
      */
     public static function dumpDateOrNightInterval($interval): string
     {

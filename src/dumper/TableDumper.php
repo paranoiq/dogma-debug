@@ -11,7 +11,10 @@ namespace Dogma\Debug;
 
 use DateTimeInterface;
 use RuntimeException;
+use function array_fill;
 use function array_filter;
+use function array_keys;
+use function array_map;
 use function array_search;
 use function array_sum;
 use function array_values;
@@ -19,15 +22,21 @@ use function bin2hex;
 use function count;
 use function is_float;
 use function is_int;
+use function key;
+use function ksort;
 use function max;
 use function mb_strlen;
 use function mb_substr;
 use function min;
+use function preg_match;
 use function preg_replace;
 use function preg_split;
+use function round;
 use function str_repeat;
 use function str_replace;
 use function strlen;
+use function strpos;
+use function strrpos;
 use function strval;
 use function substr;
 use function trim;
@@ -188,7 +197,7 @@ class TableDumper
                 $remainders[$i] = '';
                 continue;
             } elseif ($value === true) {
-                $result .= str_repeat(' ', max($columnWidth - 4, 0)). Dumper::bool(substr('true', 0, $columnWidth));
+                $result .= str_repeat(' ', max($columnWidth - 4, 0)) . Dumper::bool(substr('true', 0, $columnWidth));
                 $remainders[$i] = '';
                 continue;
             } elseif ($value === false) {
@@ -208,7 +217,7 @@ class TableDumper
             }
 
             if ($formats[$i] === self::BINARY && $n !== 0) {
-                $formatted = Dumper::value(bin2hex( $value));
+                $formatted = Dumper::value(bin2hex($value));
                 $length = Ansi::length($formatted);
                 if ($length <= $columnWidth) {
                     $result .= $formatted . str_repeat(' ', $columnWidth - $length);
@@ -278,8 +287,6 @@ class TableDumper
 
     /**
      * @param iterable<array<string, string>> $rows
-     * @param int $tableWidth
-     * @param int $columnsCount
      * @param list<int> $formats
      * @return list<int>
      */

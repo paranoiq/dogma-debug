@@ -32,6 +32,7 @@ use ReflectionReference;
 use ReflectionType;
 use ReflectionUnionType;
 use ReflectionZendExtension;
+use Throwable;
 use function array_filter;
 use function array_keys;
 use function array_map;

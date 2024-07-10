@@ -22,16 +22,19 @@ use ReflectionObject;
 use UnitEnum;
 use WeakReference;
 use function abs;
+use function array_filter;
 use function array_reverse;
 use function array_slice;
 use function decoct;
 use function fread;
+use function fseek;
 use function ftell;
 use function get_class;
 use function get_extension_funcs;
 use function get_loaded_extensions;
 use function implode;
 use function in_array;
+use function intval;
 use function is_callable;
 use function is_int;
 use function json_decode;
@@ -151,7 +154,7 @@ class FormattersDefault
      */
     public static function dumpProcess($resource, int $depth = 0): string
     {
-        $id = (int) $resource;
+        $id = intval($resource);
 
         $params = proc_get_status($resource);
         if ($params !== ['options' => []]) {

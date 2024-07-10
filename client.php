@@ -39,7 +39,7 @@ return (static function (): bool {
 
     // do not load auto-prepended libs from other location than tests are when in tests
     // tester loads local copy, which may differ from stable auto-prepended version
-    $prepend = (string)ini_get('auto_prepend_file');
+    $prepend = strval(ini_get('auto_prepend_file'));
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']);
     if ($prepend !== ''
         && $prepend !== str_replace('\\', '/', __FILE__)
@@ -209,5 +209,3 @@ return (static function (): bool {
 
     return true;
 })();
-
-?>

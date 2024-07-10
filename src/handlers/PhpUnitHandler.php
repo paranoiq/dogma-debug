@@ -14,6 +14,7 @@ use function end;
 use function explode;
 use function is_a;
 use function ltrim;
+use function method_exists;
 use function rtrim;
 use function str_contains;
 use function str_starts_with;

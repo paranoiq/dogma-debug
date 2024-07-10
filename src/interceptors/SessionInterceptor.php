@@ -10,6 +10,7 @@
 namespace Dogma\Debug;
 
 use SessionHandlerInterface;
+use function count;
 use function func_get_args;
 use function session_cache_expire;
 use function session_cache_limiter;

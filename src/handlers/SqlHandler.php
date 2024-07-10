@@ -21,23 +21,25 @@ use SqlFtw\Sql\Assignment;
 use SqlFtw\Sql\Dml\Insert\InsertSetCommand;
 use SqlFtw\Sql\Dml\Insert\InsertValuesCommand;
 use SqlFtw\Sql\Expression\Operator;
+use function array_keys;
 use function array_merge;
 use function array_shift;
 use function array_sum;
 use function class_exists;
 use function count;
 use function explode;
-use function func_get_args;
 use function implode;
 use function is_int;
 use function is_string;
 use function iterator_to_array;
+use function max;
 use function preg_match;
 use function preg_replace;
 use function preg_replace_callback;
+use function str_replace;
 use function str_starts_with;
-use function strlen;
 use function strtoupper;
+use function trim;
 
 /**
  * Tracks and displays SQL operations on registered drivers

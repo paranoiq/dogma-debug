@@ -13,6 +13,7 @@ use const PHP_OUTPUT_HANDLER_STDFLAGS;
 
 class BuffersInterceptor
 {
+
     public const NAME = 'buffers';
 
     /** @var int */

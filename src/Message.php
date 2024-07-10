@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use Exception;
 use function dechex;
 use function explode;
 use function floatval;
@@ -20,6 +19,7 @@ use function ord;
 use function preg_replace_callback;
 use function rtrim;
 use function str_ends_with;
+use function str_pad;
 use function strlen;
 use function strpos;
 use function substr;

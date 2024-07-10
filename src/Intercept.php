@@ -220,9 +220,9 @@ class Intercept
         self::$wrappedHandlerCounts[$event] = $count;
 
         return static function () use ($callback, $callstack, $event, $type, $count) {
-            Intercept::eventStart($callstack, $event, $type, $count);
+            self::eventStart($callstack, $event, $type, $count);
             $result = call_user_func_array($callback, func_get_args());
-            Intercept::eventEnd($callstack, $event, $type, $count);
+            self::eventEnd($callstack, $event, $type, $count);
             return $result;
         };
     }
@@ -249,7 +249,7 @@ class Intercept
         if ($count !== null) {
             $name .= ' #' . $count;
         }
-        $message = Ansi::white(" {$name} " , Debugger::$handlerColors['event']) . ' defined in:';
+        $message = Ansi::white(" {$name} ", Debugger::$handlerColors['event']) . ' defined in:';
         Debugger::send(Message::EVENT, $message, Dumper::formatCallstack($callstack, 1, null, 0));
     }
 

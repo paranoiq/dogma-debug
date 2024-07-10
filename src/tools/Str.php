@@ -158,7 +158,7 @@ class Str
     public static function createCharPattern(array $chars): string
     {
         $chars = array_map(static function (string $ch): string {
-            return '\x' . Str::charToHex($ch);
+            return '\x' . self::charToHex($ch);
         }, $chars);
 
         return '~[' . implode('', $chars) . ']~';

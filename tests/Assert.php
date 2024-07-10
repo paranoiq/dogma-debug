@@ -27,6 +27,8 @@ use const SORT_STRING;
 class Assert
 {
 
+    private const EPSILON = 1e-10;
+
     /** @var bool */
     public static $dump = true;
 
@@ -80,8 +82,6 @@ class Assert
     }
 
     // from dogma-dev Assert -------------------------------------------------------------------------------------------
-
-    private const EPSILON = 1e-10;
 
     /**
      * @param mixed $actual

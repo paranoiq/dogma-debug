@@ -122,7 +122,7 @@ class ExecInterceptor
 
     /**
      * @param int $result_code
-     * @return null|false
+     * @return false|null
      */
     public static function passthru(string $command, &$result_code): ?bool
     {

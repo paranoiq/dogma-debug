@@ -229,7 +229,8 @@ trait DumperComponents
         return Ansi::color($value, self::$colors['float']);
     }
 
-    private static function floatScientific3(float $value): string {
+    private static function floatScientific3(float $value): string
+    {
         $exponent = 0;
         while (abs($value) >= 1000.0 || abs($value) < 1.0) {
             if ($value === 0.0 || $value === -0.0) {
@@ -551,7 +552,6 @@ trait DumperComponents
 
     /**
      * @param object|resource $object
-     * @return int
      */
     public static function objectId($object): int
     {
@@ -586,7 +586,6 @@ trait DumperComponents
 
     /**
      * @param string[] $parts
-     * @return string|null
      */
     public static function uuidInfo(array $parts): ?string
     {

@@ -186,8 +186,6 @@ if (!function_exists('rd')) {
     }
 }
 
-if (!require_once(__DIR__ . '/client.php')) {
+if (!require_once __DIR__ . '/client.php') {
     return;
 }
-
-?>

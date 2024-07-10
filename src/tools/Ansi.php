@@ -25,12 +25,6 @@ use const STR_PAD_RIGHT;
 final class Ansi
 {
 
-    /** @var bool */
-    public static $off = false;
-
-    /** @var string */
-    public static $default = self::LGRAY;
-
     public const WHITE = 'W';
     public const LGRAY = 'w';
     public const DGRAY = 'K';
@@ -103,6 +97,12 @@ final class Ansi
         self::LMAGENTA => '45',
         self::LCYAN => '46',
     ];
+
+    /** @var bool */
+    public static $off = false;
+
+    /** @var string */
+    public static $default = self::LGRAY;
 
     public static function color($string, ?string $color = null, ?string $background = null): string
     {

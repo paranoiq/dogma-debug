@@ -15,6 +15,7 @@ namespace Dogma\Debug;
 use mysqli_result;
 use mysqli_stmt;
 use mysqli_warning;
+use function array_unshift;
 use function call_user_func_array;
 
 class MysqliStatementWrapper

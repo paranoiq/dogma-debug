@@ -56,6 +56,7 @@ use function str_repeat;
 use function str_starts_with;
 use function strlen;
 use function strtolower;
+use function strval;
 use function substr;
 use function touch;
 use function trim;
