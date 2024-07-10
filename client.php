@@ -62,6 +62,7 @@ return (static function (): bool {
     require_once __DIR__ . '/src/tools/Color.php';
     require_once __DIR__ . '/src/tools/Ansi.php';
     require_once __DIR__ . '/src/tools/Ascii.php';
+    require_once __DIR__ . '/src/tools/Cls.php';
     require_once __DIR__ . '/src/tools/Diff.php';
     require_once __DIR__ . '/src/tools/Http.php';
     require_once __DIR__ . '/src/tools/Links.php';
