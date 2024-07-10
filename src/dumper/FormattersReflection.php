@@ -296,9 +296,17 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($class->getCases() as $case) {
+                try {
+                    $name = $case->getValue()->name;
+                    $value = $case->getValue()->value;
+                } catch (Throwable $e) {
+                    // not implemented in BetterReflection
+                    $name = '???';
+                    $value = '???';
+                }
                 $case = $case instanceof ReflectionEnumUnitCase
-                    ? 'case ' . $case->getValue()->name . ';'
-                    : 'case ' . $case->getValue()->name . ' = ' . ($backingTypeName === 'int' ? Dumper::int($case->getValue()->value) : Dumper::string($case->getValue()->value)) . ';';
+                    ? 'case ' . $name . ';'
+                    : 'case ' . $name . ' = ' . ($backingTypeName === 'int' ? Dumper::int($value) : Dumper::string($value)) . ';';
                 $result .= "\n" . $indent . $case;
             }
         }
@@ -381,7 +389,12 @@ class FormattersReflection
         $access = $constant->isPrivate() ? 'private ' : ($constant->isProtected() ? 'protected ' : 'public ');
         $class = $depth === 0 ? Dumper::class($constant->getDeclaringClass()->getName()) . '::' : '';
         $name = Dumper::constant($constant->name);
-        $value = Dumper::dumpValue($constant->getValue(), $depth + 1);
+        try {
+            $value = Dumper::dumpValue($constant->getValue(), $depth + 1);
+        } catch (Throwable $e) {
+            // not implemented in better reflection
+            $value = '?';
+        }
 
         $result .= $doc . $attrs;
         $result .= $final . $access . 'const ' . $class . $name . ' = ' . $value . ';';
@@ -463,8 +476,12 @@ class FormattersReflection
             }
         }
 
-        // todo:
-        $vars = $function->getStaticVariables();
+        try {
+            $vars = $function->getStaticVariables();
+            // todo:
+        } catch (Throwable $e) {
+            // not implemented in BetterReflection
+        }
 
         return $result;
     }
