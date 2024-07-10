@@ -47,6 +47,7 @@ class Request
         '~nette/tester/src/Runner/info.php~' => App::NETTE_TESTER,
         '~nette/tester/src/tester~' => App::NETTE_TESTER,
         '~php-parallel-lint/php-parallel-lint/parallel-lint~' => App::PARALLEL_LINT,
+        '~phpcs/bin/phpcs~' => App::PHPCS,
         '~phpstan (?:analyse|analyze|worker)~' => App::PHPSTAN,
         '~phpunit/phpunit/phpunit~' => App::PHPUNIT,
         '~show --format=json -a --name-only~' => App::COMPOSER,
