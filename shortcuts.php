@@ -144,11 +144,12 @@ if (!function_exists('rd')) {
     /**
      * Remote timer. Shows time since previous event or from start of the request
      *
-     * @param string|int|null $name
+     * @param string|int $group
+     * @param string|int $name
      */
-    function rt($name = ''): void
+    function rt($group = '', $name = ''): void
     {
-        Debugger::timer($name);
+        Debugger::timer($group, $name);
     }
 
     /**

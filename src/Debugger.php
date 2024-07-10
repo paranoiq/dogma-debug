@@ -474,26 +474,26 @@ class Debugger
     /**
      * @param string|int|null $name
      */
-    public static function timer($name = ''): void
+    public static function timer($group = '', $name = ''): void
     {
         ob_start();
 
-        $name = (string) $name;
+        $group = strval($group);
 
-        if (isset(self::$timerStarts[$name])) {
+        if (isset(self::$timerStarts[$group])) {
             // next call
-            $previous = self::$timerPrevious[$name];
+            $previous = self::$timerPrevious[$group];
             $time = microtime(true);
-            self::$timerPrevious[$name] = $time;
-            self::$timerEvents[$name]++;
-            $event = self::$timerEvents[$name];
+            self::$timerPrevious[$group] = $time;
+            self::$timerEvents[$group]++;
+            $event = self::$timerEvents[$group];
         } elseif (isset(self::$timerStarts[''])) {
             // referring to global timer
             $previous = self::$timerPrevious[''];
             $time = microtime(true);
-            self::$timerStarts[$name] = $time;
-            self::$timerPrevious[$name] = $time;
-            self::$timerEvents[$name] = 1;
+            self::$timerStarts[$group] = $time;
+            self::$timerPrevious[$group] = $time;
+            self::$timerEvents[$group] = 1;
             $event = self::$timerEvents[''];
         } else {
             // first call ever
@@ -501,17 +501,17 @@ class Debugger
             self::$timerStarts[''] = $time;
             self::$timerPrevious[''] = $time;
             self::$timerEvents[''] = 0;
-            self::$timerStarts[$name] = $time;
-            self::$timerPrevious[$name] = $time;
-            self::$timerEvents[$name] = 0;
+            self::$timerStarts[$group] = $time;
+            self::$timerPrevious[$group] = $time;
+            self::$timerEvents[$group] = 0;
             return;
         }
 
         $time = Units::time(microtime(true) - $previous);
-        if ($name !== '') {
-            $message = Ansi::white("Timer ") . Ansi::lyellow($name) . Ansi::white(" {$event}:") . ' ' . Dumper::time($time);
+        if ($group !== '') {
+            $message = Ansi::white('Timer ') . Ansi::lyellow($group) . Ansi::white(" {$event}:") . ' ' . Dumper::time($time) . ' ' . $name;
         } else {
-            $message = Ansi::white("Timer {$event}:") . ' ' . Dumper::time($time);
+            $message = Ansi::white("Timer {$event}:") . ' ' . Dumper::time($time) . ' ' . $name;
         }
 
         self::send(Message::TIMER, $message);
