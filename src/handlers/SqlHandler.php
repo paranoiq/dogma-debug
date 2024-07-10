@@ -440,7 +440,7 @@ class SqlHandler
         $reserved = implode('|', Sql::getReserved());
 
         // highlight table names
-        $query = preg_replace_callback("~(?<=INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE )(?!LOW_PRIORITY)([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
+        $query = preg_replace_callback("~(?<=TABLE |INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE )(?!LOW_PRIORITY)([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
             return $tableColor . Ansi::removeColors($match[1]) . $textColor;
         }, $query);
         // highlight keywords
