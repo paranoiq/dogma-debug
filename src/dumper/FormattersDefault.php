@@ -81,11 +81,10 @@ class FormattersDefault
 
         $id = Dumper::dumpValue($property->getValue($object), $depth + 1);
         $access = $property->isPrivate() ? 'private' : ($property->isProtected() ? 'protected' : 'public');
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($object)) : '';
 
         return Dumper::class(get_class($object)) . Dumper::bracket('(')
             . Dumper::access($access) . ' ' . Dumper::property('id') . ' ' . Dumper::symbol('=') . ' ' . Dumper::value($id)
-            . ' ' . Dumper::exceptions('...') . ' ' . Dumper::bracket(')') . $info;
+            . ' ' . Dumper::exceptions('...') . ' ' . Dumper::bracket(')') . Dumper::objectHashInfo($object);
     }
 
     /**
@@ -236,21 +235,18 @@ class FormattersDefault
         $value = str_replace('.000000', '', $dt->format('Y-m-d H:i:s.u'));
         $timeZone = $dt->format('P') === $dt->getTimezone()->getName() ? '' : ' ' . Dumper::value($dt->getTimezone()->getName());
         $dst = $dt->format('I') ? ' ' . Dumper::value2('DST') : '';
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($dt)) : '';
 
         return Dumper::class(get_class($dt)) . Dumper::bracket('(')
             . Dumper::value($value) . Dumper::value2($dt->format('P')) . $timeZone . $dst
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($dt);
     }
 
     public static function dumpOuterIterator(OuterIterator $iterator, int $depth = 0): string
     {
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($iterator)) : '';
-
         return Dumper::class(get_class($iterator)) . Dumper::bracket(' {') . "\n"
             . Dumper::indent($depth + 1)
             . Dumper::dumpValue($iterator->getInnerIterator(), $depth + 1) . "\n"
-            . Dumper::bracket('}') . $info;
+            . Dumper::bracket('}') . Dumper::objectHashInfo($iterator);
     }
 
     public static function dumpMysqli(mysqli $mysqli, int $depth = 0): string
@@ -276,10 +272,9 @@ class FormattersDefault
             }
             $properties[$name] = $value;
         }
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($mysqli)) : '';
 
         return Dumper::class(get_class($mysqli)) . ' ' . Dumper::bracket('{')
-            . Dumper::dumpVariables($properties, $depth + 1) . Dumper::bracket('}') . $info;
+            . Dumper::dumpVariables($properties, $depth) . Dumper::indent($depth) . Dumper::bracket('}') . Dumper::objectHashInfo($mysqli);
     }
 
     public static function dumpMysqliStatement(mysqli_stmt $statement, int $depth = 0): string
@@ -301,10 +296,8 @@ class FormattersDefault
             unset($properties['sqlstate']);
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($statement)) : '';
-
         return Dumper::class(get_class($statement)) . ' ' . Dumper::bracket('{')
-            . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . $info;
+            . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . Dumper::objectHashInfo($statement);
     }
 
     public static function dumpMysqliResult(mysqli_result $result, int $depth = 0): string
@@ -317,8 +310,6 @@ class FormattersDefault
             'type' => $result->type,
         ];
         $properties = array_filter($properties);
-
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($result)) : '';
 
         return Dumper::class(get_class($result)) . ' ' . Dumper::bracket('{')
             . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . $info;

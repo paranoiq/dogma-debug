@@ -40,11 +40,9 @@ class FormattersBrick
     {
         $value = $integer->__toString();
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($integer)) : '';
-
         return Dumper::class(get_class($integer)) . Dumper::bracket('(')
             . Dumper::value($value)
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($integer);
     }
 
     public static function dumpBigRational(BigRational $rational): string
@@ -52,51 +50,43 @@ class FormattersBrick
         $numerator = $rational->getNumerator()->__toString();
         $denominator = $rational->getDenominator()->__toString();
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($rational)) : '';
-
         return Dumper::class(get_class($rational)) . Dumper::bracket('(')
             . Dumper::value($numerator . ' / ' . $denominator) . ' (' . Dumper::value2('~' . (intval($numerator) / intval($denominator))) . ')'
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($rational);
     }
 
     public static function dumpCurrency(Currency $currency): string
     {
         $value = $currency->__toString();
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($currency)) : '';
-
         return Dumper::class(get_class($currency)) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::value2($currency->getDefaultFractionDigits())
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($currency);
     }
 
     public static function dumpInstant(Instant $dt): string
     {
         $value = $dt->__toString();
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($dt)) : '';
-
         return Dumper::class(get_class($dt)) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::value2($dt->getEpochSecond() . ' ' . $dt->getNano())
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($dt);
     }
 
     public static function dumpLocalDate(LocalDate $date): string
     {
         $value = $date->__toString();
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($date)) : '';
 
         return Dumper::class(get_class($date)) . Dumper::bracket('(')
-            . Dumper::value($value) . Dumper::bracket(')') . $info;
+            . Dumper::value($value) . Dumper::bracket(')') . Dumper::objectHashInfo($date);
     }
 
     public static function dumpLocalTime(LocalTime $time): string
     {
         $value = $time->__toString();
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($time)) : '';
 
         return Dumper::class(get_class($time)) . Dumper::bracket('(')
-            . Dumper::value($value) . Dumper::bracket(')') . $info;
+            . Dumper::value($value) . Dumper::bracket(')') . Dumper::objectHashInfo($time);
     }
 
 }

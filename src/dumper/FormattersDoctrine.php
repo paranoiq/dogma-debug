@@ -24,20 +24,16 @@ class FormattersDoctrine
 
     public static function dumpTableShort(Table $table): string
     {
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($table)) : '';
-
         return Dumper::class(get_class($table)) . Dumper::bracket('(')
             . Dumper::value($table->getName()) . ' ' . Dumper::exceptions('...')
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($table);
     }
 
     public static function dumpColumnShort(Column $column): string
     {
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($column)) : '';
-
         return Dumper::class(get_class($column)) . Dumper::bracket('(')
             . Dumper::value($column->getName()) . ' ' . Dumper::exceptions('...')
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($column);
     }
 
 }

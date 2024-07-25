@@ -62,23 +62,20 @@ class FormattersDogma
 
     public static function dumpDate(Date $date): string
     {
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($date)) : '';
-
         return Dumper::class(get_class($date)) . Dumper::bracket('(')
             . Dumper::value($date->format('Y-m-d')) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $date->getJulianDay())
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($date);
     }
 
     public static function dumpTime(Time $time): string
     {
         $value = str_replace('.000000', '', $time->format('H:i:s.u'));
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($time)) : '';
 
         return Dumper::class(get_class($time)) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $time->getMicroTime())
-            . Dumper::bracket(')') . $info;
+            . Dumper::bracket(')') . Dumper::objectHashInfo($time);
     }
 
     public static function dumpDateTimeInterval(DateTimeInterval $dti): string

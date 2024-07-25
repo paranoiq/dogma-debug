@@ -328,6 +328,14 @@ trait DumperComponents
         }
     }
 
+    /**
+     * @param object $object
+     */
+    public static function objectHashInfo($object): string
+    {
+        return Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($object)) : '';
+    }
+
     public static function info(string $info): string
     {
         return Ansi::color($info, self::$colors['info']);
