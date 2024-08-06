@@ -300,19 +300,19 @@ class FormattersDefault
             . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . Dumper::objectHashInfo($statement);
     }
 
-    public static function dumpMysqliResult(mysqli_result $result, int $depth = 0): string
+    public static function dumpMysqliResult(mysqli_result $result, int $depth): string
     {
         $properties = [
             'current_field' => $result->current_field,
             'field_count' => $result->field_count,
             'lengths' => $result->lengths,
-            'num_rows' => $result->num_rows,
             'type' => $result->type,
         ];
         $properties = array_filter($properties);
+        $properties['num_rows'] = $result->num_rows;
 
         return Dumper::class(get_class($result)) . ' ' . Dumper::bracket('{')
-            . Dumper::dumpVariables($properties, $depth) . Dumper::bracket('}') . $info;
+            . Dumper::dumpVariables($properties, $depth) . Dumper::indent($depth) . Dumper::bracket('}') . Dumper::objectHashInfo($result);
     }
 
     public static function dumpIntTime(int $int): ?string
