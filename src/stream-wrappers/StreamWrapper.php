@@ -67,6 +67,26 @@ abstract class StreamWrapper
     protected const STREAM_USE_BLOCKING_PIPE = 0x8000; // allow blocking reads on anonymous pipes on Windows
     protected const STREAM_OPEN_FOR_ZEND_STREAM = 0x10000; // used by include/require functions
 
+    protected const OPTIONS = [
+        self::STREAM_IGNORE_PATH => 'IGNORE_PATH',
+        self::STREAM_USE_PATH => 'USE_PATH',
+        self::STREAM_IGNORE_URL => 'IGNORE_URL',
+        self::STREAM_REPORT_ERRORS => 'REPORT_ERRORS',
+        self::STREAM_MUST_SEEK => 'MUST_SEEK',
+        self::STREAM_WILL_CAST => 'WILL_CAST',
+        self::STREAM_LOCATE_WRAPPERS_ONLY => 'LOCATE_WRAPPERS_ONLY',
+        self::STREAM_OPEN_FOR_INCLUDE => 'OPEN_FOR_INCLUDE',
+        self::STREAM_USE_URL => 'USE_URL',
+        self::STREAM_ONLY_GET_HEADERS => 'ONLY_GET_HEADERS',
+        self::STREAM_DISABLE_OPEN_BASEDIR => 'DISABLED_OPEN_BASEDIR',
+        self::STREAM_OPEN_PERSISTENT => 'OPEN_PERSISTENT',
+        self::STREAM_USE_GLOB_DIR_OPEN => 'USE_GLOB_DIR_OPEN',
+        self::STREAM_DISABLE_URL_PROTECTION => 'DISABLE_URL_PROTECTION',
+        self::STREAM_ASSUME_REALPATH => 'ASSUME_REALPATH',
+        self::STREAM_USE_BLOCKING_PIPE => 'USE_BLOCKING_PIPE',
+        self::STREAM_OPEN_FOR_ZEND_STREAM => 'OPEN_FOR_ZEND_STREAM',
+    ];
+
     /**
      * @return array{events: int[], data: int[], time: float[]}
      */

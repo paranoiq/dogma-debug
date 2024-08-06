@@ -242,11 +242,22 @@ trait StreamWrapperMixin
         }
 
         $path = Dumper::file($path);
-        $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
-        $options = Ansi::lred($this->options) . ($isInclude ? ' include' : ' read');
+        if ($event & self::OPEN) {
+            $options = [];
+            foreach (self::OPTIONS as $id => $name) {
+                if ($this->options & $id) {
+                    $options[] = $name;
+                }
+            }
+            $options = ' ' . Dumper::info('// ' . implode('|', $options));
+            //$isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
+            //$options = Ansi::dgray($this->options) . ($isInclude ? ' include' : ' read');
+        } else {
+            $options = '';
+        }
 
         $message = Dumper::call($function, $params, $return);
-        $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message . ' ' . $options;
+        $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message . $options;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
