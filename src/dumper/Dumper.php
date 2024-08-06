@@ -704,7 +704,7 @@ class Dumper
                     }
                     $dumpedValue = self::dumpValue($value, $depth + 1, $k);
                     $item = !$isList || self::$alwaysShowArrayKeys
-                        ? self::key($k) . ' ' . self::symbol('=>') . ' ' . $dumpedValue
+                        ? ($count > 10 && is_int($k) && $k >= 0 && $k < 10 ? ' ' : '') . self::key($k) . ' ' . self::symbol('=>') . ' ' . $dumpedValue
                         : $dumpedValue;
 
                     $pos = strrpos($item, $infoPrefix);
@@ -746,9 +746,11 @@ class Dumper
 
             if ($isList && $length < self::$shortArrayMaxLength && !$hasInfo) {
                 // simple values: "[1, 2, 3] // 3 items"
+                $items = array_map('ltrim', $items);
                 $long = $start . substr(implode(' ', $items), 0, -strlen($coma)) . $end;
             } elseif ($isList && $length < self::$shortArrayMaxLength && $count < self::$shortArrayMaxItems) {
                 // squish lines: "['foo', 'bar'] // 2 items (3 B, 3 B)"
+                $items = array_map('ltrim', $items);
                 $values = [];
                 $infos = [];
                 foreach ($items as $item) {
