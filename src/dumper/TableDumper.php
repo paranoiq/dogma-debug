@@ -139,6 +139,10 @@ class TableDumper
 
         $padding = (Debugger::$outputWidth / count($columns) < 5) ? 0 : 2;
         $availableWidth = Debugger::$outputWidth - count($columns) * ($padding + 1) - 2;
+
+        if (count($columns) > $availableWidth) {
+            return Dumper::exceptions("Data too wide for table view:") . "\n" . Dumper::dump($source);
+        }
         $columnWidths = self::calculateColumnWidths($textRows, $availableWidth, count($columns), $formats);
 
         if (min($columnWidths) < 1) {
@@ -205,7 +209,7 @@ class TableDumper
                 $remainders[$i] = '';
                 continue;
             } elseif (is_int($value)) {
-                $result .= str_repeat(' ', $columnWidth - strlen($value)) . Dumper::int($value);
+                $result .= str_repeat(' ', max($columnWidth - strlen($value), 0)) . Dumper::int($value);
                 $remainders[$i] = '';
                 continue;
             } elseif (is_float($value)) {
@@ -292,10 +296,6 @@ class TableDumper
      */
     private static function calculateColumnWidths(array $rows, int $tableWidth, int $columnsCount, array $formats): array
     {
-        if ($columnsCount > $tableWidth) {
-            throw new RuntimeException('Too much columns. Cannot create a table layout.');
-        }
-
         $zeroes = array_fill(0, $columnsCount, 0);
         $maxes = array_fill(0, $columnsCount, PHP_INT_MAX);
 

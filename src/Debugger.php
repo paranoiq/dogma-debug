@@ -310,7 +310,7 @@ class Debugger
         ob_start();
 
         $dump = TableDumper::dump($value);
-        self::send(Message::DUMP, $dump);
+        self::send(Message::DUMP, "\n" . $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
 
