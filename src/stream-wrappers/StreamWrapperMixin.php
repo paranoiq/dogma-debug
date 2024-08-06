@@ -201,6 +201,10 @@ trait StreamWrapperMixin
         $return = null
     ): void
     {
+        if (str_ends_with($path, 'dogma-debug/debugger.log')) {
+            return;
+        }
+
         // detect and log working directory change
         // todo: is this thread safe?
         $cwd = str_replace('\\', '/', (string) getcwd());
