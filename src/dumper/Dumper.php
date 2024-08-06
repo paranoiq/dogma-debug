@@ -537,42 +537,48 @@ class Dumper
             return self::exceptions('*****');
         }
 
-        if ($value === null) {
-            return self::null('null');
-        } elseif ($value === true) {
-            return self::bool('true');
-        } elseif ($value === false) {
-            return self::bool('false');
-        } elseif (is_int($value)) {
-            return self::dumpInt($value, (string) $key);
-        } elseif (is_float($value)) {
-            return self::dumpFloat($value, (string) $key);
-        } elseif (is_string($value)) {
-            if ($depth === 0 && is_string($key) && str_ends_with($key, '::class')) {
-                return self::dumpClass($value, $depth);
+        try {
+            if ($value === null) {
+                return self::null('null');
+            } elseif ($value === true) {
+                return self::bool('true');
+            } elseif ($value === false) {
+                return self::bool('false');
+            } elseif (is_int($value)) {
+                return self::dumpInt($value, (string) $key);
+            } elseif (is_float($value)) {
+                return self::dumpFloat($value, (string) $key);
+            } elseif (is_string($value)) {
+                if ($depth === 0 && is_string($key) && str_ends_with($key, '::class')) {
+                    return self::dumpClass($value, $depth);
+                } else {
+                    return self::dumpString($value, $depth, (string) $key);
+                }
+            } elseif (is_array($value)) {
+                // dump as callable when called as `dump([$foo, 'bar'])`
+                if ($depth === 0 && count($value) === 2 && is_string($key) && $key[0] === '[' && is_callable($value)) {
+                    return self::dumpMethod($value, $depth);
+                } else {
+                    return self::dumpArray($value, $depth, (string) $key);
+                }
+            } elseif (is_object($value)) {
+                if ($value instanceof Closure) {
+                    return self::dumpClosure($value, $depth);
+                } else {
+                    return self::dumpObject($value, $depth);
+                }
+            } elseif (is_resource($value)
+                || gettype($value) === 'resource (closed)' // 7.4
+                || gettype($value) === 'unknown type' // 7.1
+            ) {
+                return self::dumpResource($value, $depth);
             } else {
-                return self::dumpString($value, $depth, (string) $key);
+                throw new LogicException('Unknown type: ' . gettype($value));
             }
-        } elseif (is_array($value)) {
-            // dump as callable when called as `dump([$foo, 'bar'])`
-            if ($depth === 0 && count($value) === 2 && is_string($key) && $key[0] === '[' && is_callable($value)) {
-                return self::dumpMethod($value, $depth);
-            } else {
-                return self::dumpArray($value, $depth, (string) $key);
-            }
-        } elseif (is_object($value)) {
-            if ($value instanceof Closure) {
-                return self::dumpClosure($value, $depth);
-            } else {
-                return self::dumpObject($value, $depth);
-            }
-        } elseif (is_resource($value)
-            || gettype($value) === 'resource (closed)' // 7.4
-            || gettype($value) === 'unknown type' // 7.1
-        ) {
-            return self::dumpResource($value, $depth);
-        } else {
-            throw new LogicException('Unknown type: ' . gettype($value));
+        } catch (LogicException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            return self::exceptions('cannot dump: ' . get_class($e) . ' - ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
         }
     }
 
