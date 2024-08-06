@@ -11,6 +11,7 @@ namespace Dogma\Debug;
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\TableDiff;
 use function get_class;
 
 class FormattersDoctrine
@@ -20,6 +21,8 @@ class FormattersDoctrine
     {
         Dumper::$shortObjectFormatters[Table::class] = [self::class, 'dumpTableShort'];
         Dumper::$shortObjectFormatters[Column::class] = [self::class, 'dumpColumnShort'];
+
+        Dumper::$objectFormatters[TableDiff::class] = [self::class, 'dumpTableDiff'];
     }
 
     public static function dumpTableShort(Table $table): string
@@ -34,6 +37,11 @@ class FormattersDoctrine
         return Dumper::class(get_class($column)) . Dumper::bracket('(')
             . Dumper::value($column->getName()) . ' ' . Dumper::exceptions('...')
             . Dumper::bracket(')') . Dumper::objectHashInfo($column);
+    }
+
+    public static function dumpTableDiff(TableDiff $tableDiff, int $depth): string
+    {
+        return Dumper::dumpObject($tableDiff, $depth, Dumper::FILTER_EMPTY_ARRAYS);
     }
 
 }

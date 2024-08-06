@@ -105,6 +105,11 @@ class Dumper
     public const ORDER_ALPHABETIC = 2;
     public const ORDER_VISIBILITY_ALPHABETIC = 3;
 
+    public const FILTER_UNINITIALIZED = 1;
+    public const FILTER_NULLS = 2;
+    public const FILTER_EMPTY_STRINGS = 4;
+    public const FILTER_EMPTY_ARRAYS = 8;
+
     /** @var bool - prefix dumps with expression being dumped (e.g. "$foo->bar(): [1, 2, 3, 4, 5, 6] // 6 items") */
     public static $dumpExpressions = true;
 
@@ -766,14 +771,15 @@ class Dumper
 
     /**
      * @param object $object
+     * @param self::FILTER_*
      */
-    public static function dumpObject($object, int $depth = 0): string
+    public static function dumpObject($object, int $depth = 0, ?int $filter = null): string
     {
         $hash = spl_object_hash($object);
         $recursion = self::$objects[$hash] ?? null;
         $class = get_class($object);
 
-        if ($recursion === true) {
+        if ($recursion === true && !$filter) {
             $short = self::dumpObjectShort($object, $hash);
             if ($short) {
                 return $short;
@@ -791,10 +797,10 @@ class Dumper
         $info = self::objectInfo($object);
 
         $handlerResult = '';
-        if (self::$useFormatters && $depth < self::$maxDepth + 1) {
+        if (self::$useFormatters && $depth < self::$maxDepth + 1 && !$filter) {
             $handler = self::$objectFormatters[$class] ?? null;
             if ($handler !== null) {
-                $handlerResult = $handler($object);
+                $handlerResult = $handler($object, $depth);
             }
             if ($handlerResult === null || $handlerResult === '') {
                 foreach (self::$objectFormatters as $cl => $handler) {
@@ -831,12 +837,13 @@ class Dumper
             return $handlerResult;
         }
 
-        $properties = self::dumpProperties((array) $object, $depth, $class);
+        $properties = self::dumpProperties((array) $object, $depth, $class, $filter);
+        $filtered = $filter ? ' ' . self::exceptions('filtered') : '';
         if ($properties !== '') {
-            return self::class($class) . ' ' . self::bracket('{') . $info
+            return self::class($class) . $filtered . ' ' . self::bracket('{') . $info
                 . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
         } else {
-            return self::class($class) . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
+            return self::class($class) . $filtered . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
         }
     }
 
@@ -863,7 +870,7 @@ class Dumper
      * @param mixed[] $properties
      * @param class-string $class
      */
-    public static function dumpProperties(array $properties, int $depth, string $class): string
+    public static function dumpProperties(array $properties, int $depth, string $class, ?int $filter = null): string
     {
         $indent = self::indent($depth + 1);
         $equal = ' ' . self::symbol('=') . ' ';
@@ -889,6 +896,16 @@ class Dumper
         $nulls = [];
         $empty = [];
         foreach ($properties as $key => $value) {
+            if (($filter & self::FILTER_UNINITIALIZED) !== 0 && $value === $uninitialized) {
+                continue;
+            } elseif (($filter & self::FILTER_NULLS) !== 0 && $value === null) {
+                continue;
+            } elseif (($filter & self::FILTER_EMPTY_STRINGS) !== 0 && $value === '') {
+                continue;
+            } elseif (($filter & self::FILTER_EMPTY_ARRAYS) !== 0 && $value === []) {
+                continue;
+            }
+
             $parts = explode("\0", $key);
             if (count($parts) === 4) { // \0Class@anonymous\0path:line$foo\0var
                 $name = $parts[3];
