@@ -177,6 +177,32 @@ class Str
         return $chunks;
     }
 
+    public static function strToHex(string $string): string
+    {
+        $hex = '';
+        for ($i = 0; $i < strlen($string); $i++) {
+            // chars
+            if ($i !== 0) {
+                $hex .= ' ';
+            }
+            // groups of 4 chars
+            if ($i !== 0 && ($i % 4) === 0) {
+                $hex .= ' ';
+            }
+
+            $hex .= self::charToHex($string[$i]);
+        }
+
+        return $hex;
+    }
+
+    public static function charToHex(string $char): string
+    {
+        $hex = dechex(ord($char));
+
+        return (strlen($hex) === 1 ? '0' : '') . $hex;
+    }
+
     public static function ord(string $ch): int
     {
         $ord0 = ord($ch[0]);
@@ -205,32 +231,6 @@ class Str
         }
 
         return -1;
-    }
-
-    public static function charToHex(string $char): string
-    {
-        $hex = dechex(ord($char));
-
-        return (strlen($hex) === 1 ? '0' : '') . $hex;
-    }
-
-    public static function strToHex(string $string): string
-    {
-        $hex = '';
-        for ($i = 0; $i < strlen($string); $i++) {
-            // chars
-            if ($i !== 0) {
-                $hex .= ' ';
-            }
-            // groups of 4 chars
-            if ($i !== 0 && ($i % 4) === 0) {
-                $hex .= ' ';
-            }
-
-            $hex .= self::charToHex($string[$i]);
-        }
-
-        return $hex;
     }
 
 }
