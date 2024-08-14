@@ -17,6 +17,8 @@ use ReturnTypeWillChange;
 use function array_filter;
 use function func_get_args;
 use function microtime;
+use function rdt;
+use function rl;
 use const MYSQLI_ASSOC;
 use const MYSQLI_STORE_RESULT;
 
@@ -424,6 +426,13 @@ class MysqliProxy extends mysqli
             }
             Intercept::log(self::NAME, MysqliInterceptor::$intercept, 'mysqli::query', [$query, $result_mode], $result);
             SqlHandler::logUnknown($query, $t, $rows, $id, $this->name, $this->serverInfo, $this->error, $this->errno);
+            if ($result !== false && $result !== true) {
+                $res = $result->fetch_all(MYSQLI_ASSOC);
+                $result->data_seek(0);
+                if ($res !== []) {
+                    //Debugger::dumpTable($res);
+                }
+            }
         }
 
         return $result;

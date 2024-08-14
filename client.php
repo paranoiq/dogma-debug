@@ -130,9 +130,11 @@ return (static function (): bool {
     require_once __DIR__ . '/src/interceptors/SyslogInterceptor.php';
 
     if (extension_loaded('mysqli')) {
-        require_once __DIR__ . '/src/proxies/MysqliProxy.php';
-        require_once __DIR__ . '/src/proxies/MysqliStatementProxy.php';
-        require_once __DIR__ . '/src/proxies/MysqliStatementWrapper.php';
+        if (PHP_VERSION_ID >= 80000) {
+            require_once __DIR__ . '/src8/proxies/MysqliProxy8.php';
+            require_once __DIR__ . '/src8/proxies/MysqliStatementProxy8.php';
+            require_once __DIR__ . '/src8/proxies/MysqliStatementWrapper8.php';
+        }
     }
     if (extension_loaded('pdo')) {
         if (PHP_VERSION_ID < 80000) {
