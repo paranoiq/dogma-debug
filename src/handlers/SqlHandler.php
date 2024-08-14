@@ -437,10 +437,10 @@ class SqlHandler
         $numberColor = Ansi::colorStart(Dumper::$colors['int']);
         $stringColor = Ansi::colorStart(Dumper::$colors['string']);
         $tableColor = Ansi::colorStart(Dumper::$colors['table']);
-        $reserved = implode('|', Sql::getReserved());
+        $reserved = implode('|', Sql::getReserved()) . '|TRUNCATE';
 
         // highlight table names
-        $query = preg_replace_callback("~(?<=TABLE |INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE )(?!LOW_PRIORITY)([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
+        $query = preg_replace_callback("~(?<=TABLE |INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE |TRUNCATE )(?!LOW_PRIORITY |TABLE )([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
             return $tableColor . Ansi::removeColors($match[1]) . $textColor;
         }, $query);
         // highlight keywords
