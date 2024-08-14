@@ -94,14 +94,16 @@ class PdoProxy extends PDO
 
     public function prepare($query, $options = [])
     {
-        $result = false;
+        $statement = false;
         try {
-            $result = parent::prepare($query, $options);
+            /** @var PdoStatementProxy $statement */
+            $statement = parent::prepare($query, $options);
+            $statement->setConnection($this);
         } finally {
-            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $result);
+            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$query, $options], $statement);
         }
 
-        return $result;
+        return $statement;
     }
 
     public function beginTransaction()

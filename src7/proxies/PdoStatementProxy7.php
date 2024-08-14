@@ -21,13 +21,24 @@ class PdoStatementProxy extends PDOStatement
     public const NAME = 'pdo';
 
     /** @var int */
-    public static $intercept = Intercept::SILENT;
+    public static $interceptExec = Intercept::SILENT;
+
+    /** @var int */
+    public static $interceptBind = Intercept::SILENT;
+
+    /** @var PdoProxy */
+    private $connection;
 
     /** @var array<int|string, mixed> */
     private $params = [];
 
     protected function __construct()
     {
+    }
+
+    public function setConnection(PdoProxy $connection): void
+    {
+        $this->connection = $connection;
     }
 
     /**
@@ -72,9 +83,9 @@ class PdoStatementProxy extends PDOStatement
             $logged = true;
         } finally {
             $t = microtime(true) - $t;
-            Intercept::log(self::NAME, self::$intercept, 'PDO::prepare', [$params], $result);
+            Intercept::log(self::NAME, self::$interceptExec, 'PDO::prepare', [$params], $result);
             if (!$logged) {
-                SqlHandler::logPdoStatementExecute($this, $allParams, $this->rowCount(), $t);
+                SqlHandler::logPdoStatementExecute($this, $allParams, $t, $this->rowCount(), $this->connection->lastInsertId(), $this->connection->getName());
             }
         }
 
