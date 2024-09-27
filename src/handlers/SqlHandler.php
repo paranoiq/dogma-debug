@@ -15,12 +15,14 @@ use Doctrine\ORM\EntityManager;
 use PDOStatement;
 use SqlFtw\Formatter\Formatter;
 use SqlFtw\Parser\Parser;
+use SqlFtw\Parser\ParserConfig;
 use SqlFtw\Platform\Platform;
 use SqlFtw\Session\Session;
 use SqlFtw\Sql\Assignment;
 use SqlFtw\Sql\Dml\Insert\InsertSetCommand;
 use SqlFtw\Sql\Dml\Insert\InsertValuesCommand;
 use SqlFtw\Sql\Expression\Operator;
+use Throwable;
 use function array_keys;
 use function array_merge;
 use function array_shift;
@@ -440,7 +442,7 @@ class SqlHandler
         $reserved = implode('|', Sql::getReserved()) . '|TRUNCATE';
 
         // highlight table names
-        $query = preg_replace_callback("~(?<=TABLE |INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE |TRUNCATE )(?!LOW_PRIORITY |TABLE )([a-z0-9_]+)~i", static function (array $match) use ($tableColor, $textColor): string {
+        $query = preg_replace_callback("~(?<=TABLE |INTO |FROM |JOIN |UPDATE LOW_PRIORITY |UPDATE |TRUNCATE )(?!LOW_PRIORITY |TABLE )([a-z0-9._]+)~i", static function (array $match) use ($tableColor, $textColor): string {
             return $tableColor . Ansi::removeColors($match[1]) . $textColor;
         }, $query);
         // highlight keywords
@@ -449,7 +451,7 @@ class SqlHandler
         $query = preg_replace("~\n  (?=[^\\e| ])~", "\n    ", $query);
         // highlight strings and numbers (skip names)
         // todo: very crude. detect numbers better
-        $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|0x[0-9a-f]{32}|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
+        $query = preg_replace_callback('~\'[^\']*+\'|"[^"]*+"|`[^`]*+`|0x[0-9a-f]{32}|(?<![;0-9.a-z_])(?<!\e\\[)-?[0-9]+(?:\\.[0-9]+)?(?:e[0-9]+)?~i', static function (array $match) use ($stringColor, $numberColor, $textColor): string {
             if ($match[0][0] === "'" || $match[0][0] === '"') {
                 return $stringColor . Ansi::removeColors($match[0]) . $textColor;
             } elseif ($match[0][0] === '`') {
@@ -511,47 +513,51 @@ class SqlHandler
      */
     public static function convertInsertToInsertSet(string $query, ?string $serverInfo): string
     {
-        $serverInfo = $serverInfo ?? self::$defaultServerInfo;
-        [$serverName, $serverVersion] = explode(' ', $serverInfo);
-        if ($serverName === 'mysql' && class_exists(Parser::class, true)) {
-            $platform = Platform::get($serverName, $serverVersion);
-            $session = new Session($platform);
-            $parser = new Parser($session);
-            $commands = iterator_to_array($parser->parse($query));
-            if (count($commands) > 1) {
-                return $query;
-            }
-            [$insertInto, ] = $commands[0];
-            if (!$insertInto instanceof InsertValuesCommand) {
-                return $query;
-            }
-            $rows = $insertInto->getRows();
-            if (count($rows) > 1) {
-                return $query;
-            }
-            $columns = $insertInto->getColumns();
-            $row = $rows[0];
-            if ($columns === null || array_keys($columns) !== array_keys($row)) {
-                return $query;
-            }
-            $assignments = [];
-            foreach ($columns as $i => $column) {
-                $assignments[] = new Assignment($column, $row[$i], Operator::EQUAL);
-            }
-            $insertSet = new InsertSetCommand(
-                $insertInto->getTable(),
-                $assignments,
-                null,
-                $insertInto->getAlias(),
-                $insertInto->getPartitions(),
-                $insertInto->getPriority(),
-                $insertInto->getIgnore(),
-                $insertInto->getOptimizerHints(),
-                $insertInto->getOnDuplicateKeyAction()
-            );
-            $formatter = new Formatter($session);
+        try {
+            $serverInfo = $serverInfo ?? self::$defaultServerInfo;
+            [$serverName, $serverVersion] = explode(' ', $serverInfo);
+            if ($serverName === 'mysql' && class_exists(Parser::class, true)) {
+                $platform = Platform::get($serverName, $serverVersion);
+                $config = new ParserConfig($platform);
+                $session = new Session($platform);
+                $parser = new Parser($config, $session);
+                $commands = iterator_to_array($parser->parse($query));
+                if (count($commands) > 1) {
+                    return $query;
+                }
+                $insertInto = $commands[0];
+                if (!$insertInto instanceof InsertValuesCommand) {
+                    return $query;
+                }
+                $rows = $insertInto->getRows();
+                if (count($rows) > 1) {
+                    return $query;
+                }
+                $columns = $insertInto->getColumns();
+                $row = $rows[0];
+                if ($columns === null || array_keys($columns) !== array_keys($row)) {
+                    return $query;
+                }
+                $assignments = [];
+                foreach ($columns as $i => $column) {
+                    $assignments[] = new Assignment($column, $row[$i], Operator::EQUAL);
+                }
+                $insertSet = new InsertSetCommand(
+                    $insertInto->getTable(),
+                    $assignments,
+                    $insertInto->getAlias(),
+                    $insertInto->getPartitions(),
+                    $insertInto->getPriority(),
+                    $insertInto->getIgnore(),
+                    $insertInto->getOptimizerHints(),
+                    $insertInto->getOnDuplicateKeyAction()
+                );
+                $formatter = new Formatter($platform, $session);
 
-            return $insertSet->serialize($formatter);
+                return $insertSet->serialize($formatter);
+            }
+        } catch (Throwable $e) {
+            // pass
         }
 
         return $query;
