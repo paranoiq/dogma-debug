@@ -161,7 +161,7 @@ class ExecInterceptor
 
     public static function proc_terminate($process, int $signal = 15): bool
     {
-        $name = ShutdownHandler::getSignalName($signal);
+        $name = Signals::getSignalName($signal);
         $info = ' ' . Dumper::info("// {$name}");
 
         return Intercept::handle(self::NAME, self::$interceptExec, __FUNCTION__, [$process, $signal], true, false, $info);

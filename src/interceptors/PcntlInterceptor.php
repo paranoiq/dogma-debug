@@ -124,7 +124,7 @@ class PcntlInterceptor
             $callable = Intercept::wrapEventHandler($callable, Intercept::EVENT_SIGNAL);
         }
 
-        $name = ShutdownHandler::getSignalName($signal);
+        $name = Signals::getSignalName($signal);
         $info = ' ' . Dumper::info("// {$name}");
 
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signal, $callable, $restartSysCalls], true, false, $info);
@@ -148,7 +148,7 @@ class PcntlInterceptor
     {
         $names = [];
         foreach ($signals as $signal) {
-            $names = ShutdownHandler::getSignalName($signal);
+            $names = Signals::getSignalName($signal);
         }
         $info = ' ' . Dumper::info('// ' . implode(',', $names));
 
@@ -165,7 +165,7 @@ class PcntlInterceptor
     {
         $names = [];
         foreach ($signals as $signal) {
-            $names = ShutdownHandler::getSignalName($signal);
+            $names = Signals::getSignalName($signal);
         }
         $info = ' ' . Dumper::info('// ' . implode(',', $names));
 
@@ -182,7 +182,7 @@ class PcntlInterceptor
     {
         $names = [];
         foreach ($signals as $signal) {
-            $names = ShutdownHandler::getSignalName($signal);
+            $names = Signals::getSignalName($signal);
         }
         $info = ' ' . Dumper::info('// ' . implode(',', $names));
 
@@ -194,7 +194,7 @@ class PcntlInterceptor
      */
     public static function pcntl_signal_get_handler(int $signal)
     {
-        $name = ShutdownHandler::getSignalName($signal);
+        $name = Signals::getSignalName($signal);
         $info = ' ' . Dumper::info("// {$name}");
 
         return Intercept::handle(self::NAME, self::$interceptSignals, __FUNCTION__, [$signal], SIG_DFL, false, $info);
@@ -254,7 +254,7 @@ class PcntlInterceptor
 
     public static function posix_kill(int $process_id, int $signal): bool
     {
-        $name = ShutdownHandler::getSignalName($signal);
+        $name = Signals::getSignalName($signal);
         $info = ' ' . Dumper::info("// {$name}");
 
         return Intercept::handle(self::NAME, self::$interceptKill, __FUNCTION__, [$process_id, $signal], true, false, $info);

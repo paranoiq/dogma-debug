@@ -41,19 +41,38 @@ class Str
         return str_replace(["\r\n", "\r"], ["\n", "\n"], $string);
     }
 
-    public static function length(string $string, string $encoding = 'utf-8'): int
+    /**
+     * Calculates string length with best algo available:
+     * - counts graphemes if `intl` extension is available
+     * - counts characters if `mbstring` or `iconv` is available
+     * - counts characters by parsing utf-8 if $slow is true and no extension is available
+     * - fallbacks to bytes if $slow is false and no extension is available
+     */
+    public static function length(string $string, string $encoding = 'utf-8', bool $slow = false): int
     {
+        // should normalize newlines - \r\n should be counted as single grapheme, but that would break consistency with ::substring()
+        // https://stackoverflow.com/questions/18896428/strange-behavior-of-grapheme-strlen-function-with-some-line-endings
+        // $string = str_replace("\r\n", "\n", $string);
+
         if ($encoding === 'utf-8' && function_exists('grapheme_strlen')) {
-            return grapheme_strlen($string);
-        } elseif (function_exists('mb_strlen')) {
+            $result = grapheme_strlen($string);
+            // todo: check what causes this to return null
+            // https://github.com/php/php-src/blob/d23111197240849324bde644a02efc8cd9492fbf/ext/intl/grapheme/grapheme_string.c#L55
+            if ($result !== null) {
+                return $result;
+            }
+        }
+        if (function_exists('mb_strlen')) {
             return mb_strlen($string, $encoding);
         } elseif (!preg_match('~~u', $string)) {
             // not utf-8
             return strlen($string);
         } elseif (function_exists('iconv_strlen')) {
             return iconv_strlen($string, $encoding);
+        } elseif ($slow) {
+            return self::uft8_strlen($string);
         } else {
-
+            // todo: single time warning
             return strlen($string);
         }
     }
@@ -75,6 +94,7 @@ class Str
             }
             return iconv_substr($string, $start, $length, $encoding);
         } else {
+            // todo: single time warning
             return substr($string, $start, $length);
         }
     }
@@ -231,6 +251,21 @@ class Str
         }
 
         return -1;
+    }
+
+    private static function uft8_strlen(string $string): int
+    {
+        $bytes = strlen($string);
+        $subtract = 0;
+        for ($n = 0; $n < $bytes; $n++) {
+            $byte = $string[$n];
+            // does not match single-byte codes and multibyte sequence start codes, matches multibyte-sequence continuation codes
+            if ((ord($byte) & 0b11000000) === 0b10000000) {
+                $subtract++;
+            }
+        }
+
+        return $bytes - $subtract;
     }
 
 }

@@ -6,6 +6,8 @@
  *
  * For the full copyright and license information read the file 'license.md', distributed with this source code
  */
+error_reporting(E_ALL);
+ini_set('display_errors', 'on');
 
 // phpcs:disable PSR2.Files.EndFileNewline.NoneFound
 // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
@@ -68,6 +70,24 @@ if (!function_exists('rd')) {
     function rd($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
     {
         return Debugger::dump($value, $maxDepth, $traceLength, $name);
+    }
+
+    /**
+     * Remote dump all (turn off limit on array length)
+     *
+     * @template T
+     * @param T $value
+     * @return T
+     */
+    function rda($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
+    {
+        $prev = Dumper::$arrayMaxLength;
+        Dumper::$arrayMaxLength = 1000000000;
+
+        $result = Debugger::dump($value, $maxDepth, $traceLength, $name);
+        Dumper::$arrayMaxLength = $prev;
+
+        return $result;
     }
 
     /**

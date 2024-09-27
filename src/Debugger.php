@@ -144,7 +144,7 @@ class Debugger
         ZlibStreamWrapper::class,
     ];
 
-    /** @var list<class-string<HandlerWithStats>> */
+    /** @var list<class-string> */
     public static $footerHandlers = [
         SqlHandler::class,
         RedisHandler::class,

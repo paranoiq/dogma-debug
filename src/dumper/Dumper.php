@@ -1098,6 +1098,13 @@ class Dumper
             // spell-check-ignore: im
             /** @var int $start */
             $start = Str::matchPos($firstLine, '~(static\\s+)?(function|fn)\\s+([a-zA-Z0-9_]+\\s*)?\\(~im');
+            if ($start === null) {
+                // todo: quick fix for closures returning other extent than regular function - detect function header better
+                $lines = array_slice($lines, $ref->getStartLine() - 2, $ref->getEndLine() - $ref->getStartLine() + 1);
+                $firstLine = array_shift($lines);
+                $start = Str::matchPos($firstLine, '~(static\\s+)?(function|fn)\\s+([a-zA-Z0-9_]+\\s*)?\\(~im');
+                // rl($firstLine);
+            }
             $firstLine = substr($firstLine, $start);
             // in case of Closure:fromCallable() we have a name
             $firstLine = preg_replace_callback('~function(\\s+)([a-zA-Z0-9_]+)(\\s*)\\(~', static function ($m): string {

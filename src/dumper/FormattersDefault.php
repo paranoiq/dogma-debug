@@ -366,7 +366,7 @@ class FormattersDefault
             return null;
         }
 
-        $name = ShutdownHandler::getSignalName($int);
+        $name = Signals::getSignalName($int);
 
         return Dumper::int((string) $int) . ' ' . Dumper::info('// ' . $name);
     }
