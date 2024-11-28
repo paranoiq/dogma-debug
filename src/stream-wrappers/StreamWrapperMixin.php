@@ -73,6 +73,15 @@ trait StreamWrapperMixin
     /** @var bool */
     public static $filterTrace = true;
 
+    /** @var int */
+    public static $traceLength = 1;
+
+    /** @var int */
+    public static $traceArgsDepth = 0;
+
+    /** @var int */
+    public static $traceCodeLines = 0;
+
     /** @var array<string, string> Redirect file access to another location. Full path matches only. All paths must use forward slashes, no backslashes! */
     public static $pathRedirects = [];
 
@@ -275,7 +284,7 @@ trait StreamWrapperMixin
         $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message . $options;
 
         $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
-        $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
+        $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines);
 
         self::runNativeIfNeeded(static function () use ($message, $backtrace, $duration): void {
             Debugger::send(Message::STREAM_IO, $message, $backtrace, $duration);
