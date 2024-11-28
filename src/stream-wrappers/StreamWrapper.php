@@ -48,6 +48,12 @@ abstract class StreamWrapper
     public const ALL = 0x1FFFFF;
     public const NONE = 0;
 
+    // PHP does not indicate to stream wrappers when requirement is include/require_once and always loads the returned code.
+    // this can lead to crash when loading the same file twice (probably a PHP bug in stream wrapper vs require handling)
+    public const REQUIRE_ONCE_HANDLING_NONE = 0; // do nothing (let it crash)
+    public const REQUIRE_ONCE_HANDLING_FAST = 1; // handle each require as require_once (never load a file twice)
+    public const REQUIRE_ONCE_HANDLING_SAFE = 2; // parse backtrace to find out if it is include/require_once
+
     // from https://github.com/php/php-src/blob/8c442f171933b7b4430262490ad2d236b53a4137/main/php_streams.h
     protected const STREAM_IGNORE_PATH = 0x0; // IGNORE_PATH
     protected const STREAM_USE_PATH = 0x1; // USE_PATH

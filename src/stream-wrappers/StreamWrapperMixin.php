@@ -11,14 +11,17 @@
 
 namespace Dogma\Debug;
 
+use LogicException;
 use function array_slice;
 use function array_sum;
 use function fopen;
 use function func_get_args;
 use function getcwd;
+use function implode;
 use function in_array;
 use function is_callable;
 use function microtime;
+use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
 use function stream_wrapper_register;
@@ -73,8 +76,16 @@ trait StreamWrapperMixin
     /** @var array<string, string> Redirect file access to another location. Full path matches only. All paths must use forward slashes, no backslashes! */
     public static $pathRedirects = [];
 
-    /** @var bool Try to workaround PHAR bug with including files more than once on include_once or require_once due to bad path normalization when custom stream handler is used by returning empty resource for any already included files (even for include and require) */
-    public static $experimentalPharRequireOnceBugWorkAround = false;
+    /**
+     * When using custom stream wrapper PHP does not resolve include_once/require_once and calls stream wrapper always.
+     * Include is indicated by StreamWrapper::STREAM_OPEN_FOR_INCLUDE, but there is no flag for ONCE behavior.
+     * There are two solutions:
+     * - the safe one - read callstack to find out if the request is include_once/require_once
+     * - the fast one - always pretend the request is include_once/require_once
+     *
+     * @var int
+     */
+    public static $requireOnceHandling = StreamWrapper::REQUIRE_ONCE_HANDLING_FAST;
 
     // internals -------------------------------------------------------------------------------------------------------
 
@@ -106,7 +117,7 @@ trait StreamWrapperMixin
     private static $virtualFiles = [];
 
     /** @var array<string, bool> */
-    private static $openedPaths = [];
+    private static $includedPaths = [];
 
     // stream handler internals ----------------------------------------------------------------------------------------
 
@@ -285,23 +296,31 @@ trait StreamWrapperMixin
         }
         $this->options = $options;
 
-        // @phpstan-ignore-next-line "Strict comparison using === between class-string<static(Dogma\Debug\DataStreamWrapper)> and 'Dogma\\Debug\\PharStreamWrapper' will always evaluate to false."
-        if (self::$experimentalPharRequireOnceBugWorkAround && static::class === PharStreamWrapper::class) {
-            // skip open if include and already handled (might fix PHAR issue?)
+        if (self::$requireOnceHandling === StreamWrapper::REQUIRE_ONCE_HANDLING_FAST) {
+            // skip open if include and already handled
             $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
-            $normalizedPath = Dumper::normalizePath($path);
-            if ($isInclude && isset(self::$openedPaths[$normalizedPath])) {
-                // @phpstan-ignore-next-line "Property Dogma\Debug\ZlibStreamWrapper::$handle (resource|null) does not accept resource|false." - should not fail
-                $this->handle = fopen('php://memory', 'rb');
+            if ($isInclude) {
+                $normalizedPath = Dumper::normalizePath($path);
+                if (isset(self::$includedPaths[$normalizedPath])) {
+                    self::disable();
+                    // @phpstan-ignore-next-line "Property Dogma\Debug\ZlibStreamWrapper::$handle (resource|null) does not accept resource|false." - should not fail
+                    $this->handle = fopen('php://memory', 'rb');
+                    self::enable();
 
-                return true;
+                    $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen/skipped', [$mode, $options], (int)$this->handle);
+
+                    return true;
+                }
+
+                self::$includedPaths[$normalizedPath] = true;
             }
-            self::$openedPaths[$normalizedPath] = true;
+        } elseif (self::$requireOnceHandling === StreamWrapper::REQUIRE_ONCE_HANDLING_SAFE) {
+            throw new LogicException('Safe handling of include/require_once is not implemented.');
         }
 
         if (isset(self::$virtualFiles[$this->path])) {
             $result = self::$virtualFiles[$this->path]->open($mode);
-            $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen', [$mode, $options], (int) $this->handle);
+            $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen/virtual', [$mode, $options], (int) $this->handle);
 
             return $result;
         }
@@ -312,7 +331,7 @@ trait StreamWrapperMixin
                 ? $this->previous('fopen', $this->path, $mode, $usePath, $this->context)
                 : $this->previous('fopen', $this->path, $mode, $usePath);
         } finally {
-            $this->log(self::OPEN, $this->duration, 0, $this->path, 'fopen', [$mode, $options], (int) $this->handle);
+            $this->log(self::OPEN, $this->duration, 0, $this->path, 'fopen', [$mode, $options], (int)$this->handle);
         }
 
         $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;
