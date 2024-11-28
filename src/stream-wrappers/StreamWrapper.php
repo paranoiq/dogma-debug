@@ -48,6 +48,9 @@ abstract class StreamWrapper
     public const ALL = 0x1FFFFF;
     public const NONE = 0;
 
+    public const REQUIRE_ONCE_HANDLING_FAST = 1;
+    public const REQUIRE_ONCE_HANDLING_SAFE = 2;
+
     // from https://github.com/php/php-src/blob/8c442f171933b7b4430262490ad2d236b53a4137/main/php_streams.h
     protected const STREAM_IGNORE_PATH = 0x0; // IGNORE_PATH
     protected const STREAM_USE_PATH = 0x1; // USE_PATH
