@@ -79,6 +79,9 @@ class Debugger
     public const CONNECTION_SOCKET = 2;
     public const CONNECTION_FILE = 3;
 
+    public const COMPONENTS_REPORT_AUTO_ACTIVATION = 1;
+    public const COMPONENTS_DENY_AUTO_ACTIVATION = 2;
+
     // connection ------------------------------------------------------------------------------------------------------
 
     /** @var int Switching between dumps to local STDOUT or remote console over a socket or through a log file */
@@ -98,8 +101,8 @@ class Debugger
     /** @var bool Show how debugger client is configured */
     public static $printConfiguration = false;
 
-    /** @var bool Show notice when a debugger component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) */
-    public static $showDependenciesInfo = true;
+    /** @var bool Behavior when component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) @see self::COMPONENTS_* */
+    public static $componentDependencies = self::COMPONENTS_REPORT_AUTO_ACTIVATION;
 
     /** @var bool Show notice when a debugger component accidentally outputs anything to stdout */
     public static $reportDebuggerAccidentalOutput = true;
@@ -658,9 +661,14 @@ class Debugger
         }
     }
 
-    public static function dependencyInfo(string $message): void
+    public static function dependencyInfo(string $message, bool $autoActivated = false): void
     {
-        if (self::$showDependenciesInfo) {
+        if (self::$componentDependencies === self::COMPONENTS_DENY_AUTO_ACTIVATION) {
+            $callstack = Callstack::get(Dumper::$traceFilters);
+            self::send(Message::INFO, Ansi::lmagenta('DENIED: ' . $message), Dumper::formatCallstack($callstack, 1, 0, 0));
+            exit;
+        }
+        if (self::$componentDependencies === self::COMPONENTS_REPORT_AUTO_ACTIVATION) {
             $callstack = Callstack::get(Dumper::$traceFilters);
             self::send(Message::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
         }
