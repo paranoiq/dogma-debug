@@ -102,7 +102,7 @@ class RedisHandler
             StreamInterceptor::interceptFileFunctions(Intercept::SILENT);
             $activated = StreamInterceptor::class;
             $by = __CLASS__ . '::' . __FUNCTION__;
-            Debugger::dependencyInfo("{$activated} activated by {$by}() to track filesystem functions.");
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to track filesystem functions.", true);
         }
 
         $re = "~:{$port}$~";

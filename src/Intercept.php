@@ -273,7 +273,7 @@ class Intercept
     public static function registerFunction(string $handler, string $function, $callable): void
     {
         if (!self::enabled()) {
-            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__ . '('. $function . ')');
         }
 
         self::$functions[$function] = is_string($callable) ? [$handler, [$callable, $function]] : [$handler, $callable];
@@ -317,7 +317,7 @@ class Intercept
         }
 
         if (!self::enabled()) {
-            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__ . '('. $class . ')');
         }
 
         self::$classes[$class] = [$handler, $replace, $aggressive];
@@ -338,7 +338,7 @@ class Intercept
         }
 
         if (!self::enabled()) {
-            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__);
+            self::startStreamHandlers(__CLASS__ . '::' . __METHOD__ . '('. $exception . ')');
         }
 
         self::$exceptions[$exception] = $handler;
@@ -402,23 +402,23 @@ class Intercept
         if (!FileStreamWrapper::enabled()) {
             FileStreamWrapper::enable();
             $activated = FileStreamWrapper::class;
-            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.", true);
         }
         if (!PharStreamWrapper::enabled()) {
             PharStreamWrapper::enable();
             $activated = PharStreamWrapper::class;
-            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
+            Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.", true);
         }
         if (ini_get('allow_url_include')) {
             if (!HttpStreamWrapper::enabled()) {
                 HttpStreamWrapper::enable();
                 $activated = HttpStreamWrapper::class;
-                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
+                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.", true);
             }
             if (!FtpStreamWrapper::enabled()) {
                 FtpStreamWrapper::enable();
                 $activated = FtpStreamWrapper::class;
-                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.");
+                Debugger::dependencyInfo("{$activated} activated by {$by}() to allow code rewriting.", true);
             }
         }
     }
