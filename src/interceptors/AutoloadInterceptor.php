@@ -14,6 +14,7 @@ use function spl_autoload_extensions;
 
 class AutoloadInterceptor
 {
+
     public const NAME = 'autoload';
 
     /** @var int */

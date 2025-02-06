@@ -14,6 +14,7 @@ namespace Dogma\Debug;
 use CurlHandle;
 use CurlMultiHandle;
 use function curl_errno;
+use function curl_getinfo;
 use function fread;
 use function fseek;
 use function is_string;

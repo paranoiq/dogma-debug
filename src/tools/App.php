@@ -15,6 +15,7 @@ class App
     public const PARALLEL_LINT = 'parallel-lint';
     public const PHPCS = 'phpcs';
     public const PHPSTAN = 'phpstan';
+    public const PHPSTAN_VIA_PHPSTORM = 'phpstan-via-phpstan';
     public const PHPUNIT = 'phpunit';
     public const RECTOR = 'rector';
     public const REQUIRE_CHECKER = 'require-checker';

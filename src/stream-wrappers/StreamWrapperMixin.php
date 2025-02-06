@@ -316,7 +316,7 @@ trait StreamWrapperMixin
                     $this->handle = fopen('php://memory', 'rb');
                     self::enable();
 
-                    $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen/skipped', [$mode, $options], (int)$this->handle);
+                    $this->log(self::OPEN, 0.0, 0, $this->path, 'fopen/skipped', [$mode, $options], (int) $this->handle);
 
                     return true;
                 }
@@ -340,7 +340,7 @@ trait StreamWrapperMixin
                 ? $this->previous('fopen', $this->path, $mode, $usePath, $this->context)
                 : $this->previous('fopen', $this->path, $mode, $usePath);
         } finally {
-            $this->log(self::OPEN, $this->duration, 0, $this->path, 'fopen', [$mode, $options], (int)$this->handle);
+            $this->log(self::OPEN, $this->duration, 0, $this->path, 'fopen', [$mode, $options], (int) $this->handle);
         }
 
         $isInclude = ($this->options & self::STREAM_OPEN_FOR_INCLUDE) !== 0;

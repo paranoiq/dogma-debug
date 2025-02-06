@@ -236,7 +236,7 @@ class Intercept
         if ($count !== null) {
             $name .= ' #' . $count;
         }
-        $message = Ansi::white(" {$name} " , Debugger::$handlerColors['event']) . ' defined in:';
+        $message = Ansi::white(" {$name} ", Debugger::$handlerColors['event']) . ' defined in:';
         Debugger::send(Message::EVENT, $message, Dumper::formatCallstack($callstack, 1, null, 0));
     }
 

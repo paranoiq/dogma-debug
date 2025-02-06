@@ -20,6 +20,7 @@ use function count;
 use function debug_backtrace;
 use function explode;
 use function floatval;
+use function function_exists;
 use function in_array;
 use function intval;
 use function preg_match;
@@ -140,7 +141,7 @@ class Callstack
                     $ref = new ReflectionMethod($class, $function);
                     $file = $ref->getFileName();
                     $line = $ref->getStartLine();
-                } elseif (!in_array($function, self::INCLUDES, true)) {
+                } elseif (!in_array($function, self::INCLUDES, true) && function_exists($function)) { // todo: the function may be "[constant expression]"
                     $ref = new ReflectionFunction($function);
                     $file = $ref->getFileName();
                     $line = $ref->getStartLine();

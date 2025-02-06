@@ -32,6 +32,7 @@ class MysqliInterceptor
     /** @var int */
     public static $intercept = Intercept::NONE;
 
+	/** @var int */
     public static $wrapStatements = self::STATEMENT_WRAP_NONE;
 
     /**

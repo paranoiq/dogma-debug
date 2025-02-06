@@ -393,7 +393,7 @@ class SqlHandler
             '~^Doctrine\\\\ORM\\\\UnitOfWork~',
             '~^Doctrine\\\\ORM\\\\Internal~',
             '~^Doctrine\\\\ORM\\\\Persisters~',
-            '~^Doctrine\\\\ORM\\\\PersistentCollection~'
+            '~^Doctrine\\\\ORM\\\\PersistentCollection~',
         ]);
     }
 

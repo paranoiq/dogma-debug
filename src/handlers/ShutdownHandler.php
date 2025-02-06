@@ -9,7 +9,6 @@
 
 namespace Dogma\Debug;
 
-use function array_search;
 use function function_exists;
 use function in_array;
 use function pcntl_async_signals;
@@ -19,37 +18,6 @@ use function spl_object_hash;
 use const PHP_WINDOWS_EVENT_CTRL_BREAK;
 use const PHP_WINDOWS_EVENT_CTRL_C;
 use const SIG_DFL;
-use const SIGABRT;
-use const SIGALRM;
-use const SIGBUS;
-use const SIGCHLD;
-use const SIGCONT;
-use const SIGFPE;
-use const SIGHUP;
-use const SIGILL;
-use const SIGINT;
-use const SIGIO;
-use const SIGKILL;
-use const SIGPIPE;
-use const SIGPROF;
-use const SIGPWR;
-use const SIGQUIT;
-use const SIGSEGV;
-use const SIGSTKFLT;
-use const SIGSTOP;
-use const SIGSYS;
-use const SIGTERM;
-use const SIGTRAP;
-use const SIGTSTP;
-use const SIGTTIN;
-use const SIGTTOU;
-use const SIGURG;
-use const SIGUSR1;
-use const SIGUSR2;
-use const SIGVTALRM;
-use const SIGWINCH;
-use const SIGXCPU;
-use const SIGXFSZ;
 
 /**
  * Tracks signals, exit() and die() and tries to determine what lead to process termination

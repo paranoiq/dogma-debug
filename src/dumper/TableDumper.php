@@ -10,7 +10,6 @@
 namespace Dogma\Debug;
 
 use DateTimeInterface;
-use RuntimeException;
 use function array_fill;
 use function array_filter;
 use function array_keys;

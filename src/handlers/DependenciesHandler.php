@@ -2,6 +2,7 @@
 
 namespace Dogma\Debug;
 
+use Throwable;
 use function dirname;
 use function file_exists;
 use function file_get_contents;
@@ -61,7 +62,7 @@ class DependenciesHandler
                 // todo: of course .lock can lie if composer install has not been run yet
                 try {
                     self::$composerData = json_decode(file_get_contents($path . '/composer.lock'), true);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     self::$composerData = [];
                     return;
                 }
