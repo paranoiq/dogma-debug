@@ -9,6 +9,7 @@
 
 namespace Dogma\Debug;
 
+use function array_pop;
 use function error_reporting;
 use const E_ALL;
 use const E_STRICT;
@@ -28,14 +29,23 @@ class ErrorInterceptor
         ['PhpAmqpLib\Wire\IO\AbstractIO', 'set_error_handler'],
     ];
 
-    /** @var int */
+	/** @var bool */
+    public static $trackErrorHandlers = false;
+
+	/** @var bool */
+    public static $trackExceptionHandlers = false;
+
+	/** @var int */
     private static $interceptExceptionHandlers = Intercept::NONE;
 
     /** @var int */
     private static $interceptErrorHandlers = Intercept::NONE;
 
-    /** @var int */
-    private static $interceptErrorReporting = Intercept::NONE;
+    /** @var list<array{callable, Callstack}> */
+    private static $errorHandlers = [];
+
+    /** @var list<array{callable, Callstack}> */
+    private static $exceptionHandlers = [];
 
     /**
      * Take control over set_exception_handler() and restore_exception_handler()
@@ -84,6 +94,24 @@ class ErrorInterceptor
         self::$interceptErrorReporting = $level;
     }
 
+    public static function dumpErrorHandlers(): void
+    {
+        Debugger::label('Error handlers:');
+        foreach (self::$errorHandlers as $i => [$callback, $callstack]) {
+            Debugger::dump($callback, null, null, $i);
+            Debugger::callstack(10, 0, 0, 0, $callstack);
+        }
+    }
+
+    public static function dumpExceptionHandlers(): void
+    {
+        Debugger::label('Exception handlers:');
+        foreach (self::$exceptionHandlers as $i => [$callback, $callstack]) {
+            Debugger::dump($callback, null, null, $i);
+            Debugger::callstack(10, 0, 0, 0, $callstack);
+        }
+    }
+
     // decorators ------------------------------------------------------------------------------------------------------
 
     public static function set_exception_handler(?callable $callback): ?callable
@@ -92,12 +120,23 @@ class ErrorInterceptor
             $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_EXCEPTION);
         }
 
-        return Intercept::handle(self::NAME, self::$interceptExceptionHandlers, __FUNCTION__, [$callback], null);
+        $result = Intercept::handle(self::NAME, self::$interceptExceptionHandlers, __FUNCTION__, [$callback], null);
+        if (self::$trackExceptionHandlers) {
+            $callstack = Callstack::get();
+            self::$exceptionHandlers[] = [$callback, $callstack];
+        }
+
+        return $result;
     }
 
     public static function restore_exception_handler(): bool
     {
-        return Intercept::handle(self::NAME, self::$interceptExceptionHandlers, __FUNCTION__, [], true);
+        $result = Intercept::handle(self::NAME, self::$interceptExceptionHandlers, __FUNCTION__, [], true);
+        if ($result && self::$trackExceptionHandlers) {
+            array_pop(self::$exceptionHandlers);
+        }
+
+        return $result;
     }
 
     /**
@@ -109,12 +148,23 @@ class ErrorInterceptor
             $callback = Intercept::wrapEventHandler($callback, Intercept::EVENT_ERROR);
         }
 
-        return Intercept::handle(self::NAME, self::$interceptErrorHandlers, __FUNCTION__, [$callback, $levels], null, self::ignored());
+        $result = Intercept::handle(self::NAME, self::$interceptErrorHandlers, __FUNCTION__, [$callback, $levels], null, self::ignored());
+        if (self::$trackErrorHandlers) {
+            $callstack = Callstack::get();
+            self::$errorHandlers[] = [$callback, $callstack];
+        }
+
+        return $result;
     }
 
     public static function restore_error_handler(): bool
     {
-        return Intercept::handle(self::NAME, self::$interceptErrorHandlers, __FUNCTION__, [], true, self::ignored());
+        $result = Intercept::handle(self::NAME, self::$interceptErrorHandlers, __FUNCTION__, [], true, self::ignored());
+        if ($result && self::$trackErrorHandlers) {
+            array_pop(self::$errorHandlers);
+        }
+
+        return $result;
     }
 
     public static function error_reporting(?int $level = null): int
