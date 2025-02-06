@@ -79,8 +79,10 @@ class Debugger
     public const CONNECTION_SOCKET = 2;
     public const CONNECTION_FILE = 3;
 
-    public const COMPONENTS_REPORT_AUTO_ACTIVATION = 1;
-    public const COMPONENTS_DENY_AUTO_ACTIVATION = 2;
+    // behavior for activating component dependencies - e.g. RedisHandler activating FileStreamWrapper to insert decorators to loaded source code
+    public const COMPONENTS_AUTO_ACTIVATION_DENY = 0;
+    public const COMPONENTS_AUTO_ACTIVATION_REPORT = 1;
+    public const COMPONENTS_AUTO_ACTIVATION_SILENT = 2;
 
     // connection ------------------------------------------------------------------------------------------------------
 
@@ -102,7 +104,7 @@ class Debugger
     public static $printConfiguration = false;
 
     /** @var bool Behavior when component automatically activates another or cannot be activated because of system requirements (Windows, missing extensions etc.) @see self::COMPONENTS_* */
-    public static $componentDependencies = self::COMPONENTS_REPORT_AUTO_ACTIVATION;
+    public static $componentDependencies = self::COMPONENTS_AUTO_ACTIVATION_REPORT;
 
     /** @var bool Show notice when a debugger component accidentally outputs anything to stdout */
     public static $reportDebuggerAccidentalOutput = true;
@@ -663,12 +665,12 @@ class Debugger
 
     public static function dependencyInfo(string $message, bool $autoActivated = false): void
     {
-        if (self::$componentDependencies === self::COMPONENTS_DENY_AUTO_ACTIVATION) {
+        if (self::$componentDependencies === self::COMPONENTS_AUTO_ACTIVATION_DENY) {
             $callstack = Callstack::get(Dumper::$traceFilters);
             self::send(Message::INFO, Ansi::lmagenta('DENIED: ' . $message), Dumper::formatCallstack($callstack, 1, 0, 0));
             exit;
         }
-        if (self::$componentDependencies === self::COMPONENTS_REPORT_AUTO_ACTIVATION) {
+        if (self::$componentDependencies === self::COMPONENTS_AUTO_ACTIVATION_REPORT) {
             $callstack = Callstack::get(Dumper::$traceFilters);
             self::send(Message::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
         }
