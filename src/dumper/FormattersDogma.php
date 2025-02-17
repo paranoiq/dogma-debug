@@ -60,25 +60,25 @@ class FormattersDogma
         Dumper::$objectFormatters[StringSet::class] = [self::class, 'dumpStringSet'];
     }
 
-    public static function dumpDate(Date $date): string
+    public static function dumpDate(Date $date, DumperConfig $config): string
     {
-        return Dumper::class(get_class($date)) . Dumper::bracket('(')
+        return Dumper::class(get_class($date), $config) . Dumper::bracket('(')
             . Dumper::value($date->format('Y-m-d')) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $date->getJulianDay())
             . Dumper::bracket(')') . Dumper::objectHashInfo($date);
     }
 
-    public static function dumpTime(Time $time): string
+    public static function dumpTime(Time $time, DumperConfig $config): string
     {
         $value = str_replace('.000000', '', $time->format('H:i:s.u'));
 
-        return Dumper::class(get_class($time)) . Dumper::bracket('(')
+        return Dumper::class(get_class($time), $config) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $time->getMicroTime())
             . Dumper::bracket(')') . Dumper::objectHashInfo($time);
     }
 
-    public static function dumpDateTimeInterval(DateTimeInterval $dti): string
+    public static function dumpDateTimeInterval(DateTimeInterval $dti, DumperConfig $config): string
     {
         if ($dti->isEmpty()) {
             $value = Dumper::value('empty');
@@ -112,12 +112,12 @@ class FormattersDogma
             $length = ', length: ' . $dti->getSpan()->format();
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($dti) . $length) : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($dti) . $length) : '';
 
-        return Dumper::class(get_class($dti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($dti), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
-    public static function dumpTimeInterval(TimeInterval $ti): string
+    public static function dumpTimeInterval(TimeInterval $ti, DumperConfig $config): string
     {
         if ($ti->isEmpty()) {
             $value = Dumper::value('empty');
@@ -129,15 +129,15 @@ class FormattersDogma
             $length = ', length: ' . $ti->getTimeSpan()->format();
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($ti) . $length) : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($ti) . $length) : '';
 
-        return Dumper::class(get_class($ti)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($ti), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
     /**
      * @param DateInterval|NightInterval $interval
      */
-    public static function dumpDateOrNightInterval($interval): string
+    public static function dumpDateOrNightInterval($interval, DumperConfig $config): string
     {
         if ($interval->isEmpty()) {
             $value = Dumper::value('empty');
@@ -153,32 +153,32 @@ class FormattersDogma
             }
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($interval) . $length) : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($interval) . $length) : '';
 
-        return Dumper::class(get_class($interval)) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
+        return Dumper::class(get_class($interval), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')') . $info;
     }
 
     /**
      * @param DateIntervalData|NightIntervalData $interval
      */
-    public static function dumpDateOrNightIntervalData($interval, int $depth = 0): string
+    public static function dumpDateOrNightIntervalData($interval, DumperConfig $config, int $depth = 0): string
     {
-        return Dumper::class(get_class($interval)) . Dumper::bracket('(')
+        return Dumper::class(get_class($interval), $config) . Dumper::bracket('(')
             . Dumper::value($interval->getStart()->format()) . ' ' . Dumper::symbol('-') . ' '
             . Dumper::value($interval->getEnd()->format()) . Dumper::bracket(')') . Dumper::symbol(':')
-            . ' ' . Dumper::dumpValue($interval->getData(), $depth /* no increment */);
+            . ' ' . Dumper::dumpValue($interval->getData(), $config, $depth /* no increment */);
     }
 
     /**
      * @param IntervalSet<mixed>|ModuloIntervalSet<mixed> $set
      */
-    public static function dumpIntervalSet($set, int $depth = 0): string
+    public static function dumpIntervalSet($set, DumperConfig $config, int $depth = 0): string
     {
         $coma = Dumper::symbol(',');
 
         $items = [];
         foreach ($set->getIntervals() as $interval) {
-            $item = Dumper::indent($depth + 1) . Dumper::dumpValue($interval, $depth + 1);
+            $item = Dumper::indent($depth + 1, $config) . Dumper::dumpValue($interval, $config, $depth + 1);
             $pos = strrpos($item, Dumper::infoPrefix());
             if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
                 $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
@@ -188,14 +188,14 @@ class FormattersDogma
             $items[] = $item;
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($set) . ', ' . count($items) . ' items') : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($set) . ', ' . count($items) . ' items') : '';
 
-        return Dumper::class(get_class($set)) . Dumper::bracket('[') . "\n"
+        return Dumper::class(get_class($set), $config) . Dumper::bracket('[') . "\n"
             . implode("\n", $items) . "\n"
-            . Dumper::indent($depth) . Dumper::bracket(']') . $info;
+            . Dumper::indent($depth, $config) . Dumper::bracket(']') . $info;
     }
 
-    public static function dumpIntEnum(IntEnum $enum): string
+    public static function dumpIntEnum(IntEnum $enum, DumperConfig $config): string
     {
         try {
             @$const = $enum->getConstantName();
@@ -204,13 +204,13 @@ class FormattersDogma
             $const = '__UNKNOWN__';
         }
 
-        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
-            . Dumper::int((string) $enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
+        return Dumper::class(get_class($enum), $config) . Dumper::bracket('(')
+            . Dumper::int((string) $enum->getValue(), $config) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($const)
             . Dumper::bracket(')');
     }
 
-    public static function dumpStringEnum(StringEnum $enum): string
+    public static function dumpStringEnum(StringEnum $enum, DumperConfig $config): string
     {
         try {
             @$const = $enum->getConstantName();
@@ -219,29 +219,29 @@ class FormattersDogma
             $const = '__UNKNOWN__';
         }
 
-        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
-            . Dumper::string($enum->getValue()) . ' ' . Dumper::symbol('/') . ' '
+        return Dumper::class(get_class($enum), $config) . Dumper::bracket('(')
+            . Dumper::string($enum->getValue(), $config) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($const)
             . Dumper::bracket(')');
     }
 
-    public static function dumpIntSet(IntSet $set): string
+    public static function dumpIntSet(IntSet $set, DumperConfig $config): string
     {
         $names = implode('|', $set->getConstantNames());
         if ($names === '') {
             $names = 'empty';
         }
 
-        return Dumper::class(get_class($set)) . Dumper::bracket('(')
-            . Dumper::int((string) $set->getValue()) . ' ' . Dumper::symbol('/') . ' '
+        return Dumper::class(get_class($set), $config) . Dumper::bracket('(')
+            . Dumper::int((string) $set->getValue(), $config) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2($names)
             . Dumper::bracket(')');
     }
 
-    public static function dumpStringSet(StringSet $set): string
+    public static function dumpStringSet(StringSet $set, DumperConfig $config): string
     {
-        return Dumper::class(get_class($set)) . Dumper::bracket('(')
-            . Dumper::string($set->getValue()) . ' ' . Dumper::symbol('/') . ' '
+        return Dumper::class(get_class($set), $config) . Dumper::bracket('(')
+            . Dumper::string($set->getValue(), $config) . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2(implode('|', $set->getConstantNames()))
             . Dumper::bracket(')');
     }

@@ -29,7 +29,7 @@ readonly class ReadonlyClass
 
 $readonly = new ReadonlyClass();
 
-Dumper::$propertyOrder = Dumper::ORDER_ORIGINAL;
+Dumper::$config->propertyOrder = Dumper::ORDER_ORIGINAL;
 
 // todo: implement <readonly>
 Assert::dump($readonly, '<$readonly>: <Dogma><\><Tests><\><Debug><\><ReadonlyClass> <{> <// #?id>

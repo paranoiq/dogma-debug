@@ -232,7 +232,7 @@ trait StreamWrapperMixin
             $message = Dumper::call('chdir', [], (int) $this->handle);
             $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . Dumper::file($cwd) . ' ' . $message;
 
-            $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
+            $callstack = Callstack::get(Dumper::$config->traceFilters, self::$filterTrace);
             $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
             self::runNativeIfNeeded(static function () use ($message, $backtrace): void {
@@ -283,7 +283,7 @@ trait StreamWrapperMixin
         $message = Dumper::call($function, $params, $return);
         $message = Ansi::white(' ' . self::PROTOCOL . ': ', Ansi::DGREEN) . ' ' . $path . ' ' . $message . $options;
 
-        $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
+        $callstack = Callstack::get(Dumper::$config->traceFilters, self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines);
 
         self::runNativeIfNeeded(static function () use ($message, $backtrace, $duration): void {

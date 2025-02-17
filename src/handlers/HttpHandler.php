@@ -107,7 +107,7 @@ class HttpHandler
 
         $message = Ansi::white(' http: ', Debugger::$handlerColors[self::NAME]) . ' ' . $message . $countFormatted;
 
-        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $callstack = Callstack::get(array_merge(Dumper::$config->traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
 
         Debugger::send(Message::SQL, $message, $backtrace, $duration);

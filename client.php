@@ -17,6 +17,7 @@ use Dogma\Debug\Callstack;
 use Dogma\Debug\CallstackFrame;
 use Dogma\Debug\Debugger;
 use Dogma\Debug\Dumper;
+use Dogma\Debug\DumperConfig;
 use Dogma\Debug\FileStreamWrapper;
 use Dogma\Debug\FtpStreamWrapper;
 use Dogma\Debug\Http;
@@ -85,6 +86,8 @@ return (static function (): bool {
     require_once __DIR__ . '/src/DebugServer.php';
     require_once __DIR__ . '/src/Debugger.php';
     require_once __DIR__ . '/src/Info.php';
+
+    require_once __DIR__ . '/src/config/DumperConfig.php';
 
     require_once __DIR__ . '/src/dumper/TableDumper.php';
     require_once __DIR__ . '/src/dumper/DumperComponents.php';
@@ -184,11 +187,17 @@ return (static function (): bool {
     $forceLoadObjects[] = StreamInterceptor::enabled();
     $forceLoadObjects[] = FileStreamWrapper::enabled();
 
+    // initiate signals table. it cannot be const expression, because those consts do not exist on non-posix systems
     Signals::init();
 
-    Debugger::setStart($start);
+    // autodetect app and sapi
     Request::init();
 
+    Debugger::setStart($start);
+
+    Dumper::$config = new DumperConfig();
+
+    // load configuration
     if ($_SERVER['PHP_SELF'] !== 'server.php') {
         $configFile = __DIR__ . '/debug-config.php';
         if (isset($_dogma_debug_no_config)) {

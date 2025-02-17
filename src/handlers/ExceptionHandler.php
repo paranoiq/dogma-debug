@@ -105,7 +105,7 @@ class ExceptionHandler
         exit(1);
     }
 
-    public static function logUncaught(Throwable $exception): void
+    public static function logUncaught(Throwable $exception, ...$args): void
     {
         // so io operations will work after PHP shutting down user handlers
         FileStreamWrapper::disable();
@@ -113,7 +113,8 @@ class ExceptionHandler
         HttpStreamWrapper::disable();
         FtpStreamWrapper::disable();
 
-        $message = self::formatException($exception, self::SOURCE_UNCAUGHT);
+    $config = Dumper::$config->update($args); // todo: separate config
+        $message = self::formatException($exception, self::SOURCE_UNCAUGHT, $config);
 
         Debugger::send(Message::EXCEPTION, $message);
     }
@@ -154,12 +155,12 @@ class ExceptionHandler
             return;
         }
 
-        $message = self::formatException($exception, $source);
+        $message = self::formatException($exception, $source, Dumper::$config); // todo: separate config for handler
 
         Debugger::send(Message::EXCEPTION, $message);
     }
 
-    public static function formatException(Throwable $exception, string $source): string
+    public static function formatException(Throwable $exception, string $source, DumperConfig $config): string
     {
         static $filteredProperties = [
             "\0Exception\0string",
@@ -181,7 +182,7 @@ class ExceptionHandler
             $message .= $first
                 ? Ansi::white(" {$source} exception: ", Ansi::LRED)
                 : "\n" . Ansi::white(' Previous: ', Ansi::LRED);
-            $message .= ' ' . Dumper::class(get_class($exception)) . ' ' . Ansi::lyellow($exception->getMessage());
+            $message .= ' ' . Dumper::class(get_class($exception), $config) . ' ' . Ansi::lyellow($exception->getMessage());
 
             try {
                 $properties = (array) $exception;
@@ -194,15 +195,15 @@ class ExceptionHandler
                     }
                 }
                 if ($properties !== []) {
-                    Dumper::$maxDepth = 3;
-                    $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, 0, get_class($exception)) . "\n" . Dumper::bracket('}');
+                    Dumper::$config->maxDepth = 3;
+                    $message .= ' ' . Dumper::bracket('{') . "\n" . Dumper::dumpProperties($properties, $config, 0, get_class($exception)) . "\n" . Dumper::bracket('}');
                 }
 
                 $callstack = Callstack::fromThrowable($exception);
                 if (self::$filterTrace) {
-                    $callstack = $callstack->filter(Dumper::$traceFilters);
+                    $callstack = $callstack->filter(Dumper::$config->traceFilters);
                 }
-                $message .= "\n" . Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
+                $message .= "\n" . Dumper::formatCallstack($callstack, $config);
             } catch (Throwable $exception) {
                 Debugger::label($exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine(), 'Exception formatting failed with', 'r');
                 Debugger::dump($exception, 4);

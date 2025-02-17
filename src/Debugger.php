@@ -274,13 +274,14 @@ class Debugger
     /**
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
      * @return T
      */
-    public static function varDump($value, bool $colors = true)
+    public static function varDump($value, ...$args)
     {
         ob_start();
 
-        $dump = Dumper::varDump($value, $colors);
+        $dump = Dumper::varDump($value, ...$args);
         self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
@@ -291,13 +292,14 @@ class Debugger
     /**
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
      * @return T
      */
-    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
+    public static function dump($value, ...$args)
     {
         ob_start();
 
-        $dump = Dumper::dump($value, $maxDepth, $traceLength, $name);
+        $dump = Dumper::dump($value, ...$args);
         self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
@@ -308,13 +310,14 @@ class Debugger
     /**
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
      * @return T
      */
-    public static function dumpTable($value, ?int $traceLength = null, ?string $name = null)
+    public static function dumpTable($value, ...$args)
     {
         ob_start();
 
-        $dump = TableDumper::dump($value);
+        $dump = TableDumper::dump($value, ...$args);
         self::send(Message::DUMP, "\n" . $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
@@ -325,13 +328,15 @@ class Debugger
     /**
      * @template T
      * @param T&Throwable $exception
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
      * @return T&Throwable
      */
-    public static function dumpException(Throwable $exception): Throwable
+    public static function dumpException(Throwable $exception, ...$args): Throwable
     {
         ob_start();
 
-        $message = ExceptionHandler::formatException($exception, ExceptionHandler::SOURCE_DUMPED);
+        $config = Dumper::$config->update($args);
+        $message = ExceptionHandler::formatException($exception, ExceptionHandler::SOURCE_DUMPED, $config);
 
         self::send(Message::EXCEPTION, $message);
 
@@ -340,7 +345,10 @@ class Debugger
         return $exception;
     }
 
-    public static function capture(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
+    /**
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
+     */
+    public static function capture(callable $callback, ...$args): string
     {
         ob_start();
         $callback();
@@ -355,7 +363,7 @@ class Debugger
 
         ob_start();
 
-        $dump = Dumper::dump($value, $maxDepth, $traceLength);
+        $dump = Dumper::dump($value, ...$args);
         self::send(Message::DUMP, $dump);
 
         self::checkAccidentalOutput(__CLASS__, __FUNCTION__);
@@ -380,7 +388,7 @@ class Debugger
         } elseif ($label === true) {
             $value = 'true';
         } elseif (is_string($label)) {
-            $value = Dumper::escapeRawString($label, Dumper::$rawEscaping, Ansi::BLACK, $color);
+            $value = Dumper::escapeRawString($label, Dumper::$config, Ansi::BLACK, $color);
         } elseif (is_int($label) || is_float($label)) {
             $value = $label;
         } elseif (is_object($label)) {
@@ -391,7 +399,7 @@ class Debugger
             return $label;
         }
         if ($name !== null) {
-            $name = Dumper::escapeRawString($name, Dumper::$rawEscaping, Ansi::BLACK, $color);
+            $name = Dumper::escapeRawString($name, Dumper::$config, Ansi::BLACK, $color);
         }
 
         $message = Ansi::black($name ? " {$name}: {$value} " : " {$value} ", $color);
@@ -408,7 +416,7 @@ class Debugger
         ob_start();
 
         // escape special chars, that can interfere with message formatting
-        $message = Dumper::escapeRawString($message, Dumper::$rawEscaping, Ansi::LGRAY, $background);
+        $message = Dumper::escapeRawString($message, Dumper::$config, Ansi::LGRAY, $background);
 
         self::send(Message::RAW, $message);
 
@@ -419,23 +427,18 @@ class Debugger
 
     /**
      * @param Callstack|PhpBacktraceItem[]|null $callstack
+     * @param mixed $args arguments to update default DumperConfig from Dumper::$config for this dump or a DumperConfig itself
      */
-    public static function callstack(
-        ?int $length = null,
-        ?int $argsDepth = null,
-        ?int $codeLines = null,
-        ?int $codeDepth = null,
-        $callstack = null
-    ): void
+    public static function callstack($callstack = null, ...$args): void
     {
         ob_start();
 
         if (is_array($callstack)) {
             $callstack = Callstack::fromBacktrace($callstack);
         } elseif ($callstack === null) {
-            $callstack = Callstack::get(Dumper::$traceFilters);
+            $callstack = Callstack::get(Dumper::$config->traceFilters);
         }
-        $trace = Dumper::formatCallstack($callstack, $length, $argsDepth, $codeLines, $codeDepth);
+        $trace = Dumper::formatCallstack($callstack, ...$args);
 
         self::send(Message::CALLSTACK, $trace);
 
@@ -459,7 +462,7 @@ class Debugger
         }
         $location = '';
         if ($withLocation) {
-            $location = ' in ' . Dumper::fileLine($frame->file, $frame->line);
+            $location = ' in ' . Dumper::fileLine($frame->file, $frame->line, Dumper::$config);
         }
 
         if ($class !== null) {
@@ -666,13 +669,13 @@ class Debugger
     public static function dependencyInfo(string $message, bool $autoActivated = false): void
     {
         if (self::$componentDependencies === self::COMPONENTS_AUTO_ACTIVATION_DENY) {
-            $callstack = Callstack::get(Dumper::$traceFilters);
-            self::send(Message::INFO, Ansi::lmagenta('DENIED: ' . $message), Dumper::formatCallstack($callstack, 1, 0, 0));
+            $callstack = Callstack::get(Dumper::$config->traceFilters);
+            self::send(Message::INFO, Ansi::lmagenta('DENIED: ' . $message), Dumper::formatCallstack($callstack, Dumper::$config));
             exit;
         }
         if (self::$componentDependencies === self::COMPONENTS_AUTO_ACTIVATION_REPORT) {
-            $callstack = Callstack::get(Dumper::$traceFilters);
-            self::send(Message::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, 1, 0, 0));
+            $callstack = Callstack::get(Dumper::$config->traceFilters);
+            self::send(Message::INFO, Ansi::lmagenta($message), Dumper::formatCallstack($callstack, Dumper::$config));
         }
     }
 
@@ -835,7 +838,7 @@ class Debugger
         } elseif (!self::$reportDebuggerAccidentalOutput) {
             return;
         } else {
-            $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output, 0);
+            $message = Ansi::white(' Accidental output: ', Ansi::DRED) . ' ' . Dumper::dumpValue($output, Dumper::$config, 0);
         }
 
         self::send(Message::ERROR, $message);
@@ -883,7 +886,7 @@ class Debugger
                 if (RequestHandler::$stdinData) {
                     $stdin = (string) file_get_contents('php://stdin');
                     $trim = trim($stdin);
-                    $args[0] = Dumper::string(substr($trim, 0, 50) . (strlen($trim) > 50 ? '...' : '')) . ' | php';
+                    $args[0] = Dumper::string(substr($trim, 0, 50) . (strlen($trim) > 50 ? '...' : ''), Dumper::$config) . ' | php';
                     // todo: faking input through PhpStreamHandler is needed for this, because php://stdin can not be rewinded
                 } else {
                     $args[0] = 'php://stdin <?php ...';
@@ -928,7 +931,7 @@ class Debugger
                         $headers[Http::normalizeHeaderName($name)] = $value;
                     }
                 }
-                $header .= "\n" . Ansi::white("headers:") . ' ' . Dumper::dumpArray($headers);
+                $header .= "\n" . Ansi::white("headers:") . ' ' . Dumper::dumpArray($headers, Dumper::$config);
             }
 
             // request body
@@ -967,7 +970,7 @@ class Debugger
                     $parts = explode(': ', $header);
                     $name = array_shift($parts);
                     $value = implode(': ', $parts);
-                    $footer .= "   " . Dumper::key($name, true) . ': ' . Dumper::value($value) . "\n";
+                    $footer .= "   " . Dumper::key($name, Dumper::$config, true) . ': ' . Dumper::value($value) . "\n";
                 }
             }
         }
@@ -1101,7 +1104,7 @@ class Debugger
                     }
                     $footer .= "\n " . Ansi::white(array_sum($files) . '×') . ' ' . Ansi::lyellow($error);
                     if ($file !== '') {
-                        $footer .= Dumper::info(' - e.g. in ') . Dumper::fileLine((string) $file, (int) $line) . Dumper::info(" {$count}×");
+                        $footer .= Dumper::info(' - e.g. in ') . Dumper::fileLine((string) $file, (int) $line, Dumper::$config) . Dumper::info(" {$count}×");
                     }
                 }
             }

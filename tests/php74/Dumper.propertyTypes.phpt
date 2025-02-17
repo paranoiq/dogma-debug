@@ -25,7 +25,7 @@ class PropertyTypes
 
 $types = new PropertyTypes();
 
-Dumper::$propertyOrder = Dumper::ORDER_ORIGINAL;
+Dumper::$config->propertyOrder = Dumper::ORDER_ORIGINAL;
 Assert::dump($types, '<$types>: <Dogma><\><Tests><\><Debug><\><PropertyTypes> <{> <// #?id>
     <public> <$a> = <1>;
     <protected> <$b> = <2>;
@@ -52,7 +52,7 @@ class PropertyTypesB extends PropertyTypesA
 
 $types = new PropertyTypesB();
 
-Dumper::$propertyOrder = Dumper::ORDER_ALPHABETIC;
+Dumper::$config->propertyOrder = Dumper::ORDER_ALPHABETIC;
 Assert::dump($types, '<$types>: <Dogma><\><Tests><\><Debug><\><PropertyTypesB> <{> <// #?id>
     <public> <$a> = <uninitialized>;
     <private> <Dogma><\><Tests><\><Debug><\><PropertyTypesA>::<$b> = <uninitialized>;

@@ -155,7 +155,7 @@ class RedisHandler
 
         $message = Ansi::white(' redis: ', Ansi::DGREEN) . ' ' . $query;
 
-        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $callstack = Callstack::get(array_merge(Dumper::$config->traceFilters, self::$traceFilters), self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Message::REDIS, $message, $trace, $duration);
@@ -210,7 +210,7 @@ class RedisHandler
             $message = Ansi::white(' ' . self::NAME . ': ', Ansi::DGREEN) . ' ' . $response;
         }
 
-        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $callstack = Callstack::get(array_merge(Dumper::$config->traceFilters, self::$traceFilters), self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Message::REDIS, $message, $trace, $duration);

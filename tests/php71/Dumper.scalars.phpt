@@ -64,10 +64,10 @@ Assert::dump(["flags" => 23], '<literal>: <[>
 
 // timestamps
 $time = 1623018172;
-Dumper::$infoTimeZone = new DateTimeZone('Z');
+Dumper::$config->infoTimeZone = new DateTimeZone('Z');
 Assert::dump($time, '<$time>: <1623018172> <// 2021-06-06 22:22:52+00:00>');
 
-Dumper::$infoTimeZone = new DateTimeZone('Europe/Prague');
+Dumper::$config->infoTimeZone = new DateTimeZone('Europe/Prague');
 Assert::dump($time, '<$time>: <1623018172> <// 2021-06-07 00:22:52+02:00>');
 
 
@@ -83,11 +83,11 @@ Assert::dump(NAN, '<literal>: <NAN>');
 strings:
 Assert::dump('', '<literal>: <"">');
 Assert::dump('abcdef', '<literal>: <"abcdef"> <// 6 B>');
-Dumper::$escapeAllNonAscii = false;
+Dumper::$config->escapeAllNonAscii = false;
 Assert::dump('áčř', '<literal>: <"áčř"> <// 6 B, 3 ch>');
 
 // hidden
-Dumper::$hiddenFields = ['secret'];
+Dumper::$config->hiddenFields = ['secret'];
 $secret = 'foo';
 Assert::dump($secret, '<$secret>: <"><*****><"> <// hidden>');
 
@@ -102,27 +102,27 @@ Assert::dump('strlen', '<literal>: <"strlen"> <// 6 B, callable from ext-core>')
 Assert::dump('rd', '<literal>: <"rd"> <// callable defined in ?path?file:?line>');
 
 // limit
-Dumper::$maxLength = 10;
+Dumper::$config->maxLength = 10;
 Assert::dump('příliš žluťoučký kůň úpěl ďábelské ódy', '<literal>: <"příliš žlu<...<"> <// 53 B, 38 ch, trimmed>');
-Dumper::$maxLength = 10000;
+Dumper::$config->maxLength = 10000;
 
 // escaping
 Assert::dump('"', '<literal>: <\'"\'>');
 Assert::dump("\n", '<literal>: <"<\n<">');
 
-Dumper::$escapeAllNonAscii = true;
+Dumper::$config->escapeAllNonAscii = true;
 Assert::dump('áčř', '<literal>: <"<\u{e1}<<\u{10d}<<\u{159}<"> <// 6 B, 3 ch>');
 Assert::dump('🙈', '<literal>: <"<\u{1f648}<"> <// 4 B, 1 ch>');
 
-Dumper::$stringsEscaping = Dumper::ESCAPING_JSON;
+Dumper::$config->stringsEscaping = Dumper::ESCAPING_JSON;
 Assert::dump('áčř', '<literal>: <"<\u00e1<<\u010d<<\u0159<"> <// 6 B, 3 ch>');
 Assert::dump('🙈', '<literal>: <"<\ud83d\ude48<"> <// 4 B, 1 ch>');
 
 // binary
 $bin = implode('', range("\x00", "\xff"));
 // spell-check-ignore: ABCDEFGHIJKLMNO PQRSTUVWXYZ abcdefghijklmno pqrstuvwxyz Çüéâäàåçêëèïîì Ä Å Éæ Æôöòûùÿ Ö Ñªº Ü áíóúñ ƒ Γπ Θ Σσµτ Φ Ωδ αß φε ⁿ aa ae af ba bb bc bd cd ce da de df eb ec ee ef fb fc fd fe
-Dumper::$escapeAllNonAscii = false; // todo: conflicts with normal binary escaping
-Dumper::$binaryEscaping = Dumper::ESCAPING_CP437;
+Dumper::$config->escapeAllNonAscii = false; // todo: conflicts with normal binary escaping
+Dumper::$config->binaryEscaping = Dumper::ESCAPING_CP437;
 Dumper::$colors['escape_basic'] = Ansi::LCYAN;
 Dumper::$colors['escape_special'] = Ansi::LCYAN;
 Dumper::$colors['escape_non_ascii'] = Ansi::LCYAN;

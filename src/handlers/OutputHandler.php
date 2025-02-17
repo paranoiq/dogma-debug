@@ -100,12 +100,12 @@ class OutputHandler
             return false;
         }
 
-        $oldMaxLength = Dumper::$maxLength;
-        Dumper::$maxLength = self::$maxLength;
+        $oldMaxLength = Dumper::$config->maxLength;
+        Dumper::$config->maxLength = self::$maxLength;
         $message = Ansi::white(' output: ', Ansi::DGREEN) . ' ' . Dumper::dumpString($output);
-        Dumper::$maxLength = $oldMaxLength;
+        Dumper::$config->maxLength = $oldMaxLength;
 
-        $callstack = $callstack ?? Callstack::get(Dumper::$traceFilters);
+        $callstack = $callstack ?? Callstack::get(Dumper::$config->traceFilters);
         $backtrace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Message::STD_IO, $message, $backtrace);

@@ -102,13 +102,13 @@ class FormattersReflection
         Dumper::$objectFormatters[ReflectionAttribute::class] = [self::class, 'dumpReflectionAttribute'];
     }
 
-    public static function dumpReflectionExtension(ReflectionExtension $extension, int $depth = 0): string
+    public static function dumpReflectionExtension(ReflectionExtension $extension, DumperConfig $config, int $depth = 0): string
     {
         /** @var bool $persistent */
         $persistent = $extension->isPersistent(); // @phpstan-ignore-line returns bool!
         $type = $persistent ? ' (persistent)' : ($extension->isTemporary() ? ' (temporary)' : '');
 
-        $result = Dumper::class(get_class($extension))
+        $result = Dumper::class(get_class($extension), $config)
             . ' of ' . Dumper::value($extension->getName()) . ' ' . Dumper::value2($extension->getVersion()) . $type
             . ' ' . Dumper::bracket('{');
 
@@ -126,19 +126,19 @@ class FormattersReflection
             }
         }
         if ($required !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'required dependencies: ' . implode(', ', $required);
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'required dependencies: ' . implode(', ', $required);
         }
         if ($optional !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'optional dependencies: ' . implode(', ', $optional);
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'optional dependencies: ' . implode(', ', $optional);
         }
         if ($conflicts !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'conflicting dependencies: ' . implode(', ', $conflicts);
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'conflicting dependencies: ' . implode(', ', $conflicts);
         }
 
         $iniValues = ini_get_all(strtolower($extension->getName())) ?: [];
         $iniEntries = $extension->getINIEntries();
         if ($iniEntries !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'ini entries: ' . Dumper::info('// local_value ; access (global_value)');
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'ini entries: ' . Dumper::info('// local_value ; access (global_value)');
             foreach ($iniEntries as $entry => $vals) {
                 $values = $iniValues[$entry];
                 $access = [];
@@ -165,70 +165,70 @@ class FormattersReflection
                     $local = (float) $local;
                 }
 
-                [$localValue, $localInfo] = Dumper::splitInfo(Dumper::dumpValue($local, $depth + 2));
+                [$localValue, $localInfo] = Dumper::splitInfo(Dumper::dumpValue($local, $config, $depth + 2));
                 $globalValue = '';
                 if ($global === $local) {
-                    $globalValue = Dumper::dumpValue($global, $depth + 2);
+                    $globalValue = Dumper::dumpValue($global, $config, $depth + 2);
                 }
 
                 $info = '; ' . ($localInfo !== '' ? $localInfo . ', ' : '')
                     . implode('|', $access)
                     . ($global === $local ? '' : ' (global: ' . $globalValue . ')');
 
-                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($entry, true) . ' = '
+                $result .= "\n" . Dumper::indent($depth + 2, $config) . Dumper::key($entry, $config, true) . ' = '
                     . $localValue . ' ' . Dumper::info($info);
             }
         }
 
         $constants = $extension->getConstants();
         if ($constants !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'constants: ';
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'constants: ';
             foreach ($constants as $name => $value) {
-                $result .= "\n" . Dumper::indent($depth + 2) . Dumper::key($name, true) . ': ' . Dumper::dumpValue($value, $depth + 2);
+                $result .= "\n" . Dumper::indent($depth + 2, $config) . Dumper::key($name, $config, true) . ': ' . Dumper::dumpValue($value, $config, $depth + 2);
             }
         }
 
         $functions = $extension->getFunctions();
         if ($functions !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'functions: ';
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'functions: ';
             foreach ($functions as $function) {
-                $result .= "\n" . Dumper::indent($depth + 2) . self::dumpReflectionFunction($function, $depth + 2);
+                $result .= "\n" . Dumper::indent($depth + 2, $config) . self::dumpReflectionFunction($function, $config, $depth + 2);
             }
         }
 
         $classes = $extension->getClasses();
         if ($classes !== []) {
-            $result .= "\n" . Dumper::indent($depth + 1) . 'classes: ';
+            $result .= "\n" . Dumper::indent($depth + 1, $config) . 'classes: ';
             foreach ($classes as $class) {
-                $result .= "\n" . Dumper::indent($depth + 2) . self::dumpReflectionClass($class, $depth + 2);
+                $result .= "\n" . Dumper::indent($depth + 2, $config) . self::dumpReflectionClass($class, $config, $depth + 2);
             }
         }
 
-        return $result . "\n" . Dumper::indent($depth) . Dumper::bracket('}');
+        return $result . "\n" . Dumper::indent($depth, $config) . Dumper::bracket('}');
     }
 
-    public static function dumpReflectionZendExtension(ReflectionZendExtension $extension, int $depth = 0): string
+    public static function dumpReflectionZendExtension(ReflectionZendExtension $extension, DumperConfig $config, int $depth = 0): string
     {
-        return Dumper::class(get_class($extension))
+        return Dumper::class(get_class($extension), $config)
             . ' of ' . Dumper::value($extension->getName()) . ' ' . Dumper::value2($extension->getVersion())
             . ' ' . $extension->getAuthor() . ' ' . $extension->getURL() . ' ' . $extension->getCopyright();
     }
 
-    public static function dumpReflectionObject(ReflectionObject $ref, int $depth = 0): string
+    public static function dumpReflectionObject(ReflectionObject $ref, DumperConfig $config, int $depth = 0): string
     {
         /// todo
-        return self::dumpReflectionClass($ref, $depth);
+        return self::dumpReflectionClass($ref, $config, $depth);
     }
 
-    public static function dumpReflectionEnum(ReflectionEnum $enum, int $depth = 0): string
+    public static function dumpReflectionEnum(ReflectionEnum $enum, DumperConfig $config, int $depth = 0): string
     {
-        return self::dumpReflectionClass($enum, $depth);
+        return self::dumpReflectionClass($enum, $config, $depth);
     }
 
-    public static function dumpReflectionClass(ReflectionClass $class, int $depth = 0): string
+    public static function dumpReflectionClass(ReflectionClass $class, DumperConfig $config, int $depth = 0): string
     {
-        $doc = self::formatDocComment($class->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $class->getAttributes() : [], $depth);
+        $doc = self::formatDocComment($class->getDocComment() ?: '', $config, $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $class->getAttributes() : [], $config, $depth);
         if ($attrs !== '') {
             $attrs .= "\n";
         }
@@ -238,7 +238,7 @@ class FormattersReflection
         $final = $class->isFinal() ? 'final ' : '';
         $readonly = PHP_VERSION_ID >= 80200 && $class->isReadOnly() ? 'readonly ' : '';
         $type = $class->isInterface() ? 'interface' : ($class->isTrait() ? 'trait' : ($class instanceof ReflectionEnum ? 'enum' : 'class'));
-        $name = Dumper::class($class->getName());
+        $name = Dumper::class($class->getName(), $config);
 
         $backingType = $backingTypeName = null;
         if ($class instanceof ReflectionEnum && $class->isBacked()) {
@@ -250,7 +250,7 @@ class FormattersReflection
 
         $extends = $class->getParentClass();
         if ($extends !== false) {
-            $extends = ' extends ' . Dumper::class($extends->getName());
+            $extends = ' extends ' . Dumper::class($extends->getName(), $config);
         }
 
         $interfaces = $class->getInterfaces();
@@ -258,11 +258,11 @@ class FormattersReflection
         if ($interfaces !== []) {
             $implements = ' implements ';
             foreach (array_keys($interfaces) as $i => $interface) {
-                $implements .= ($i !== 0 ? ', ' : '') . Dumper::class($interface);
+                $implements .= ($i !== 0 ? ', ' : '') . Dumper::class($interface, $config);
             }
         }
 
-        $result = $depth === 0 ? Dumper::class(get_class($class)) . ' of ' : '';
+        $result = $depth === 0 ? Dumper::class(get_class($class), $config) . ' of ' : '';
         $result .= $depth === 0 ? "\n" . $doc . $attrs : $doc . $attrs;
         $result .= $abstract . $final . $readonly . $type . ' ' . $name . $backingType . $extends . $implements . ' ' . Dumper::bracket('{');
 
@@ -272,7 +272,7 @@ class FormattersReflection
             } else {
                 $file = $class->getFileName();
                 if ($file !== false) {
-                    $result .= Dumper::info(' // defined in ' . Dumper::fileLine($file, (int) $class->getStartLine()));
+                    $result .= Dumper::info(' // defined in ' . Dumper::fileLine($file, (int) $class->getStartLine(), $config));
                 }
             }
         }
@@ -280,14 +280,14 @@ class FormattersReflection
         // isAnonymous()
         // isCloneable()
 
-        $indent = Dumper::indent($depth + 1);
+        $indent = Dumper::indent($depth + 1, $config);
 
         $traits = $class->getTraits();
         if ($traits !== []) {
             // todo
             $traitAliases = $class->getTraitAliases();
             foreach ($traits as $trait) {
-                $result .= "\n" . $indent . 'use ' . Dumper::class($trait->getName()) . ';';
+                $result .= "\n" . $indent . 'use ' . Dumper::class($trait->getName(), $config) . ';';
             }
         }
 
@@ -306,7 +306,7 @@ class FormattersReflection
                 }
                 $case = $case instanceof ReflectionEnumUnitCase
                     ? 'case ' . $name . ';'
-                    : 'case ' . $name . ' = ' . ($backingTypeName === 'int' ? Dumper::int($value) : Dumper::string($value)) . ';';
+                    : 'case ' . $name . ' = ' . ($backingTypeName === 'int' ? Dumper::int($value, $config) : Dumper::string($value, $config)) . ';';
                 $result .= "\n" . $indent . $case;
             }
         }
@@ -320,7 +320,7 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($constants as $constant) {
-                $result .= "\n" . $indent . self::dumpReflectionClassConstant($constant, $depth + 1);
+                $result .= "\n" . $indent . self::dumpReflectionClassConstant($constant, $config, $depth + 1);
             }
         }
 
@@ -333,7 +333,7 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($staticProperties as $property) {
-                $result .= "\n" . $indent . self::dumpReflectionProperty($property, $depth + 1);
+                $result .= "\n" . $indent . self::dumpReflectionProperty($property, $config, $depth + 1);
             }
         }
 
@@ -345,7 +345,7 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($instanceProperties as $property) {
-                $result .= "\n" . $indent . self::dumpReflectionProperty($property, $depth + 1);
+                $result .= "\n" . $indent . self::dumpReflectionProperty($property, $config, $depth + 1);
             }
         }
 
@@ -358,7 +358,7 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($staticMethods as $method) {
-                $result .= "\n" . $indent . self::dumpReflectionMethod($method, $depth + 1);
+                $result .= "\n" . $indent . self::dumpReflectionMethod($method, $config, $depth + 1);
             }
         }
 
@@ -370,27 +370,27 @@ class FormattersReflection
                 $result .= "\n" . $indent;
             }
             foreach ($instanceMethods as $method) {
-                $result .= "\n" . $indent . self::dumpReflectionMethod($method, $depth + 1);
+                $result .= "\n" . $indent . self::dumpReflectionMethod($method, $config, $depth + 1);
             }
         }
 
-        return $result . "\n" . Dumper::indent($depth) . Dumper::bracket('}');
+        return $result . "\n" . Dumper::indent($depth, $config) . Dumper::bracket('}');
     }
 
-    public static function dumpReflectionClassConstant(ReflectionClassConstant $constant, int $depth = 0): string
+    public static function dumpReflectionClassConstant(ReflectionClassConstant $constant, DumperConfig $config, int $depth = 0): string
     {
-        $doc = self::formatDocComment($constant->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $constant->getAttributes() : [], $depth);
+        $doc = self::formatDocComment($constant->getDocComment() ?: '', $config, $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $constant->getAttributes() : [], $config, $depth);
 
-        $result = $depth === 0 ? Dumper::class(get_class($constant)) . ' of ' . "\n" : '';
+        $result = $depth === 0 ? Dumper::class(get_class($constant), $config) . ' of ' . "\n" : '';
 
         // todo: colors
         $final = PHP_VERSION_ID > 80100 && $constant->isFinal() ? 'final ' : '';
         $access = $constant->isPrivate() ? 'private ' : ($constant->isProtected() ? 'protected ' : 'public ');
-        $class = $depth === 0 ? Dumper::class($constant->getDeclaringClass()->getName()) . '::' : '';
+        $class = $depth === 0 ? Dumper::class($constant->getDeclaringClass()->getName(), $config) . '::' : '';
         $name = Dumper::constant($constant->name);
         try {
-            $value = Dumper::dumpValue($constant->getValue(), $depth + 1);
+            $value = Dumper::dumpValue($constant->getValue(), $config, $depth + 1);
         } catch (Throwable $e) {
             // not implemented in better reflection
             $value = '?';
@@ -414,30 +414,30 @@ class FormattersReflection
         return '';
     }
 
-    public static function dumpReflectionMethod(ReflectionMethod $method, int $depth = 0): string
+    public static function dumpReflectionMethod(ReflectionMethod $method, DumperConfig $config, int $depth = 0): string
     {
         // todo: colors
         $access = $method->isPublic() ? 'public' : ($method->isPrivate() ? 'private' : 'protected');
         $name = $access . ' function ';
         if ($depth === 0) {
-            $name .= Dumper::class($method->getDeclaringClass()->getName()) . ($method->isStatic() ? '::' : '->');
+            $name .= Dumper::class($method->getDeclaringClass()->getName(), $config) . ($method->isStatic() ? '::' : '->');
         }
         $name .= Dumper::function($method->getName());
 
-        return self::dumpReflectionFunctionAbstract($method, $name, $depth);
+        return self::dumpReflectionFunctionAbstract($method, $name, $config, $depth);
     }
 
-    public static function dumpReflectionFunction(ReflectionFunction $function, int $depth = 0): string
+    public static function dumpReflectionFunction(ReflectionFunction $function, DumperConfig $config, int $depth = 0): string
     {
-        $name = Dumper::class($function->getName());
+        $name = Dumper::class($function->getName(), $config);
 
-        return self::dumpReflectionFunctionAbstract($function, $name, $depth);
+        return self::dumpReflectionFunctionAbstract($function, $name, $config, $depth);
     }
 
-    private static function dumpReflectionFunctionAbstract(ReflectionFunctionAbstract $function, string $name, int $depth = 0): string
+    private static function dumpReflectionFunctionAbstract(ReflectionFunctionAbstract $function, string $name, DumperConfig $config, int $depth = 0): string
     {
-        $doc = self::formatDocComment($function->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $function->getAttributes() : [], $depth);
+        $doc = self::formatDocComment($function->getDocComment() ?: '', $config, $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $function->getAttributes() : [], $config, $depth);
 
         // todo: colors
         $generator = $function->isGenerator() ? 'generator ' : '';
@@ -445,11 +445,11 @@ class FormattersReflection
 
         $params = [];
         foreach ($function->getParameters() as $param) {
-            $params[] = self::dumpReflectionParameter($param, $depth + 1);
+            $params[] = self::dumpReflectionParameter($param, $config, $depth + 1);
         }
         $params = implode(', ', $params);
 
-        $return = $function->hasReturnType() ? ': ' . self::formatType($function->getReturnType()) : '';
+        $return = $function->hasReturnType() ? ': ' . self::formatType($function->getReturnType(), $config) : '';
         if (PHP_VERSION_ID >= 80100) {
             // todo:
             $type = $function->getTentativeReturnType();
@@ -461,7 +461,7 @@ class FormattersReflection
         $deprecated = $function->isDeprecated() ? ' ' . Dumper::exceptions('DEPRECATED') : '';
         //$disabled = $ref->isDisabled() ? ' ' . Dumper::exceptions('disabled') : ''; // deprecated
 
-        $result = $depth === 0 ? Dumper::class(get_class($function)) . ' of ' : '';
+        $result = $depth === 0 ? Dumper::class(get_class($function), $config) . ' of ' : '';
         $result .= $depth === 0 ? "\n" . $doc . $attrs : $doc . $attrs;
         $result .= $generator . $closure . $name . Dumper::bracket('(') . $params . Dumper::bracket(')') . $return . $deprecated; // . $disabled
 
@@ -471,7 +471,7 @@ class FormattersReflection
             } else {
                 $file = $function->getFileName();
                 if ($file !== false) {
-                    $result .= Dumper::info(' // defined in ' . Dumper::fileLine($file, (int) $function->getStartLine()));
+                    $result .= Dumper::info(' // defined in ' . Dumper::fileLine($file, (int) $function->getStartLine(), $config));
                 }
             }
         }
@@ -498,25 +498,25 @@ class FormattersReflection
         return '';
     }
 
-    public static function dumpReflectionProperty(ReflectionProperty $property, int $depth = 0): string
+    public static function dumpReflectionProperty(ReflectionProperty $property, DumperConfig $config, int $depth = 0): string
     {
-        $doc = self::formatDocComment($property->getDocComment() ?: '', $depth);
-        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $property->getAttributes() : [], $depth);
+        $doc = self::formatDocComment($property->getDocComment() ?: '', $config, $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $property->getAttributes() : [], $config, $depth);
         $type = PHP_VERSION_ID >= 70400 ? $property->getType() : null;
         if ($type !== null) {
-            $type = self::formatType($type) . ' ';
+            $type = self::formatType($type, $config) . ' ';
         }
 
-        $result = $depth === 0 ? Dumper::class(get_class($property)) . ' of ' . "\n" : '';
+        $result = $depth === 0 ? Dumper::class(get_class($property), $config) . ' of ' . "\n" : '';
 
         // todo: colors
         $access = $property->isPrivate() ? 'private ' : ($property->isProtected() ? 'protected ' : 'public ');
         $static = $property->isStatic() ? 'static ' : '';
         $readonly = PHP_VERSION_ID >= 80100 && $property->isReadOnly() ? 'readonly ' : '';
-        $class = $depth === 0 ? Dumper::class($property->getDeclaringClass()->getName()) . ($static ? '::' : '->') : '';
+        $class = $depth === 0 ? Dumper::class($property->getDeclaringClass()->getName(), $config) . ($static ? '::' : '->') : '';
         $name = Dumper::property('$' . $property->name);
         $value = (PHP_VERSION_ID < 70400 || $type === null || ($property->isStatic() && $property->isInitialized()))
-            ? Dumper::dumpValue($property->isStatic() ? $property->getValue() : (PHP_VERSION_ID >= 80000 ? $property->getDefaultValue() : null), $depth + 1)
+            ? Dumper::dumpValue($property->isStatic() ? $property->getValue() : (PHP_VERSION_ID >= 80000 ? $property->getDefaultValue() : null), $config, $depth + 1)
             : '(undefined)';
 
         $result .= $doc . $attrs;
@@ -537,20 +537,20 @@ class FormattersReflection
         return $result;
     }
 
-    public static function dumpReflectionParameter(ReflectionParameter $param, int $depth = 0): string
+    public static function dumpReflectionParameter(ReflectionParameter $param, DumperConfig $config, int $depth = 0): string
     {
-        $result = $depth === 0 ? Dumper::class(get_class($param)) . ' of ' . "\n" : '';
+        $result = $depth === 0 ? Dumper::class(get_class($param), $config) . ' of ' . "\n" : '';
         if ($depth === 0) {
             $class = $param->getDeclaringClass();
             $function = $param->getDeclaringFunction();
             $position = $param->getPosition();
 
             $result .= "parameter #{$position} of "
-                . ($class !== null ? Dumper::class($class->getName()) . '::' : '')
+                . ($class !== null ? Dumper::class($class->getName(), $config) . '::' : '')
                 . Dumper::function($function->getName()) . "\n";
         }
 
-        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $param->getAttributes() : [], $depth);
+        $attrs = self::formatAttributes(PHP_VERSION_ID >= 80000 ? $param->getAttributes() : [], $config, $depth);
         if ($attrs !== '') {
             $result .= $attrs . "\n";
         }
@@ -576,7 +576,7 @@ class FormattersReflection
 
         $type = $param->getType();
         if ($type !== null) {
-            $result .= self::formatType($type) . ' ';
+            $result .= self::formatType($type, $config) . ' ';
         }
 
         if ($param->isPassedByReference()) {
@@ -595,26 +595,26 @@ class FormattersReflection
                 $result .= ' = ' . Dumper::constant($const);
             } else {
                 $default = $param->getDefaultValue();
-                $result .= ' = ' . Dumper::dumpValue($default, $depth + 1);
+                $result .= ' = ' . Dumper::dumpValue($default, $config, $depth + 1);
             }
         }
 
         return $result;
     }
 
-    public static function dumpReflectionType(ReflectionType $type, int $depth = 0): string
+    public static function dumpReflectionType(ReflectionType $type, DumperConfig $config, int $depth = 0): string
     {
-        $result = $depth === 0 ? Dumper::class(get_class($type)) . ' of ' . "\n" : '';
+        $result = $depth === 0 ? Dumper::class(get_class($type), $config) . ' of ' . "\n" : '';
 
-        return $result . self::formatType($type);
+        return $result . self::formatType($type, $config);
     }
 
-    public static function dumpReflectionReference(ReflectionReference $reference, int $depth = 0): string
+    public static function dumpReflectionReference(ReflectionReference $reference, DumperConfig $config, int $depth = 0): string
     {
-        return Dumper::class(get_class($reference)) . ' of ' . Dumper::value2('#' . $reference->getId());
+        return Dumper::class(get_class($reference), $config) . ' of ' . Dumper::value2('#' . $reference->getId());
     }
 
-    public static function dumpReflectionAttribute(ReflectionAttribute $attribute, int $depth = 0): string
+    public static function dumpReflectionAttribute(ReflectionAttribute $attribute, DumperConfig $config, int $depth = 0): string
     {
         $t = $attribute->getTarget();
         $target = [];
@@ -629,28 +629,28 @@ class FormattersReflection
         }
         $repeated = $attribute->isRepeated() ? Dumper::value('repeated') . ' ' : '';
 
-        $result = $depth === 0 ? Dumper::class(get_class($attribute)) . ' of ' : '';
+        $result = $depth === 0 ? Dumper::class(get_class($attribute), $config) . ' of ' : '';
 
-        return $result . $repeated . $target . 'attribute ' . self::formatAttributes([$attribute], $depth);
+        return $result . $repeated . $target . 'attribute ' . self::formatAttributes([$attribute], $config, $depth);
     }
 
     /**
      * @param ReflectionType|ReflectionNamedType|ReflectionUnionType|ReflectionIntersectionType $type
      */
-    private static function formatType(ReflectionType $type, int $level = 0): string
+    private static function formatType(ReflectionType $type, DumperConfig $config, int $level = 0): string
     {
         if ($type instanceof ReflectionUnionType) {
-            $result = implode(Dumper::operator('|'), array_map(static function (ReflectionType $t) use ($level): string {
-                return self::formatType($t, $level + 1);
+            $result = implode(Dumper::operator('|'), array_map(static function (ReflectionType $t) use ($level, $config): string {
+                return self::formatType($t, $config, $level + 1);
             }, $type->getTypes()));
         } elseif ($type instanceof ReflectionIntersectionType) {
-            $result = implode(Dumper::operator('|'), array_map(static function (ReflectionType $t) use ($level): string {
-                return self::formatType($t, $level + 1);
+            $result = implode(Dumper::operator('|'), array_map(static function (ReflectionType $t) use ($level, $config): string {
+                return self::formatType($t, $config, $level + 1);
             }, $type->getTypes()));
 
             $result = $level === 0 ? $result : Dumper::bracket('(') . $result . Dumper::bracket(')');
         } elseif ($type instanceof ReflectionNamedType) {
-            $result = $type->isBuiltin() ? Dumper::type($type->getName()) : Dumper::class($type->getName());
+            $result = $type->isBuiltin() ? Dumper::type($type->getName()) : Dumper::class($type->getName(), $config);
         } else {
             $result = '';
         }
@@ -665,20 +665,20 @@ class FormattersReflection
     /**
      * @param list<ReflectionAttribute> $attributes
      */
-    private static function formatAttributes(array $attributes, int $depth): string
+    private static function formatAttributes(array $attributes, DumperConfig $config, int $depth): string
     {
         $attrs = [];
         foreach ($attributes as $attribute) {
             $args = [];
             foreach (PHP_VERSION_ID >= 80000 ? $attribute->getArguments() : [] as $name => $argument) {
-                $args[] = Dumper::key($name) . ': ' . Dumper::dumpValue($argument, $depth + 1);
+                $args[] = Dumper::key($name, $config) . ': ' . Dumper::dumpValue($argument, $config, $depth + 1);
             }
 
             $args = $args !== []
                 ? Dumper::bracket('(') . implode(', ', $args) . Dumper::bracket(')')
                 : '';
 
-            $attrs[] = Dumper::indent($depth) . Dumper::bracket('#[')
+            $attrs[] = Dumper::indent($depth, $config) . Dumper::bracket('#[')
                 . Dumper::nameDim(PHP_VERSION_ID >= 80000 ? $attribute->getName() : '') . $args . Dumper::bracket(']');
         }
 
@@ -687,7 +687,7 @@ class FormattersReflection
             : '';
     }
 
-    private static function formatDocComment(string $comment, int $depth): string
+    private static function formatDocComment(string $comment, DumperConfig $config, int $depth): string
     {
         if ($comment === '') {
             return $comment;
@@ -703,7 +703,7 @@ class FormattersReflection
             return Ansi::between($m[0], Dumper::$colors['parameter'], Dumper::$colors['doc']);
         }, $comment);
 
-        $comment = str_replace("\n", "\n" . Dumper::indent($depth), $comment);
+        $comment = str_replace("\n", "\n" . Dumper::indent($depth, $config), $comment);
 
         return $comment;
     }

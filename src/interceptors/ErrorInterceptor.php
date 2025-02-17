@@ -29,13 +29,13 @@ class ErrorInterceptor
         ['PhpAmqpLib\Wire\IO\AbstractIO', 'set_error_handler'],
     ];
 
-	/** @var bool */
+    /** @var bool */
     public static $trackErrorHandlers = false;
 
-	/** @var bool */
+    /** @var bool */
     public static $trackExceptionHandlers = false;
 
-	/** @var int */
+    /** @var int */
     private static $interceptExceptionHandlers = Intercept::NONE;
 
     /** @var int */
@@ -181,7 +181,7 @@ class ErrorInterceptor
 
     private static function ignored(): bool
     {
-        $frame = Callstack::get(Dumper::$traceFilters)->last();
+        $frame = Callstack::get(Dumper::$config->traceFilters)->last();
         foreach (self::$interceptExceptions as $exception) {
             if ($frame->is($exception)) {
                 return true;

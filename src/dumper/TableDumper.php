@@ -55,16 +55,18 @@ class TableDumper
     /**
      * @param iterable<array<string, string> $source
      */
-    public static function dump(iterable $source): string
+    public static function dump(iterable $source, ...$args): string
     {
+        $config = Dumper::$config->update($args);
+
         if (key($source) === null) {
             // todo
             return 'empty';
         }
-        $oldInfo = Dumper::$showInfo;
-        $oldHex = Dumper::$binaryWithHexadecimal;
-        Dumper::$showInfo = false;
-        Dumper::$binaryWithHexadecimal = false;
+        $oldInfo = Dumper::$config->showInfo;
+        $oldHex = Dumper::$config->binaryWithHexadecimal;
+        Dumper::$config->showInfo = false;
+        Dumper::$config->binaryWithHexadecimal = false;
 
         $s = [];
         foreach ($source as $row) {
@@ -96,7 +98,7 @@ class TableDumper
                 } elseif (is_int($value)) {
                     $values[] = strval($value);
                 } elseif (is_float($value)) {
-                    $f = Dumper::float($value);
+                    $f = Dumper::float($value, $config);
                     $s = Ansi::removeColors($f);
                     $values[] = $s;
                 } elseif ($value instanceof DateTimeInterface) {
@@ -120,7 +122,7 @@ class TableDumper
                     $values[] = bin2hex($value);
                     $formats[$i] = self::BINARY;
                 } else {
-                    $f = Dumper::string((string) $value);
+                    $f = Dumper::string((string) $value, $config);
                     $s = Ansi::removeColors(Dumper::stripInfo($f));
                     $values[] = substr($s, 1, -1);
                     $formats[$i] = self::TEXT;
@@ -158,8 +160,8 @@ class TableDumper
         }
         $result .= self::renderDivider($columnWidths, $padding);
 
-        Dumper::$showInfo = $oldInfo;
-        Dumper::$binaryWithHexadecimal = $oldHex;
+        Dumper::$config->showInfo = $oldInfo;
+        Dumper::$config->binaryWithHexadecimal = $oldHex;
 
         return trim($result);
     }
@@ -208,11 +210,11 @@ class TableDumper
                 $remainders[$i] = '';
                 continue;
             } elseif (is_int($value)) {
-                $result .= str_repeat(' ', max($columnWidth - strlen($value), 0)) . Dumper::int($value);
+                $result .= str_repeat(' ', max($columnWidth - strlen($value), 0)) . Dumper::int($value, $config);
                 $remainders[$i] = '';
                 continue;
             } elseif (is_float($value)) {
-                $formatted = Dumper::float($value);
+                $formatted = Dumper::float($value, $config);
                 $length = Ansi::length($formatted);
                 $result .= str_repeat(' ', $columnWidth - $length) . $formatted;
                 $remainders[$i] = '';
@@ -232,7 +234,7 @@ class TableDumper
                     $result .= self::formatValue($words, $formats[$i], str_repeat(' ', $columnWidth - $wrapPosition));
                 }
             } else {
-                $formatted = Dumper::string($value, null, null, true);
+                $formatted = Dumper::string($value, $config, null, null, true);
                 $length = Ansi::length($formatted);
                 if ($length <= $columnWidth) {
                     $result .= $formatted . str_repeat(' ', $columnWidth - $length);
@@ -303,7 +305,7 @@ class TableDumper
         $maxLengths = $zeroes;
         $maxWordLengths = $zeroes;
         $flexible = [];
-        $wrapable = [];
+        $wrappable = [];
         $columnWidths = [];
 
         foreach ($rows as $j => $row) {
@@ -319,10 +321,10 @@ class TableDumper
                 }
 
                 if (strpos($cell, ' ') !== false) {
-                    $wrapable[$i] = true;
+                    $wrappable[$i] = true;
                     $maxWordLengths[$i] = max($maxWordLengths[$i], self::getMaxWordLength($cell));
                 } else {
-                    $wrapable[$i] = false;
+                    $wrappable[$i] = false;
                     $maxWordLengths[$i] = $maxLengths[$i];
                 }
             }
@@ -346,7 +348,7 @@ class TableDumper
         // wrap all wrapable columns
         if (array_sum($maxLengths) > $tableWidth) {
             foreach ($maxWordLengths as $i => $maxWordLength) {
-                if ($wrapable[$i] && !$flexible[$i]) {
+                if ($wrappable[$i] && !$flexible[$i]) {
                     $left += $columnWidths[$i] - $maxWordLength;
                     $columnWidths[$i] = $maxWordLength;
                 }
@@ -356,7 +358,7 @@ class TableDumper
         // wrap headers
         if (array_sum($maxLengths) > array_sum($columnWidths)) {
             foreach ($maxLengths as $i => $maxLength) {
-                if (!$wrapable[$i] && !$flexible[$i] && $maxLength < $headLengths[$i]) {
+                if (!$wrappable[$i] && !$flexible[$i] && $maxLength < $headLengths[$i]) {
                     $left += $columnWidths[$i] - $maxLength;
                     $columnWidths[$i] = $maxLength;
                 }
@@ -418,7 +420,7 @@ class TableDumper
         ksort($columnWidths);
 
         /*rd($flexible);
-        rd($wrapable);
+        rd($wrappable);
         rd($headLengths);
         rd($maxLengths);
         rd($maxWordLengths);

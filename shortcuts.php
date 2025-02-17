@@ -25,11 +25,12 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function lvd($value, bool $colors = true)
+    function lvd($value, ...$args)
     {
-        Debugger::print(Dumper::varDump($value, $colors));
+        Debugger::print(Dumper::varDump($value, ...$args));
 
         return $value;
     }
@@ -39,11 +40,12 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function ld($value, ?int $maxDepth = null, ?int $traceLength = null)
+    function ld($value, ...$args)
     {
-        Debugger::print(Dumper::dump($value, $maxDepth, $traceLength));
+        Debugger::print(Dumper::dump($value, ...$args));
 
         return $value;
     }
@@ -53,11 +55,12 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function rvd($value, bool $colors = true)
+    function rvd($value, ...$args)
     {
-        return Debugger::varDump($value, $colors);
+        return Debugger::varDump($value, ...$args);
     }
 
     /**
@@ -65,11 +68,12 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function rd($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
+    function rd($value, ...$args)
     {
-        return Debugger::dump($value, $maxDepth, $traceLength, $name);
+        return Debugger::dump($value, ...$args);
     }
 
     /**
@@ -77,15 +81,16 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function rda($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null)
+    function rda($value, ...$args)
     {
-        $prev = Dumper::$arrayMaxLength;
-        Dumper::$arrayMaxLength = 1000000000;
+        $prev = Dumper::$config->arrayMaxLength;
+        Dumper::$config->arrayMaxLength = 1000000000;
 
-        $result = Debugger::dump($value, $maxDepth, $traceLength, $name);
-        Dumper::$arrayMaxLength = $prev;
+        $result = Debugger::dump($value, ...$args);
+        Dumper::$config->arrayMaxLength = $prev;
 
         return $result;
     }
@@ -95,11 +100,12 @@ if (!function_exists('rd')) {
      *
      * @template T
      * @param T $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function rdt($value, ?int $traceLength = null, ?string $name = null)
+    function rdt($value, ...$args)
     {
-        return Debugger::dumpTable($value, $traceLength, $name);
+        return Debugger::dumpTable($value, ...$args);
     }
 
     /**
@@ -107,11 +113,12 @@ if (!function_exists('rd')) {
      *
      * @template T of Throwable
      * @param T $exception
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      * @return T
      */
-    function re(Throwable $exception): Throwable
+    function re(Throwable $exception, ...$args): Throwable
     {
-        return Debugger::dumpException($exception);
+        return Debugger::dumpException($exception, ...$args);
     }
 
     /**
@@ -126,10 +133,12 @@ if (!function_exists('rd')) {
 
     /**
      * Remote capture dump
+     *
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      */
-    function rc(callable $callback, ?int $maxDepth = null, ?int $traceLength = null): string
+    function rc(callable $callback, ...$args): string
     {
-        return Debugger::capture($callback, $maxDepth, $traceLength);
+        return Debugger::capture($callback, ...$args);
     }
 
     /**
@@ -144,10 +153,11 @@ if (!function_exists('rd')) {
      * Remote backtrace dump
      * @phpstan-import-type PhpBacktraceItem from Callstack
      * @param Callstack|PhpBacktraceItem[]|null $callstack
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      */
-    function rb(?int $length = null, ?int $argsDepth = null, ?int $codeLines = null, ?int $codeDepth = null, $callstack = null): void
+    function rb($callstack = null, ...$args): void
     {
-        Debugger::callstack($length, $argsDepth, $codeLines, $codeDepth, $callstack);
+        Debugger::callstack($callstack, ...$args);
     }
 
     /**

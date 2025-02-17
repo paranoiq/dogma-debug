@@ -187,9 +187,9 @@ trait DumperComponents
         return Ansi::color($value, self::$colors['bool']);
     }
 
-    public static function int(string $value): string
+    public static function int(string $value, DumperConfig $config): string
     {
-        $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
+        $under = $config->numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
         if ($under) {
             $value = strrev(implode('_', str_split(strrev($value), 3)));
         }
@@ -197,10 +197,10 @@ trait DumperComponents
         return Ansi::color($value, self::$colors['int']);
     }
 
-    public static function float(float $value): string
+    public static function float(float $value, DumperConfig $config): string
     {
-        if (!is_nan($value) && !is_infinite($value) && self::$floatFormatting !== self::FLOATS_DEFAULT) {
-            if (self::$floatFormatting === self::FLOATS_DECIMALS) {
+        if (!is_nan($value) && !is_infinite($value) && $config->floatFormatting !== self::FLOATS_DEFAULT) {
+            if ($config->floatFormatting === self::FLOATS_DECIMALS) {
                 $value = number_format($value, 16, '.', '');
                 $value = rtrim($value, '0');
                 if (substr($value, -1) === '.') {
@@ -220,7 +220,7 @@ trait DumperComponents
         if ($value !== 'INF' && $value !== '-INF' && $value !== 'NAN') {
             $value = strtolower($value);
         }
-        $under = self::$numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
+        $under = $config->numbersWithUnderscore ?? (PHP_VERSION_ID >= 70400);
         if ($under) {
             [$int, $decimal] = explode('.', $value);
             $value = strrev(implode('_', str_split(strrev($int), 3))) . '.' . implode('_', str_split($decimal, 3));
@@ -309,22 +309,22 @@ trait DumperComponents
      * @param int|string $key
      * @return string
      */
-    public static function key($key, bool $noQuote = false): string
+    public static function key($key, DumperConfig $config, bool $noQuote = false): string
     {
         if ($key === '' || (is_string($key) && (
-                   (self::$alwaysQuoteStringKeys && !$noQuote)
+                   ($config->alwaysQuoteStringKeys && !$noQuote)
                 || Str::isBinary($key)
                 || (!$noQuote && (preg_match('~\\s~', $key) !== 0)))
             )
         ) {
-            return self::string($key);
+            return self::string($key, $config);
         } elseif (self::$colors['key'] !== null) {
             // todo: string key escaping
             return Ansi::color($key, self::$colors['key']);
         } elseif (is_int($key)) {
-            return self::int((string) $key);
+            return self::int((string) $key, $config);
         } else {
-            return self::string($key);
+            return self::string($key, $config);
         }
     }
 
@@ -333,7 +333,7 @@ trait DumperComponents
      */
     public static function objectHashInfo($object): string
     {
-        return Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($object)) : '';
+        return Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($object)) : '';
     }
 
     public static function info(string $info): string
@@ -369,21 +369,21 @@ trait DumperComponents
         return Ansi::color($string, self::$colors['exceptions']);
     }
 
-    public static function indent(int $depth): string
+    public static function indent(int $depth, DumperConfig $config): string
     {
-        $baseIndent = str_repeat(' ', self::$indentSpaces - 1);
+        $baseIndent = str_repeat(' ', $config->indentSpaces - 1);
 
         return $depth > 1
-            ? ' ' . $baseIndent . str_repeat(Ansi::color(self::$indentLines ? '|' : ' ', self::$colors['indent']) . $baseIndent, $depth - 1)
+            ? ' ' . $baseIndent . str_repeat(Ansi::color($config->indentLines ? '|' : ' ', self::$colors['indent']) . $baseIndent, $depth - 1)
             : ($depth === 1 ? $baseIndent . ' ' : '');
     }
 
-    public static function class(string $class): string
+    public static function class(string $class, DumperConfig $config): string
     {
         $class = str_replace("\x00", '¤', $class);
         $short = $class;
-        if (self::$namespaceReplacements) {
-            $short = preg_replace(array_keys(self::$namespaceReplacements), array_values(self::$namespaceReplacements), $class);
+        if ($config->namespaceReplacements) {
+            $short = preg_replace(array_keys($config->namespaceReplacements), array_values($config->namespaceReplacements), $class);
         }
 
         $names = explode('\\', $short);
@@ -454,9 +454,10 @@ trait DumperComponents
         }, $string), self::$colors['closure']);
     }
 
-    public static function file(string $file): string
+    public static function file(string $file, DumperConfig $config = null): string
     {
-        $dirName = self::trimPath(self::normalizePath(dirname($file)));
+        $config = $config ?? Dumper::$config;
+        $dirName = self::trimPath(self::normalizePath(dirname($file)), $config);
         $fileName = basename($file);
         $separator = $dirName ? (str_contains($file, '://') ? '//' : '/') : '';
 
@@ -464,9 +465,9 @@ trait DumperComponents
             . Ansi::color($fileName, self::$colors['file']);
     }
 
-    public static function fileLine(string $file, int $line): string
+    public static function fileLine(string $file, int $line, DumperConfig $config): string
     {
-        $dirName = self::trimPath(self::normalizePath(dirname($file))) . '/';
+        $dirName = self::trimPath(self::normalizePath(dirname($file)), $config) . '/';
         $fileName = basename($file);
 
         return Ansi::color($dirName, self::$colors['path'])
@@ -488,24 +489,24 @@ trait DumperComponents
      * @param array<int|string|null> $params
      * @param int|string|mixed[]|bool|null $return
      */
-    public static function call(string $function, array $params = [], $return = null): string
+    public static function call(string $function, DumperConfig $config, array $params = [], $return = null): string
     {
-        $info = Dumper::$showInfo;
-        Dumper::$showInfo = null;
+        $info = Dumper::$config->showInfo;
+        Dumper::$config->showInfo = null;
 
         $formatted = [];
         foreach ($params as $key => $value) {
-            $formatted[] = Dumper::dumpValue($value, 0, "{$function}.{$key}");
+            $formatted[] = Dumper::dumpValue($value, $config, 0, "{$function}.{$key}");
         }
         $params = implode(Ansi::color(', ', Dumper::$colors['call']), $formatted);
 
-        Dumper::$showInfo = $info;
+        Dumper::$config->showInfo = $info;
 
         if ($return === null) {
             $output = '';
             $end = ')';
         } else {
-            $output = ' ' . Dumper::dumpValue($return, 0);
+            $output = ' ' . Dumper::dumpValue($return, $config, 0);
             $end = '):';
         }
 
@@ -534,10 +535,10 @@ trait DumperComponents
     /**
      * @param object $object
      */
-    public static function objectInfo($object): string
+    public static function objectInfo($object, DumperConfig $config): string
     {
         $info = '';
-        if (self::$showInfo) {
+        if ($config->showInfo) {
             $info = ' ' . self::info('// #' . self::objectHash($object));
         }
 
@@ -551,7 +552,7 @@ trait DumperComponents
      */
     public static function objectHash($object): string
     {
-        if (Dumper::$showObjectHashes) {
+        if (Dumper::$config->showObjectHashes) {
             return substr(md5(spl_object_hash($object)), 0, 4);
         } else {
             return '----';
@@ -578,7 +579,7 @@ trait DumperComponents
         }
     }
 
-    public static function binaryUuidInfo(string $uuid): ?string
+    public static function binaryUuidInfo(string $uuid, DumperConfig $config): ?string
     {
         $uuid = bin2hex($uuid);
         $formatted = substr($uuid, 0, 8) . '-'
@@ -587,7 +588,7 @@ trait DumperComponents
             . substr($uuid, 16, 4) . '-'
             . substr($uuid, 20, 12);
 
-        $info = self::uuidInfo(explode('-', $formatted));
+        $info = self::uuidInfo(explode('-', $formatted), $config);
 
         return $info ? $info . ', ' . $formatted : null;
     }
@@ -595,7 +596,7 @@ trait DumperComponents
     /**
      * @param string[] $parts
      */
-    public static function uuidInfo(array $parts): ?string
+    public static function uuidInfo(array $parts, DumperConfig $config): ?string
     {
         [$timeLow, $timeMid, $timeHigh, $sequence, $node] = $parts;
         $version = hexdec($timeHigh[0]);
@@ -603,7 +604,7 @@ trait DumperComponents
         if ($version === 1) {
             /** @var positive-int $timestamp */
             $timestamp = hexdec(substr($timeHigh, 1, 3) . $timeMid . $timeLow);
-            $dateTime = self::timestampToFormattedDate($timestamp);
+            $dateTime = self::timestampToFormattedDate($timestamp, $config);
             // not valid date. probably not UUID
             if (intval(explode('-', $dateTime)[0]) > 3000) {
                 return null;
@@ -612,7 +613,7 @@ trait DumperComponents
             return 'UUID v' . $version . ', ' . $dateTime;
         } elseif ($version === 7) {
             $timestamp = hexdec($timeLow . $timeMid) / 1000;
-            $dateTime = self::timestampToFormattedDate($timestamp);
+            $dateTime = self::timestampToFormattedDate($timestamp, $config);
             // not valid date. probably not UUID
             if (intval(explode('-', $dateTime)[0]) > 3000) {
                 return null;
@@ -629,13 +630,13 @@ trait DumperComponents
     /**
      * @param int|float $timestamp
      */
-    public static function timestampToFormattedDate($timestamp): string
+    public static function timestampToFormattedDate($timestamp, DumperConfig $config): string
     {
-        $miliseconds = '';
+        $ms = '';
         if (is_float($timestamp)) {
             $int = intval($timestamp);
             if (floatval($int) !== $timestamp) {
-                $miliseconds = '.' . explode('.', strval(round($timestamp - $int, 3)))[1];
+                $ms = '.' . explode('.', strval(round($timestamp - $int, 3)))[1];
             }
             /** @var DateTime $time */
             $time = DateTime::createFromFormat('UP', $int . 'Z');
@@ -644,17 +645,17 @@ trait DumperComponents
             $time = DateTime::createFromFormat('UP', $timestamp . 'Z');
         }
 
-        return $time->setTimezone(self::getTimeZone())->format('Y-m-d H:i:s') . $miliseconds . 'Z';
+        return $time->setTimezone(self::getTimeZone($config))->format('Y-m-d H:i:s') . $ms . 'Z';
     }
 
-    public static function getTimeZone(): DateTimeZone
+    public static function getTimeZone(DumperConfig $config): DateTimeZone
     {
-        if (self::$infoTimeZone instanceof DateTimeZone) {
-            return self::$infoTimeZone;
-        } elseif (is_string(self::$infoTimeZone)) {
-            return new DateTimeZone(self::$infoTimeZone);
+        if ($config->infoTimeZone instanceof DateTimeZone) {
+            return $config->infoTimeZone;
+        } elseif (is_string($config->infoTimeZone)) {
+            return new DateTimeZone($config->infoTimeZone);
         } else {
-            return self::$infoTimeZone = new DateTimeZone(ini_get('date.timezone') ?: 'Z');
+            return $config->infoTimeZone = new DateTimeZone(ini_get('date.timezone') ?: 'Z');
         }
     }
 
@@ -683,16 +684,22 @@ trait DumperComponents
      *
      * @param non-empty-string|null $splitBy
      */
-    public static function string(string $string, ?int $depth = null, ?string $splitBy = null, bool $noQuotes = false): string
+    public static function string(
+        string $string,
+        DumperConfig $config,
+        ?int $depth = null,
+        ?string $splitBy = null,
+        bool $noQuotes = false
+    ): string
     {
         $length = strlen($string);
         $ellipsis = '';
-        if ($length > self::$maxLength) {
-            $string = Str::substring($string, 0, self::$maxLength, self::$inputEncoding);
+        if ($length > $config->maxLength) {
+            $string = Str::substring($string, 0, $config->maxLength, $config->inputEncoding);
             $ellipsis = Ansi::between('...', self::$colors['exceptions'], self::$colors['string']);
         }
 
-        $binary = Str::isBinary($string, array_keys(self::getTranslations(self::$stringsEscaping))) !== null;
+        $binary = Str::isBinary($string, array_keys(self::getTranslations($config->stringsEscaping))) !== null;
         $split = false;
         if ($splitBy !== null) {
             $pos = strpos($string, $splitBy);
@@ -701,11 +708,11 @@ trait DumperComponents
             }
         }
 
-        $escaping = $binary && (self::$stringsEscaping !== self::ESCAPING_MYSQL && self::$stringsEscaping !== self::ESCAPING_PGSQL)
-            ? self::$binaryEscaping
-            : self::$stringsEscaping;
+        $escaping = $binary && ($config->stringsEscaping !== self::ESCAPING_MYSQL && $config->stringsEscaping !== self::ESCAPING_PGSQL)
+            ? $config->binaryEscaping
+            : $config->stringsEscaping;
         $translations = self::getTranslations($escaping);
-        if (!self::$escapeWhiteSpace) {
+        if (!$config->escapeWhiteSpace) {
             unset($translations["\n"], $translations["\r"], $translations["\t"]);
         }
         $translationsWithoutQuote = $translations;
@@ -725,18 +732,18 @@ trait DumperComponents
         }
         $pattern = Str::createCharPattern(array_keys($translations));
 
-        if (self::$binaryChunkLength < 1) {
-            self::$binaryChunkLength = null;
+        if ($config->binaryChunkLength < 1) {
+            $config->binaryChunkLength = null;
         }
-        if ((!$binary && !$split) || $depth === null || self::$binaryChunkLength === null || $length <= self::$binaryChunkLength) {
+        if ((!$binary && !$split) || $depth === null || $config->binaryChunkLength === null || $length <= $config->binaryChunkLength) {
             // not chunked (one chunk)
             $quote = $noQuotes ? '' : ($apos ? "'" : '"');
-            return self::stringChunk(-1, $string, $escaping, $pattern, $translations, $binary, $ellipsis, $quote);
+            return self::stringChunk($string, $config, -1, $escaping, $pattern, $translations, $binary, $ellipsis, $quote);
         }
 
         // chunked
         if ($binary) {
-            $chunks = Str::chunksBin($string, self::$binaryChunkLength);
+            $chunks = Str::chunksBin($string, $config->binaryChunkLength);
         } else {
             // split
             $chunks = explode($splitBy, $string);
@@ -756,7 +763,7 @@ trait DumperComponents
         foreach ($chunks as $i => $chunk) {
             $e = $i === count($chunks) - 1 ? $ellipsis : '';
             $quote = $noQuotes ? '' : '"';
-            $chunk = self::stringChunk($i * self::$binaryChunkLength, $chunk, $escaping, $pattern, $translations, $binary, $e, $quote, $offsetChars);
+            $chunk = self::stringChunk($chunk, $config, $i * $config->binaryChunkLength, $escaping, $pattern, $translations, $binary, $e, $quote, $offsetChars);
             if ($last === $chunk) {
                 $lastCount++;
             } elseif ($lastCount > 1) {
@@ -776,8 +783,8 @@ trait DumperComponents
             $formatted[] = $last;
         }
 
-        $sep = "\n" . self::indent($depth) . ' ' . self::symbol('.') . ' ';
-        $prefix = $binary ? self::exceptions('binary:') . "\n" . self::indent($depth) . '   ' : '';
+        $sep = "\n" . self::indent($depth, $config) . ' ' . self::symbol('.') . ' ';
+        $prefix = $binary ? self::exceptions('binary:') . "\n" . self::indent($depth, $config) . '   ' : '';
 
         return $prefix . implode($sep, $formatted);
     }
@@ -786,8 +793,9 @@ trait DumperComponents
      * @param string[] $translations
      */
     private static function stringChunk(
-        int $offset,
         string $string,
+        DumperConfig $config,
+        int $offset,
         string $escaping,
         string $pattern,
         array $translations,
@@ -803,13 +811,13 @@ trait DumperComponents
             // todo: still may be chunked?
             return Ansi::color('x' . $quote . bin2hex($string) . $ellipsis . $quote, self::$colors['string']);
         } else {
-            $formatted = self::escapeStringChunk($string, $escaping, $pattern, $translations, self::$colors['string']);
+            $formatted = self::escapeStringChunk($string, $config, $escaping, $pattern, $translations, self::$colors['string']);
 
             $formatted = Ansi::color($quote . $formatted . $ellipsis . $quote, self::$colors['string']);
         }
 
         // hexadecimal
-        if ($binary && self::$binaryWithHexadecimal) {
+        if ($binary && $config->binaryWithHexadecimal) {
             if ($offset >= 0) {
                 $offsetString = str_pad((string) $offset, $offsetChars, ' ', STR_PAD_LEFT);
                 $formatted .= ' ' . self::info('// ' . $offsetString . ': ' . Str::strToHex($string));
@@ -823,6 +831,7 @@ trait DumperComponents
 
     public static function escapeRawString(
         string $string,
+        DumperConfig $config,
         string $escaping,
         string $normalColor = Ansi::LGRAY,
         string $background = Ansi::BLACK
@@ -839,7 +848,7 @@ trait DumperComponents
         }
         $pattern = Str::createCharPattern(array_keys($translations));
 
-        return self::escapeStringChunk($string, $escaping, $pattern, $translations, $normalColor, $background);
+        return self::escapeStringChunk($string, $config, $escaping, $pattern, $translations, $normalColor, $background);
     }
 
     /**
@@ -847,6 +856,7 @@ trait DumperComponents
      */
     private static function escapeStringChunk(
         string $string,
+        DumperConfig $config,
         string $escaping,
         string $pattern,
         array $translations,
@@ -875,7 +885,7 @@ trait DumperComponents
             return Ansi::between($ch, $escapeColor, $normalColor, $background);
         }, $formatted);
 
-        if (self::$escapeAllNonAscii
+        if ($config->escapeAllNonAscii
             && $escaping !== self::ESCAPING_MYSQL // does not support unicode escape codes
             && $escaping !== self::ESCAPING_CP437 // already escaped everything as unicode chars
             && $escaping !== self::ESCAPING_ISO2047_SYMBOLS // control chars already escaped as unicode chars

@@ -40,50 +40,50 @@ function f($a, $b, ...$c): string
 
 
 formatCallstack:
-Dumper::$traceLength = 0;
-Dumper::$traceArgsDepth = 0;
-Dumper::$traceCodeLines = 0;
-Dumper::$traceCodeDepth = 0;
+Dumper::$config->traceLength = 0;
+Dumper::$config->traceArgsDepth = 0;
+Dumper::$config->traceCodeLines = 0;
+Dumper::$config->traceCodeDepth = 0;
 
 // no params
 Assert::same(Assert::normalize(d(0, 0, 0)), '');
 
-Dumper::$traceLength = 1;
+Dumper::$config->traceLength = 1;
 Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>');
-Dumper::$traceLength = 2;
+Dumper::$config->traceLength = 2;
 Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>');
-Dumper::$traceLength = 3;
+Dumper::$config->traceLength = 3;
 Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>');
-Dumper::$traceLength = 4;
+Dumper::$config->traceLength = 4;
 Assert::same(Assert::normalize(d(0, 0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(> <...> <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <...> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <...> <)>
 <^--- 1 in ><tests/php71/>Dumper.traces.phpt<:><61>');
 
 // 1 level params with repeating
-Dumper::$traceArgsDepth = 1;
-Dumper::$traceLength = 1;
+Dumper::$config->traceArgsDepth = 1;
+Dumper::$config->traceLength = 1;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
     <$a>: <0>,
     <$b>: <0>,
 <)>');
-Dumper::$traceLength = 2;
+Dumper::$config->traceLength = 2;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
     <$a>: <0>,
     <$b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>');
-Dumper::$traceLength = 3;
+Dumper::$config->traceLength = 3;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
     <$a>: <0>,
     <$b>: <0>,
 <)>
 <^--- 3 in ><tests/php71/>Dumper.traces.phpt<:><33> -- <Dogma><\><Tests><\><Debug><\>e<(> <^ same> <)>
 <^--- 2 in ><tests/php71/>Dumper.traces.phpt<:><28> -- <Dogma><\><Tests><\><Debug><\>d<(> <^ same> <)>');
-Dumper::$traceLength = 4;
+Dumper::$config->traceLength = 4;
 Assert::same(Assert::normalize(d(0, 0)), '<^--- 4 in ><tests/php71/>Dumper.traces.phpt<:><38> -- <Dogma><\><Tests><\><Debug><\>f<(>
     <$a>: <0>,
     <$b>: <0>,
@@ -167,7 +167,7 @@ Assert::same(Assert::normalize(a(4)), '<literal>: <true>
 
 
 fromOutOfMemoryMessage:
-Dumper::$trimPathPrefixes[] = '~^C:/http/sqlftw/~';
+Dumper::$config->trimPathPrefixes[] = '~^C:/http/sqlftw/~';
 $callstack = Callstack::fromOutOfMemoryMessage('
 Fatal error: Allowed memory size of 268435456 bytes exhausted (tried to allocate 4096 bytes) in C:\http\sqlftw\sqlftw\vendor\dogma\dogma\src\Enum\EnumSetMixin.php on line 58
 

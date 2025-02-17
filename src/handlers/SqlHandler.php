@@ -210,7 +210,7 @@ class SqlHandler
             $message .= "\n" . Ansi::white(' ' . $errorCode . ' ' . $errorMessage . ' ', Dumper::$colors['errors']);
         }
 
-        $callstack = Callstack::get(array_merge(Dumper::$traceFilters, self::$traceFilters), self::$filterTrace);
+        $callstack = Callstack::get(array_merge(Dumper::$config->traceFilters, self::$traceFilters), self::$filterTrace);
         $backtrace = Dumper::formatCallstack($callstack, self::$traceLength, 0, 0);
 
         Debugger::send(Message::SQL, $message, $backtrace, self::$showQueryTime ? $duration : null);
@@ -365,10 +365,10 @@ class SqlHandler
         $query = preg_replace_callback('~[?]~', static function () use (&$params): string {
             $value = array_shift($params);
             if (is_string($value)) {
-                $oldEscaping = Dumper::$stringsEscaping;
-                Dumper::$stringsEscaping = Dumper::ESCAPING_MYSQL;
+                $oldEscaping = Dumper::$config->stringsEscaping;
+                Dumper::$config->stringsEscaping = Dumper::ESCAPING_MYSQL;
                 $value = Dumper::string($value);
-                Dumper::$stringsEscaping = $oldEscaping;
+                Dumper::$config->stringsEscaping = $oldEscaping;
             } else {
                 $value = Dumper::dumpValue($value, 0);
             }

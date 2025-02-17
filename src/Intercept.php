@@ -215,7 +215,7 @@ class Intercept
 
     public static function wrapEventHandler(callable $callback, int $event, ?string $type = null): callable
     {
-        $callstack = Callstack::get(Dumper::$traceFilters);
+        $callstack = Callstack::get(Dumper::$config->traceFilters);
         $count = (self::$wrappedHandlerCounts[$event] ?? 0) + 1;
         self::$wrappedHandlerCounts[$event] = $count;
 
@@ -626,7 +626,7 @@ class Intercept
         }
 
         $message = Ansi::white(" {$handler}: ", Debugger::$handlerColors[$handler] ?? Debugger::$handlerColors['default']) . $message;
-        $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
+        $callstack = Callstack::get(Dumper::$config->traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, self::$traceLength, self::$traceArgsDepth, self::$traceCodeLines, self::$traceCodeDepth);
 
         Debugger::send(Message::INTERCEPT, $message, $trace);

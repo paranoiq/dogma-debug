@@ -83,7 +83,8 @@ class Dumper
 
     public const FLOATS_DEFAULT = 0;
     public const FLOATS_DECIMALS = 1; // show decimals (do not allow scientific notation)
-    public const FLOATS_SCIENTIFIC_3 = 2; // only allow scientific notation in steps of 3
+    public const FLOATS_SCIENTIFIC_3 = 2; // only allow scientific notation with exponent in steps of 3
+    //public const FLOATS_LOWERCASE_E = 4;
 
     public const ESCAPING_NONE = 'none';
     public const ESCAPING_PHP = 'php';
@@ -110,170 +111,8 @@ class Dumper
     public const FILTER_EMPTY_STRINGS = 4;
     public const FILTER_EMPTY_ARRAYS = 8;
 
-    /** @var bool - prefix dumps with expression being dumped (e.g. "$foo->bar(): [1, 2, 3, 4, 5, 6] // 6 items") */
-    public static $dumpExpressions = true;
-
-    /** @var string[] - list of fields that are hidden from dumps */
-    public static $hiddenFields = [];
-
-    // common settings -------------------------------------------------------------------------------------------------
-
-    /** @var int - max depth of dumped structures */
-    public static $maxDepth = 3;
-
-    /** @var bool - show indentation line */
-    public static $indentLines = true;
-
-    /** @var int - count of spaces for each indentation level (including indentation lines) */
-    public static $indentSpaces = 4;
-
-    // numeric settings ------------------------------------------------------------------------------------------------
-
-    /** @var bool|null - render long integers and floats with "_" dividing digits into groups of 3, null for auto on PHP >= 7.4 */
-    public static $numbersWithUnderscore = false;
-
-    /** @var int - how floats will be rendered (decimals or scientific notation); does not affect precision */
-    public static $floatFormatting = self::FLOATS_SCIENTIFIC_3;
-
-    // string settings -------------------------------------------------------------------------------------------------
-
-    /** @var int - max length of dumped strings */
-    public static $maxLength = 10000;
-
-    /** @var string - encoding of dumped strings (todo: output encoding should be always utf-8) */
-    public static $inputEncoding = 'utf-8';
-
-    /** @var string - string escaping for strings without control characters (allowed only \n, \r, \t etc.) */
-    public static $stringsEscaping = self::ESCAPING_PHP;
-
-    /** @var string - string escaping for binary strings containing control characters (except \n, \r, \t etc.) */
-    public static $binaryEscaping = self::ESCAPING_CP437;
-
-    /** @var string - string escaping for labels and raw output (only escapes control characters) */
-    public static $rawEscaping = self::ESCAPING_CP437;
-
-    /** @var bool - whether to escape \n, \r, \t or keep them as they are (not relevant for ESCAPING_CP437) */
-    public static $escapeWhiteSpace = true;
-
-    /** @var bool - escape all unicode characters outside ascii (not relevant for ESCAPING_SQL and ESCAPING_CP437) */
-    public static $escapeAllNonAscii = false;
-
-    /** @var bool - dump binary strings with hexadecimal representation along */
-    public static $binaryWithHexadecimal = true;
-
-    /** @var int|null - length of binary string chunks (rows) */
-    public static $binaryChunkLength = 16;
-
-    /** @var int - how to format strings detected as valid JSON */
-    public static $jsonStrings = self::JSON_PRETTIFY;
-
-    /** @var int - length from which JSON strings are reformatted */
-    public static $jsonPrettifyMinLength = 100;
-
-    // array settings --------------------------------------------------------------------------------------------------
-
-    /** @var int - max items shown in an array dump */
-    public static $arrayMaxLength = 100;
-
-    /** @var int - max length or array formatted to a single line */
-    public static $shortArrayMaxLength = 100;
-
-    /** @var int - max items in an array to format it on single line */
-    public static $shortArrayMaxItems = 20;
-
-    /** @var bool - show array keys even on lists with sequential indexes */
-    public static $alwaysShowArrayKeys = false;
-
-    /** @var bool - always format string keys as strings */
-    public static $alwaysQuoteStringKeys = false;
-
-    // object settings -------------------------------------------------------------------------------------------------
-
-    /** @var bool - show hash uniquely identifying each object */
-    public static $showObjectHashes = true;
-
-    /** @var int - ordering of dumped properties of objects */
-    public static $propertyOrder = self::ORDER_VISIBILITY_ALPHABETIC;
-
-    /** @var bool - show uninitialized typed properties (since 7.4) */
-    public static $showUninitializedProperties = true;
-
-    /** @var bool - show flag for dynamically created properties */
-    //public static $showDynamicPropertiesFlag = false;
-
-    /** @var bool - show property types (since 7.4) */
-    //public static $showPropertyTypes = false;
-
-    /** @var bool - show undefined typed properties (since 7.4) */
-    //public static $showUndefinedProperties = false;
-
-    /** @var bool - show readonly flag on properties (since 8.1) and classes (since 8.2) */
-    //public static $showReadonlyPropertiesFlag = false;
-
-    /** @var bool - group null and undefined properties of object together */
-    public static $groupNullAndUninitialized = true;
-
-    /** @var string[] (regexp $long => replacement $short) - replacements of namespaces for shorter class names in dumps */
-    public static $namespaceReplacements = [];
-
-    /** @var bool - dump static variables from methods when dumping static members of class (e.g. `rd(Foo::class)`) */
-    public static $dumpClassesWithStaticMethodVariables = false;
-
-    /** @var bool - show contents of seekable streams (open files, php:// etc.; not usable for pipes etc.) by reading from start and then rewinding to original position */
-    public static $dumpContentsOfSeekableStreams = false;
-
-    // public static $dumpContentsOfSeekableIterators = false;
-
-    // info settings ---------------------------------------------------------------------------------------------------
-
-    /** @var bool|null - show comments with additional info (readable values, object hashes, hints...) */
-    public static $showInfo = true;
-
-    /** @var int - show length of strings from n characters */
-    public static $lengthInfoMin = 6;
-
-    /** @var DateTimeZone|string|null - timezone used to format timestamps to readable date/time (php.ini timezone by default) */
-    public static $infoTimeZone;
-
-    /** @var bool - calculate total memory size of big structures (even below $maxDepth) */
-    //public static $infoSize = false;
-
-    // backtrace settings ----------------------------------------------------------------------------------------------
-
-    /** @var int - number of trace lines below a dump */
-    public static $traceLength = 1;
-
-    /** @var bool - show class, method, arguments in backtrace */
-    public static $traceDetails = true;
-
-    /** @var bool - show depth of each callstack frame */
-    public static $traceNumbered = true;
-
-    /** @var int - depth of dumped arguments of called function in backtrace */
-    public static $traceArgsDepth = 0;
-
-    /** @var int - count of lines of code shown for each filtered stack frame */
-    public static $traceCodeLines = 5;
-
-    /** @var int - count of stack frames for which code should be shown */
-    public static $traceCodeDepth = 1;
-
-    /** @var string[] - functions, classes and methods skipped from backtrace */
-    public static $traceFilters = [
-        '~^Dogma\\\\Debug\\\\~', // Debugger classes
-        '~^(ld|rd|rc|rb|rf|rl|rt)$~', // shortcut functions
-        '~^call_user_func(_array)?$~', // call proxies
-        '~^forward_static_call(_array)?$~',
-        '~^(trigger|user)_error$~', // error proxies
-        '~^Composer\\\\Autoload\\\\~', // composer loaders
-        '~^loadClass~',
-        '~^preg_match$~', // thrown from inside
-    ];
-
-    /** @var string[] - common path prefixes to remove from all paths (regexps) */
-    public static $trimPathPrefixes = [];
-
-    // type formatter settings -----------------------------------------------------------------------------------------
+    /** @var DumperConfig */
+    public static $config;
 
     /** @var array<string, string|null> - configuration of colors for dumped types and special characters */
     public static $colors = [
@@ -328,10 +167,12 @@ class Dumper
         'memory' => Ansi::DBLUE, // allocated memory
     ];
 
+    // type formatter settings -----------------------------------------------------------------------------------------
+
     /** @var bool - turn on/of user formatters for dumps */
     public static $useFormatters = true;
 
-    /** @var array<int|string, callable(int): ?string> - user formatters for int values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(int, DumperConfig): ?string> - user formatters for int values. optionally indexed by key regexp */
     public static $intFormatters = [
         '~stdClass::charsetnr~' => [FormattersDefault::class, 'dumpIntMysqlCharset'],
         '~stdClass::type~' => [FormattersDefault::class, 'dumpIntMysqlType'],
@@ -346,12 +187,12 @@ class Dumper
         [FormattersDefault::class, 'dumpIntPowersOfTwo'],
     ];
 
-    /** @var array<int|string, callable(float): ?string> - user formatters for float values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(float, DumperConfig): ?string> - user formatters for float values. optionally indexed by key regexp */
     public static $floatFormatters = [
         '~time|until|since~i' => [FormattersDefault::class, 'dumpFloatTime'],
     ];
 
-    /** @var array<int|string, callable(string): ?string> - user formatters for string values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(string, DumperConfig): ?string> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
         [FormattersDefault::class, 'dumpStringHidden'], // must be first!
         '/path(?!ext)/i' => [FormattersDefault::class, 'dumpStringPathList'],
@@ -363,12 +204,12 @@ class Dumper
         [FormattersDefault::class, 'dumpStringJson'],
     ];
 
-    /** @var array<string, callable(int|string): ?string> - user formatters for array keys. indexed by regexp matching the key containing the array - either "Class::$property" or "function.parameter. returns key info */
+    /** @var array<string, callable(int|string, DumperConfig): ?string> - user formatters for array keys. indexed by regexp matching the key containing the array - either "Class::$property" or "function.parameter. returns key info */
     public static $arrayKeyFormatters = [
         'curl_setopt_array.1' => [CurlInterceptor::class, 'getCurlSetoptArrayKeyInfo'],
     ];
 
-    /** @var array<string, callable(resource): string> - user formatters for resources */
+    /** @var array<string, callable(resource, DumperConfig): string> - user formatters for resources */
     public static $resourceFormatters = [
         '(stream)' => [FormattersDefault::class, 'dumpStream'],
         '(stream-context)' => [FormattersDefault::class, 'dumpStreamContext'],
@@ -376,7 +217,7 @@ class Dumper
         '(closed)' => [FormattersDefault::class, 'dumpClosedProcess'],
     ];
 
-    /** @var array<class-string, callable(object): ?string> - user formatters for dumping objects and resources */
+    /** @var array<class-string, callable(object, DumperConfig): ?string> - user formatters for dumping objects and resources */
     public static $objectFormatters = [
         // native classes
         BackedEnum::class => [FormattersDefault::class, 'dumpBackedEnum'],
@@ -393,7 +234,7 @@ class Dumper
         Callstack::class => [FormattersDefault::class, 'dumpCallstack'],
     ];
 
-    /** @var array<class-string|int, callable(object): ?string> - user formatters for dumping objects and resources in single-line mode */
+    /** @var array<class-string|int, callable(object, DumperConfig): ?string> - user formatters for dumping objects and resources in single-line mode */
     public static $shortObjectFormatters = [
         [FormattersDefault::class, 'dumpEntityId'],
     ];
@@ -410,9 +251,12 @@ class Dumper
      * var_dump() with output capture and better formatting
      *
      * @param mixed $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      */
-    public static function varDump($value, bool $colors = true): string
+    public static function varDump($value, ...$args): string
     {
+        $config = self::$config->update($args);
+
         ob_start();
         var_dump($value);
         $dump = ob_get_clean();
@@ -428,7 +272,7 @@ class Dumper
         $dump = preg_replace('~=>\n\s+~', '=> ', $dump);
         $dump = preg_replace('~{\n\s+}~', '{ }', $dump);
 
-        if ($colors) {
+        if ($config->colors) {
             $dump = Str::replaceKeys($dump, [
                 '*RECURSION*' => self::exceptions('recursion'),
                 '=> NULL' => '=> ' . self::null('null'),
@@ -437,30 +281,30 @@ class Dumper
             ]);
 
             // classes & properties
-            $dump = preg_replace_callback('~class ([a-zA-Z0-9\\\\_]+)#~', static function (array $match) {
-                return 'class ' . self::class($match[1]) . '#';
+            $dump = preg_replace_callback('~class ([a-zA-Z0-9\\\\_]+)#~', static function (array $match) use ($config): string {
+                return 'class ' . self::class($match[1], $config) . '#';
             }, $dump);
-            $dump = preg_replace_callback('~(public|private|protected) (\\$[a-zA-Z0-9_]+) =>~', static function (array $match) {
+            $dump = preg_replace_callback('~(public|private|protected) (\\$[a-zA-Z0-9_]+) =>~', static function (array $match): string {
                 return $match[1] . ' ' . self::property($match[2]) . ' =>';
             }, $dump);
 
             // keys
-            $dump = preg_replace_callback('~\["(.*)"]~', static function (array $match) {
-                return self::string($match[1]);
+            $dump = preg_replace_callback('~\["(.*)"]~', static function (array $match) use ($config): string {
+                return self::string($match[1], $config);
             }, $dump);
-            $dump = preg_replace_callback('~\[(\d+)]~', static function (array $match) {
-                return self::int($match[1]);
+            $dump = preg_replace_callback('~\[(\d+)]~', static function (array $match) use ($config): string {
+                return self::int($match[1], $config);
             }, $dump);
 
             // values
-            $dump = preg_replace_callback('~(string\(\d+\) )"(.*)"~', static function (array $match) {
-                return self::dumpString($match[2]);
+            $dump = preg_replace_callback('~(string\(\d+\) )"(.*)"~', static function (array $match) use ($config): string {
+                return self::dumpString($match[2], $config);
             }, $dump);
-            $dump = preg_replace_callback('~int\((\d+)\)~', static function (array $match) {
-                return self::dumpInt((int) $match[1]);
+            $dump = preg_replace_callback('~int\((\d+)\)~', static function (array $match) use ($config): string {
+                return self::dumpInt((int) $match[1], $config);
             }, $dump);
-            $dump = preg_replace_callback('~float\((.*)\)~', static function (array $match) {
-                return self::dumpFloat((float) $match[1]);
+            $dump = preg_replace_callback('~float\((.*)\)~', static function (array $match) use ($config): string {
+                return self::dumpFloat((float) $match[1], $config);
             }, $dump);
         } else {
             $dump = preg_replace_callback('~\["(.*)"]~', static function (array $match) {
@@ -478,62 +322,51 @@ class Dumper
      * Dump value preceded by expression it came from and followed by trace
      *
      * @param mixed $value
+     * @param mixed $args arguments to update default DumperConfig from self::$config for this dump or a DumperConfig itself
      */
-    public static function dump($value, ?int $maxDepth = null, ?int $traceLength = null, ?string $name = null): string
+    public static function dump($value, ...$args): string
     {
         self::$objects = [];
+        $config = self::$config->update($args);
 
-        $oldDepth = self::$maxDepth;
-        if ($maxDepth !== null) {
-            self::$maxDepth = $maxDepth;
+        $callstack = Callstack::get($config->traceFilters);
+        $expression = $name ?? ($config->dumpExpressions ? self::findExpression($callstack, $config) : null);
+
+        $result = self::dumpValue($value, $config, 0, $expression === true ? null : $expression);
+
+        $callstack = $callstack->filter($config->traceFilters);
+        $trace = self::formatCallstack($callstack, $config, $config->traceLength, 0, 0);
+
+        // mark ordinary arrays as literals
+        if ($expression !== null && $expression !== true && $expression[0] === '[' && !is_callable($value)) {
+            $expression = true;
         }
-        $traceLengthBefore = self::$traceLength;
-        if ($traceLength !== null) {
-            self::$traceLength = $traceLength;
-        }
-
-        try {
-            $callstack = Callstack::get(self::$traceFilters);
-
-            $expression = $name ?? (self::$dumpExpressions ? self::findExpression($callstack) : null);
-
-            $result = self::dumpValue($value, 0, $expression === true ? null : $expression);
-
-            $trace = self::formatCallstack($callstack, $traceLength, 0, 0);
-
-            // mark ordinary arrays as literals
-            if ($expression !== null && $expression !== true && $expression[0] === '[' && !is_callable($value)) {
-                $expression = true;
+        $exp = '';
+        if ($config->dumpExpressions) {
+            if ($expression === true) {
+                $exp = self::key('literal', $config, true) . self::symbol(':') . ' ';
+            } elseif ($expression === null) {
+                $exp = self::key('unknown', $config, true) . self::symbol(':') . ' ';
+            } else {
+                $exp = self::key($expression, $config, true) . self::symbol(':') . ' ';
             }
-            $exp = '';
-            if (self::$dumpExpressions) {
-                if ($expression === true) {
-                    $exp = self::key('literal', true) . self::symbol(':') . ' ';
-                } elseif ($expression === null) {
-                    $exp = self::key('unknown', true) . self::symbol(':') . ' ';
-                } else {
-                    $exp = self::key($expression, true) . self::symbol(':') . ' ';
-                }
-            }
-
-            return $exp . $result . ($trace ? "\n" : '') . $trace;
-        } finally {
-            self::$traceLength = $traceLengthBefore;
-            self::$maxDepth = $oldDepth;
         }
+
+        return $exp . $result . ($trace ? "\n" : '') . $trace;
     }
 
     /**
+     * @internal call only from formatters
      * @param mixed $value
      * @param string|int|null $key
      */
-    public static function dumpValue($value, int $depth, $key = null): string
+    public static function dumpValue($value, DumperConfig $config, int $depth, $key = null): string
     {
         if ($depth === 0) {
             self::$objects = [];
         }
 
-        if (in_array($key, self::$hiddenFields, true)) {
+        if (in_array($key, $config->hiddenFields, true)) {
             return self::exceptions('*****');
         }
 
@@ -545,33 +378,33 @@ class Dumper
             } elseif ($value === false) {
                 return self::bool('false');
             } elseif (is_int($value)) {
-                return self::dumpInt($value, (string) $key);
+                return self::dumpInt($value, $config, (string) $key);
             } elseif (is_float($value)) {
-                return self::dumpFloat($value, (string) $key);
+                return self::dumpFloat($value, $config, (string) $key);
             } elseif (is_string($value)) {
                 if ($depth === 0 && is_string($key) && str_ends_with($key, '::class')) {
-                    return self::dumpClass($value, $depth);
+                    return self::dumpClass($value, $config, $depth);
                 } else {
-                    return self::dumpString($value, $depth, (string) $key);
+                    return self::dumpString($value, $config, $depth, (string) $key);
                 }
             } elseif (is_array($value)) {
                 // dump as callable when called as `dump([$foo, 'bar'])`
                 if ($depth === 0 && count($value) === 2 && is_string($key) && $key[0] === '[' && is_callable($value)) {
-                    return self::dumpMethod($value, $depth);
+                    return self::dumpMethod($value, $config, $depth);
                 } else {
-                    return self::dumpArray($value, $depth, (string) $key);
+                    return self::dumpArray($value, $config, $depth, (string) $key);
                 }
             } elseif (is_object($value)) {
                 if ($value instanceof Closure) {
-                    return self::dumpClosure($value, $depth);
+                    return self::dumpClosure($value, $config, $depth);
                 } else {
-                    return self::dumpObject($value, $depth);
+                    return self::dumpObject($value, $config, $depth);
                 }
             } elseif (is_resource($value)
                 || gettype($value) === 'resource (closed)' // 7.4
                 || gettype($value) === 'unknown type' // 7.1
             ) {
-                return self::dumpResource($value, $depth);
+                return self::dumpResource($value, $config, $depth);
             } else {
                 throw new LogicException('Unknown type: ' . gettype($value));
             }
@@ -582,13 +415,16 @@ class Dumper
         }
     }
 
-    public static function dumpInt(int $int, string $key = ''): string
+    /**
+     * @internal call only from formatters
+     */
+    public static function dumpInt(int $int, DumperConfig $config, string $key = ''): string
     {
-        if (self::$showInfo) {
+        if ($config->showInfo) {
             if ($int === PHP_INT_MAX) {
-                return self::int((string) $int) . ' ' . self::info('// PHP_INT_MAX');
+                return self::int((string) $int, $config) . ' ' . self::info('// PHP_INT_MAX');
             } elseif ($int === PHP_INT_MIN) {
-                return self::int((string) $int) . ' ' . self::info('// PHP_INT_MIN');
+                return self::int((string) $int, $config) . ' ' . self::info('// PHP_INT_MIN');
             }
 
             foreach (self::$intFormatters as $pattern => $formatter) {
@@ -601,12 +437,15 @@ class Dumper
             }
         }
 
-        return self::int((string) $int);
+        return self::int((string) $int, $config);
     }
 
-    public static function dumpFloat(float $float, string $key = ''): string
+    /**
+     * @internal call only from formatters
+     */
+    public static function dumpFloat(float $float, DumperConfig $config, string $key = ''): string
     {
-        if (self::$showInfo) {
+        if ($config->showInfo) {
             foreach (self::$floatFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
                     $res = $formatter($float);
@@ -617,26 +456,29 @@ class Dumper
             }
         }
 
-        return self::float($float);
+        return self::float($float, $config);
     }
 
-    public static function dumpString(string $string, int $depth = 0, string $key = ''): string
+    /**
+     * @internal call only from formatters
+     */
+    public static function dumpString(string $string, DumperConfig $config, int $depth = 0, string $key = ''): string
     {
         $size = strlen($string);
-        $length = Str::length($string, self::$inputEncoding);
-        $bytes = $size !== $length || $size >= self::$lengthInfoMin ? "{$size} B" : '';
+        $length = Str::length($string, $config->inputEncoding);
+        $bytes = $size !== $length || $size >= $config->lengthInfoMin ? "{$size} B" : '';
         $chars = $size !== $length ? ", {$length} ch" : '';
         $trimmed = '';
-        if ($length > self::$maxLength) {
-            $string = Str::substring($string, 0, self::$maxLength, self::$inputEncoding);
+        if ($length > $config->maxLength) {
+            $string = Str::substring($string, 0, $config->maxLength, $config->inputEncoding);
             $trimmed = $bytes || $chars ? ', trimmed' : 'trimmed';
         }
-        $info = self::$showInfo ? $bytes . $chars . $trimmed : '';
+        $info = $config->showInfo ? $bytes . $chars . $trimmed : '';
 
-        if (self::$showInfo) {
+        if ($config->showInfo) {
             foreach (self::$stringFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
-                    $res = $formatter($string, $info, $key, $depth);
+                    $res = $formatter($string, $config, $info, $key, $depth);
                     if ($res !== null) {
                         return $res;
                     }
@@ -644,13 +486,14 @@ class Dumper
             }
         }
 
-        return self::string($string, $depth) . ($info ? ' ' . self::info('// ' . $info) : '');
+        return self::string($string, $config, $depth) . ($info ? ' ' . self::info('// ' . $info) : '');
     }
 
     /**
+     * @internal call only from formatters
      * @param mixed[] $array
      */
-    public static function dumpArray(array $array, int $depth = 0, string $key = ''): string
+    public static function dumpArray(array $array, DumperConfig $config, int $depth = 0, string $key = ''): string
     {
         static $marker;
         if ($marker === null) {
@@ -664,17 +507,17 @@ class Dumper
         $count = count($array);
         if (isset($array[$marker])) {
             $cnt = Units::units($count, 'item');
-            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
+            $info = $config->showInfo ? ' ' . self::info("// {$cnt}") : '';
 
             return self::bracket('[') . ' ' . self::exceptions('recursion') . ' ' . self::bracket(']') . $info;
         }
 
         // try to speculatively format the array to check if they can fit on one row, even when depth limit is reached
-        $over = $depth - self::$maxDepth;
+        $over = $depth - $config->maxDepth;
         $short = ''; // only to satisfy PHPStan
         if ($over >= 0) {
             $cnt = Units::units($count, 'item');
-            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
+            $info = $config->showInfo ? ' ' . self::info("// {$cnt}") : '';
             $short = self::bracket('[') . ' ' . self::exceptions('...') . ' ' . self::bracket(']') . $info;
 
             if ($over >= 2) {
@@ -695,16 +538,16 @@ class Dumper
                 $array[$marker] = true;
                 $n = 0;
                 foreach ($array as $k => $value) {
-                    if (++$n > self::$arrayMaxLength) {
+                    if (++$n > $config->arrayMaxLength) {
                         $items[] = self::exceptions('...');
                         break;
                     }
                     if ($k === $marker) {
                         continue;
                     }
-                    $dumpedValue = self::dumpValue($value, $depth + 1, $k);
-                    $item = !$isList || self::$alwaysShowArrayKeys
-                        ? ($count > 10 && is_int($k) && $k >= 0 && $k < 10 ? ' ' : '') . self::key($k) . ' ' . self::symbol('=>') . ' ' . $dumpedValue
+                    $dumpedValue = self::dumpValue($value, $config, $depth + 1, $k);
+                    $item = !$isList || $config->alwaysShowArrayKeys
+                        ? ($count > 10 && is_int($k) && $k >= 0 && $k < 10 ? ' ' : '') . self::key($k, $config) . ' ' . self::symbol('=>') . ' ' . $dumpedValue
                         : $dumpedValue;
 
                     $pos = strrpos($item, $infoPrefix);
@@ -723,7 +566,7 @@ class Dumper
                     }
 
                     $items[] = $item;
-                    if ($over >= 0 && strlen($item) > self::$shortArrayMaxLength) {
+                    if ($over >= 0 && strlen($item) > $config->shortArrayMaxLength) {
                         // stop speculative descent on too long item
                         break;
                     }
@@ -733,22 +576,22 @@ class Dumper
             }
 
             $cnt = Units::units($count, 'item');
-            $info = self::$showInfo ? ' ' . self::info("// {$cnt}") : '';
+            $info = $config->showInfo ? ' ' . self::info("// {$cnt}") : '';
             $start = self::bracket('[');
             $end = self::bracket(']') . $info;
 
-            $length = Ansi::length(implode(', ', $items), self::$inputEncoding);
+            $length = Ansi::length(implode(', ', $items), $config->inputEncoding);
 
-            if ($over >= 0 && $length > self::$shortArrayMaxLength) {
+            if ($over >= 0 && $length > $config->shortArrayMaxLength) {
                 // stop speculative descent on too long output
                 break;
             }
 
-            if ($isList && $length < self::$shortArrayMaxLength && !$hasInfo) {
+            if ($isList && $length < $config->shortArrayMaxLength && !$hasInfo) {
                 // simple values: "[1, 2, 3] // 3 items"
                 $items = array_map('ltrim', $items);
                 $long = $start . substr(implode(' ', $items), 0, -strlen($coma)) . $end;
-            } elseif ($isList && $length < self::$shortArrayMaxLength && $count < self::$shortArrayMaxItems) {
+            } elseif ($isList && $length < $config->shortArrayMaxLength && $count < $config->shortArrayMaxItems) {
                 // squish lines: "['foo', 'bar'] // 2 items (3 B, 3 B)"
                 $items = array_map('ltrim', $items);
                 $values = [];
@@ -767,8 +610,8 @@ class Dumper
                     . $end . self::info(' (' . implode(', ', $infos)) . self::info(')');
             } else {
                 // item per line
-                $indent = self::indent($depth);
-                $indent2 = self::indent($depth + 1);
+                $indent = self::indent($depth, $config);
+                $indent2 = self::indent($depth + 1, $config);
 
                 $long = $start . "\n" . $indent2 . implode("\n" . $indent2, $items) . "\n" . $indent . $end;
             }
@@ -778,21 +621,22 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param object $object
      * @param self::FILTER_*
      */
-    public static function dumpObject($object, int $depth = 0, ?int $filter = null): string
+    public static function dumpObject($object, DumperConfig $config, int $depth = 0, ?int $filter = null): string
     {
         $hash = spl_object_hash($object);
         $recursion = self::$objects[$hash] ?? null;
         $class = get_class($object);
 
         if ($recursion === true && !$filter) {
-            $short = self::dumpObjectShort($object, $hash);
+            $short = self::dumpObjectShort($object, $config, $hash);
             if ($short) {
                 return $short;
             } else {
-                return self::class($class) . ' ' . self::bracket('{') . ' '
+                return self::class($class, $config) . ' ' . self::bracket('{') . ' '
                     . self::exceptions('recurrence of #' . self::objectHash($object)) . ' ' . self::bracket('}');
             }
         } elseif (is_string($recursion)) {
@@ -802,18 +646,18 @@ class Dumper
             self::$objects[$hash] = true;
         }
 
-        $info = self::objectInfo($object);
+        $info = self::objectInfo($object, $config);
 
         $handlerResult = '';
-        if (self::$useFormatters && $depth < self::$maxDepth + 1 && !$filter) {
+        if (self::$useFormatters && $depth < $config->maxDepth + 1 && !$filter) {
             $handler = self::$objectFormatters[$class] ?? null;
             if ($handler !== null) {
-                $handlerResult = $handler($object, $depth);
+                $handlerResult = $handler($object, $config, $depth);
             }
             if ($handlerResult === null || $handlerResult === '') {
                 foreach (self::$objectFormatters as $cl => $handler) {
                     if (is_a($object, $cl) && $cl !== $class) {
-                        $handlerResult = $handler($object, $depth);
+                        $handlerResult = $handler($object, $config, $depth);
                         if ($handlerResult !== null) {
                             break;
                         }
@@ -823,18 +667,18 @@ class Dumper
         }
 
         $skip = in_array($class, self::$doNotTraverse, true) && $depth !== 0;
-        if ($depth >= self::$maxDepth || $skip) {
+        if ($depth >= $config->maxDepth || $skip) {
             if ($handlerResult !== '' && !str_contains($handlerResult, "\n")) {
                 self::$objects[$hash] = $handlerResult;
                 return $handlerResult;
             }
 
-            $short = self::dumpObjectShort($object, $hash);
+            $short = self::dumpObjectShort($object, $config, $hash);
             if ($short) {
                 return $short;
             }
 
-            return self::class($class) . ' ' . self::bracket('{') . ' '
+            return self::class($class, $config) . ' ' . self::bracket('{') . ' '
                 . self::exceptions('...') . ' ' . self::bracket('}') . $info;
         }
 
@@ -845,25 +689,26 @@ class Dumper
             return $handlerResult;
         }
 
-        $properties = self::dumpProperties((array) $object, $depth, $class, $filter);
+        $properties = self::dumpProperties((array) $object, $config, $depth, $class, $filter);
         $filtered = $filter ? ' ' . self::exceptions('filtered') : '';
         if ($properties !== '') {
-            return self::class($class) . $filtered . ' ' . self::bracket('{') . $info
-                . "\n" . $properties . "\n" . self::indent($depth) . self::bracket('}');
+            return self::class($class, $config) . $filtered . ' ' . self::bracket('{') . $info
+                . "\n" . $properties . "\n" . self::indent($depth, $config) . self::bracket('}');
         } else {
-            return self::class($class) . $filtered . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
+            return self::class($class, $config) . $filtered . ' ' . self::bracket('{') . ' ' . self::bracket('}') . $info;
         }
     }
 
     /**
+     * @internal call only from formatters
      * @param object $object
      */
-    private static function dumpObjectShort($object, string $hash): ?string
+    private static function dumpObjectShort($object, DumperConfig $config, string $hash): ?string
     {
         /** @var int|class-string $cl */
         foreach (self::$shortObjectFormatters as $cl => $handler) {
             if (is_int($cl) || is_a($object, $cl)) {
-                $short = $handler($object);
+                $short = $handler($object, $config);
                 if ($short) {
                     self::$objects[$hash] = $short;
                     return $short;
@@ -875,12 +720,13 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param mixed[] $properties
      * @param class-string $class
      */
-    public static function dumpProperties(array $properties, int $depth, string $class, ?int $filter = null): string
+    public static function dumpProperties(array $properties, DumperConfig $config, int $depth, string $class, ?int $filter = null): string
     {
-        $indent = self::indent($depth + 1);
+        $indent = self::indent($depth + 1, $config);
         $equal = ' ' . self::symbol('=') . ' ';
         $semi = self::symbol(';');
         $infoPrefix = self::infoPrefix();
@@ -888,7 +734,7 @@ class Dumper
         $uninitialized = new class() {
 
         };
-        if (PHP_VERSION_ID >= 70400 && self::$showUninitializedProperties) {
+        if (PHP_VERSION_ID >= 70400 && $config->showUninitializedProperties) {
             $propRefs = self::collectProperties($class);
             if (count($properties) !== count($propRefs)) {
                 foreach ($propRefs as $key => $propRef) {
@@ -929,14 +775,14 @@ class Dumper
             $doNotTraverse = in_array($class . '::$' . $name, self::$doNotTraverse, true) ? 1000 : 0;
             $valueDump = $value === $uninitialized
                 ? self::exceptions('uninitialized')
-                : self::dumpValue($value, $depth + 1 + $doNotTraverse, $class . '::' . $name);
+                : self::dumpValue($value, $config, $depth + 1 + $doNotTraverse, $class . '::' . $name);
 
-            if (self::$groupNullAndUninitialized && $value === null) {
+            if ($config->groupNullAndUninitialized && $value === null) {
                 $nulls[] = $cls === null || $cls === '*' || $cls === $class
                     ? self::info('$' . $name)
                     : self::info($cls) . self::info('::$' . $name);
                 continue;
-            } elseif (self::$groupNullAndUninitialized && $value === $uninitialized) {
+            } elseif ($config->groupNullAndUninitialized && $value === $uninitialized) {
                 $empty[] = $cls === null || $cls === '*' || $cls === $class
                     ? self::info('$' . $name)
                     : self::info($cls) . self::info('::$' . $name);
@@ -945,7 +791,7 @@ class Dumper
 
             $fullName = $cls === null || $cls === '*' || $cls === $class
                 ? self::property('$' . $name)
-                : self::class($cls) . '::' . self::property('$' . $name);
+                : self::class($cls, $config) . '::' . self::property('$' . $name);
 
             $item = $indent . $access . ' ' . $fullName . $equal . $valueDump;
 
@@ -956,9 +802,9 @@ class Dumper
                 $item .= $semi;
             }
 
-            $k = self::$propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
+            $k = $config->propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
                 ? $access . ' ' . $name
-                : (self::$propertyOrder === self::ORDER_ALPHABETIC ? $name : $n);
+                : ($config->propertyOrder === self::ORDER_ALPHABETIC ? $name : $n);
 
             $items[$k] = $item;
             $n++;
@@ -979,6 +825,7 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param class-string $class
      * @return array<string, ReflectionProperty>
      */
@@ -1012,11 +859,12 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param class-string $class
      */
-    public static function dumpClass(string $class, int $depth = 0): string
+    public static function dumpClass(string $class, DumperConfig $config, int $depth = 0): string
     {
-        $indent = self::indent(1);
+        $indent = self::indent(1, $config);
         $equal = ' ' . self::symbol('=') . ' ';
         $semi = self::symbol(';');
         $infoPrefix = self::infoPrefix();
@@ -1031,7 +879,7 @@ class Dumper
             $access = self::access($property->isPrivate() ? 'private static' : ($property->isProtected() ? 'protected static' : 'public static'));
             $name = self::property('$' . $property->getName());
             $property->setAccessible(true);
-            $value = self::dumpValue($property->getValue($ref), $depth + 1, $property->getName());
+            $value = self::dumpValue($property->getValue($ref), $config, $depth + 1, $property->getName());
 
             $item = $indent . $access . ' ' . $name . $equal . $value;
 
@@ -1042,9 +890,9 @@ class Dumper
                 $item .= $semi;
             }
 
-            $k = self::$propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
+            $k = $config->propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
                 ? $access . ' ' . $name
-                : (self::$propertyOrder === self::ORDER_ALPHABETIC ? $name : $n);
+                : ($config->propertyOrder === self::ORDER_ALPHABETIC ? $name : $n);
 
             $items[$k] = $item;
             $n++;
@@ -1053,14 +901,14 @@ class Dumper
         $items = implode("\n", $items) . "\n";
 
         $methods = '';
-        if (self::$dumpClassesWithStaticMethodVariables) {
+        if ($config->dumpStaticVariablesOfMethods) {
             $methods = [];
             foreach ($ref->getMethods() as $method) {
                 $variables = $method->getStaticVariables();
                 if ($variables !== []) {
                     $name = $method->getName();
                     $access = $method->isProtected() ? 'protected' : ($method->isPublic() ? 'public' : 'private');
-                    $variables = self::dumpVariables($variables, $depth + 1, true);
+                    $variables = self::dumpVariables($variables, $config, $depth + 1, true);
                     $methods[$name] = $indent . self::access($access . ($method->isStatic() ? ' static' : '') . ' function ')
                         . self::function($name) . self::bracket('()') . ' ' . self::bracket('{') . $variables . $indent . self::bracket('}');
                 }
@@ -1069,11 +917,14 @@ class Dumper
             $methods = implode("\n", $methods) . "\n";
         }
 
-        return self::class($class) . self::symbol('::') . self::symbol('class') . ' '
+        return self::class($class, $config) . self::symbol('::') . self::symbol('class') . ' '
             . self::bracket('{') . "\n" . $items . $methods . self::bracket('}');
     }
 
-    public static function dumpClosure(Closure $closure, int $depth = 0): string
+    /**
+     * @internal call only from formatters
+     */
+    public static function dumpClosure(Closure $closure, DumperConfig $config, int $depth = 0): string
     {
         $ref = new ReflectionFunction($closure);
 
@@ -1083,7 +934,7 @@ class Dumper
         if ($fileName !== false) {
             /** @var int $startLine */
             $startLine = $ref->getStartLine();
-            $file = self::$showInfo ? self::info(' // ') . self::fileLine($fileName, $startLine) : '';
+            $file = $config->showInfo ? self::info(' // ') . self::fileLine($fileName, $startLine, $config) : '';
             $lines = file($fileName);
         } else {
             // in case of closure over native function, eg: "strlen(...)"
@@ -1146,15 +997,18 @@ class Dumper
             }
         }
 
-        $head = self::class('Closure') . ' ' . self::closure($head) . self::bracket('{');
-        $variables = self::dumpVariables($variables, $depth, true);
+        $head = self::class('Closure', $config) . ' ' . self::closure($head) . self::bracket('{');
+        $variables = self::dumpVariables($variables, $config, $depth, true);
 
         return $variables
-            ? $head . $file . $variables . self::indent($depth) . self::bracket('}')
+            ? $head . $file . $variables . self::indent($depth, $config) . self::bracket('}')
             : $head . self::bracket('}') . $file;
     }
 
-    public static function dumpMethod(callable $callable, int $depth = 0): string
+    /**
+     * @internal call only from formatters
+     */
+    public static function dumpMethod(callable $callable, DumperConfig $config, int $depth = 0): string
     {
         if (!is_callable($callable)) {
             throw new InvalidArgumentException('Callable array expected.');
@@ -1164,29 +1018,30 @@ class Dumper
 
         if (is_object($object)) {
             $ref = (new ReflectionObject($object))->getMethod($method);
-            $name = self::class(get_class($object)) . self::symbol('::')
+            $name = self::class(get_class($object), $config) . self::symbol('::')
                 . self::function($method) . self::bracket('()');
         } else {
             $ref = (new ReflectionClass($object))->getMethod($method);
-            $name = self::class($object) . self::symbol('::')
+            $name = self::class($object, $config) . self::symbol('::')
                 . self::function($method) . self::bracket('()');
         }
 
-        $variables = self::dumpVariables($ref->getStaticVariables(), $depth, true);
+        $variables = self::dumpVariables($ref->getStaticVariables(), $config, $depth, true);
 
         return $name . ' ' . self::bracket('{') . $variables . self::bracket('}');
     }
 
     /**
+     * @internal call only from formatters
      * @param mixed[] $variables
      */
-    public static function dumpVariables(array $variables, int $depth, bool $static = false): string
+    public static function dumpVariables(array $variables, DumperConfig $config, int $depth, bool $static = false): string
     {
         if ($variables === []) {
             return '';
         }
 
-        $indent = self::indent($depth + 1);
+        $indent = self::indent($depth + 1, $config);
         $equal = ' ' . self::symbol('=') . ' ';
         $semi = self::symbol(';');
         $infoPrefix = self::infoPrefix();
@@ -1195,7 +1050,7 @@ class Dumper
         $items = [];
         foreach ($variables as $name => $value) {
             $var = ($static ? self::access('static') . ' ' : '') . self::property('$' . $name);
-            $value = self::dumpValue($value, $depth + 1, $name);
+            $value = self::dumpValue($value, $config, $depth + 1, $name);
 
             $item = $indent . $var . $equal . $value;
 
@@ -1206,8 +1061,8 @@ class Dumper
                 $item .= $semi;
             }
 
-            $k = self::$propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
-                || self::$propertyOrder === self::ORDER_ALPHABETIC ? $name : $n;
+            $k = $config->propertyOrder === self::ORDER_VISIBILITY_ALPHABETIC
+                || $config->propertyOrder === self::ORDER_ALPHABETIC ? $name : $n;
 
             $items[$k] = $item;
             $n++;
@@ -1219,15 +1074,16 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param mixed[] $variables
      */
-    public static function dumpArguments(array $variables): string
+    public static function dumpArguments(array $variables, DumperConfig $config): string
     {
         if ($variables === []) {
             return '';
         }
 
-        $indent = self::indent(1);
+        $indent = self::indent(1, $config);
         $sep = self::symbol(':') . ' ';
         $coma = self::symbol(',');
         $infoPrefix = self::infoPrefix();
@@ -1239,7 +1095,7 @@ class Dumper
                 $name = '$' . $name;
             }
             $var = self::property($name);
-            $value = self::dumpValue($value, 1, $name);
+            $value = self::dumpValue($value, $config, 1, $name);
 
             $item = $indent . $var . $sep . $value;
 
@@ -1257,9 +1113,10 @@ class Dumper
     }
 
     /**
+     * @internal call only from formatters
      * @param resource|int $resource
      */
-    public static function dumpResource($resource, int $depth = 0): string
+    public static function dumpResource($resource, DumperConfig $config, int $depth = 0): string
     {
         $type = is_resource($resource) ? get_resource_type($resource) : 'closed';
         $id = (int) $resource;
@@ -1267,7 +1124,7 @@ class Dumper
 
         foreach (self::$resourceFormatters as $class => $handler) {
             if ($class === $name) {
-                return $handler($resource, $depth);
+                return $handler($resource, $config, $depth);
             }
         }
 

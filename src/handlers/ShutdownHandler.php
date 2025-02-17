@@ -147,10 +147,10 @@ class ShutdownHandler
                     }
                     self::$currentDestructorObject = $oid;
 
-                    $prevDepth = Dumper::$maxDepth;
-                    Dumper::$maxDepth = 2;
+                    $prevDepth = Dumper::$config->maxDepth;
+                    Dumper::$config->maxDepth = 2;
                     $message = Ansi::white(" Called destructor of: ", Ansi::DBLUE) . ' ' . Dumper::dumpValue($object, 0);
-                    Dumper::$maxDepth = $prevDepth;
+                    Dumper::$config->maxDepth = $prevDepth;
 
                     Debugger::send(Message::EVENT, $message);
                 }

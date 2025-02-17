@@ -50,7 +50,7 @@ arrays:
 Assert::dump([], '<literal>: <[]>');
 
 // short
-Dumper::$alwaysShowArrayKeys = false;
+Dumper::$config->alwaysShowArrayKeys = false;
 Assert::dump([1, 2, 3, 4, 5], '<literal>: <[><1>, <2>, <3>, <4>, <5><]> <// 5 items>');
 
 // long
@@ -129,7 +129,7 @@ Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::cla
     <protected static> <$b> = <"bar">;
 <}>');
 
-Dumper::$dumpClassesWithStaticMethodVariables = true;
+Dumper::$config->dumpStaticVariablesOfMethods = true;
 Assert::dump(Bar::class, '<Bar::class>: <Dogma><\><Tests><\><Debug><\><Bar>::class <{>
     <private static> <$a> = <1>;
     <protected static> <$b> = <"bar">;

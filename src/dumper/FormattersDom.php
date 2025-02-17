@@ -51,14 +51,14 @@ class FormattersDom
         Dumper::$objectFormatters[NodeList::class] = [self::class, 'dumpDomNodeList'];
     }
 
-    public static function dumpDomDocument(DOMDocument $document, int $depth = 0): string
+    public static function dumpDomDocument(DOMDocument $document, DumperConfig $config, int $depth = 0): string
     {
-        return Dumper::class(get_class($document)) . Dumper::bracket('(')
-            . Dumper::dumpValue($document->documentElement, $depth + 1)
+        return Dumper::class(get_class($document), $config) . Dumper::bracket('(')
+            . Dumper::dumpValue($document->documentElement, $config, $depth + 1)
             . Dumper::bracket(')');
     }
 
-    public static function dumpDomDocumentType(DOMDocumentType $type, int $depth = 0): string
+    public static function dumpDomDocumentType(DOMDocumentType $type, DumperConfig $config, int $depth = 0): string
     {
         $html = $type->ownerDocument->saveHTML($type);
         if ($html === false) {
@@ -69,10 +69,10 @@ class FormattersDom
 
         return $depth === 0
             ? $value
-            : Dumper::class(get_class($type)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
+            : Dumper::class(get_class($type), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')');
     }
 
-    public static function dumpDomEntity(DOMEntity $entity, int $depth = 0): string
+    public static function dumpDomEntity(DOMEntity $entity, DumperConfig $config, int $depth = 0): string
     {
         $html = $entity->ownerDocument->saveHTML($entity);
         if ($html === false) {
@@ -83,16 +83,16 @@ class FormattersDom
 
         return $depth === 0
             ? $value
-            : Dumper::class(get_class($entity)) . Dumper::bracket('(') . $value . Dumper::bracket(')');
+            : Dumper::class(get_class($entity), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')');
     }
 
-    public static function dumpDomDocumentFragment(DOMDocumentFragment $fragment, int $depth = 0): string
+    public static function dumpDomDocumentFragment(DOMDocumentFragment $fragment, DumperConfig $config, int $depth = 0): string
     {
         $coma = Dumper::symbol(',');
 
         $nodes = [];
         foreach ($fragment->childNodes as $node) {
-            $node = Dumper::indent($depth + 1) . Dumper::dumpValue($node, $depth + 1);
+            $node = Dumper::indent($depth + 1, $config) . Dumper::dumpValue($node, $config, $depth + 1);
             $pos = strrpos($node, Dumper::infoPrefix());
             if ($pos !== false && str_contains(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
@@ -102,23 +102,23 @@ class FormattersDom
             $nodes[] = $node;
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($fragment) . ', ' . count($fragment->childNodes) . ' items') : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($fragment) . ', ' . count($fragment->childNodes) . ' items') : '';
 
-        return Dumper::class(get_class($fragment)) . Dumper::bracket('(') . "\n"
+        return Dumper::class(get_class($fragment), $config) . Dumper::bracket('(') . "\n"
             . implode("\n", $nodes) . "\n"
-            . Dumper::indent($depth) . Dumper::bracket(')') . $info;
+            . Dumper::indent($depth, $config) . Dumper::bracket(')') . $info;
     }
 
     /**
      * @param NodeList|DOMNodeList $nodeList
      */
-    public static function dumpDomNodeList($nodeList, int $depth = 0): string
+    public static function dumpDomNodeList($nodeList, DumperConfig $config, int $depth = 0): string
     {
         $coma = Dumper::symbol(',');
 
         $nodes = [];
         foreach ($nodeList as $node) {
-            $node = Dumper::indent($depth + 1) . Dumper::dumpValue($node, $depth + 1);
+            $node = Dumper::indent($depth + 1, $config) . Dumper::dumpValue($node, $config, $depth + 1);
             $pos = strrpos($node, Dumper::infoPrefix());
             if ($pos !== false && str_contains(substr($node, $pos), "\n")) {
                 $node = substr($node, 0, $pos) . $coma . substr($node, $pos);
@@ -128,35 +128,35 @@ class FormattersDom
             $nodes[] = $node;
         }
 
-        $info = Dumper::$showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($nodeList) . ', ' . count($nodeList) . ' items') : '';
+        $info = Dumper::$config->showInfo ? ' ' . Dumper::info('// #' . Dumper::objectHash($nodeList) . ', ' . count($nodeList) . ' items') : '';
 
-        return Dumper::class(get_class($nodeList)) . Dumper::bracket('[') . "\n"
+        return Dumper::class(get_class($nodeList), $config) . Dumper::bracket('[') . "\n"
             . implode("\n", $nodes) . "\n"
-            . Dumper::indent($depth) . Dumper::bracket(']') . $info;
+            . Dumper::indent($depth, $config) . Dumper::bracket(']') . $info;
     }
 
     /**
      * @param Element|DOMElement $node
      */
-    public static function dumpDomElement($node, int $depth = 0): string
+    public static function dumpDomElement($node, DumperConfig $config, int $depth = 0): string
     {
         $coma = Dumper::symbol(',');
 
-        $showInfo = Dumper::$showInfo;
-        Dumper::$showInfo = false;
+        $showInfo = Dumper::$config->showInfo;
+        Dumper::$config->showInfo = false;
         $attributes = [];
         foreach ($node->attributes ?? [] as $attribute) {
-            $attributes[] = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $depth + 1);
+            $attributes[] = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $config, $depth + 1);
         }
         $attributes = implode(' ', $attributes);
         if ($attributes !== '') {
             $attributes = ' ' . $attributes;
         }
-        Dumper::$showInfo = $showInfo;
+        Dumper::$config->showInfo = $showInfo;
 
         $childNodes = [];
         foreach ($node->childNodes as $childNode) {
-            $childNode = Dumper::indent($depth + 1) . Dumper::dumpValue($childNode, $depth + 1);
+            $childNode = Dumper::indent($depth + 1, $config) . Dumper::dumpValue($childNode, $config, $depth + 1);
             $pos = strrpos($childNode, Dumper::infoPrefix());
             if ($pos !== false && str_contains(substr($childNode, $pos), "\n")) {
                 $childNode = substr($childNode, 0, $pos) . $coma . substr($childNode, $pos);
@@ -169,56 +169,56 @@ class FormattersDom
         $hasChildNodes = $node->childNodes->length > 0;
         if ($hasChildNodes) {
             $head = "\n";
-            $foot = "\n" . Dumper::indent($depth);
+            $foot = "\n" . Dumper::indent($depth, $config);
         } else {
             $head = '';
             $foot = '';
         }
 
-        return Dumper::class(get_class($node)) . Dumper::bracket('(')
+        return Dumper::class(get_class($node), $config) . Dumper::bracket('(')
             . Dumper::value2('<') . Dumper::value($node->nodeName) . $attributes . Dumper::value2('>') . $head
             . implode("\n", $childNodes)
             . $foot . Dumper::value2('<') . Dumper::value($node->nodeName) . Dumper::value2('>')
             . Dumper::bracket(')');
     }
 
-    public static function dumpDomCdataSection(DOMCdataSection $section, int $depth = 0): string
+    public static function dumpDomCdataSection(DOMCdataSection $section, DumperConfig $config, int $depth = 0): string
     {
         $value = Dumper::value2('<![CDATA[') . Dumper::value($section->data) . Dumper::value2(']]>');
 
         return $depth !== 0
             ? $value
-            : Dumper::class(get_class($section)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($section), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($section));
     }
 
-    public static function dumpDomComment(DOMComment $comment, int $depth = 0): string
+    public static function dumpDomComment(DOMComment $comment, DumperConfig $config, int $depth = 0): string
     {
         $value = Dumper::info('<!-- ' . trim($comment->data) . " -->");
 
         return $depth !== 0
             ? $value
-            : Dumper::class(get_class($comment)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($comment), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($comment));
     }
 
-    public static function dumpDomText(DOMText $text, int $depth = 0): string
+    public static function dumpDomText(DOMText $text, DumperConfig $config, int $depth = 0): string
     {
-        $value = Dumper::string($text->wholeText, $depth);
+        $value = Dumper::string($text->wholeText, $config, $depth);
 
         return $depth !== 0
             ? $value
-            : Dumper::class(get_class($text)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($text), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($text));
     }
 
-    public static function dumpDomAttr(DOMAttr $attribute, int $depth = 0): string
+    public static function dumpDomAttr(DOMAttr $attribute, DumperConfig $config, int $depth = 0): string
     {
-        $value = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $depth + 1);
+        $value = Dumper::value($attribute->name) . Dumper::value2('=') . Dumper::dumpValue($attribute->value, $config, $depth + 1);
 
         return $depth !== 0
             ? $value
-            : Dumper::class(get_class($attribute)) . Dumper::bracket('(') . $value . Dumper::bracket(')')
+            : Dumper::class(get_class($attribute), $config) . Dumper::bracket('(') . $value . Dumper::bracket(')')
                 . Dumper::info(' // #' . Dumper::objectHash($attribute));
     }
 

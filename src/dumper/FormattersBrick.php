@@ -36,56 +36,56 @@ class FormattersBrick
         Dumper::$objectFormatters[LocalTime::class] = [self::class, 'dumpLocalTime'];
     }
 
-    public static function dumpBigInteger(BigInteger $integer): string
+    public static function dumpBigInteger(BigInteger $integer, DumperConfig $config): string
     {
         $value = $integer->__toString();
 
-        return Dumper::class(get_class($integer)) . Dumper::bracket('(')
+        return Dumper::class(get_class($integer), $config) . Dumper::bracket('(')
             . Dumper::value($value)
             . Dumper::bracket(')') . Dumper::objectHashInfo($integer);
     }
 
-    public static function dumpBigRational(BigRational $rational): string
+    public static function dumpBigRational(BigRational $rational, DumperConfig $config): string
     {
         $numerator = $rational->getNumerator()->__toString();
         $denominator = $rational->getDenominator()->__toString();
 
-        return Dumper::class(get_class($rational)) . Dumper::bracket('(')
+        return Dumper::class(get_class($rational), $config) . Dumper::bracket('(')
             . Dumper::value($numerator . ' / ' . $denominator) . ' (' . Dumper::value2('~' . (intval($numerator) / intval($denominator))) . ')'
             . Dumper::bracket(')') . Dumper::objectHashInfo($rational);
     }
 
-    public static function dumpCurrency(Currency $currency): string
+    public static function dumpCurrency(Currency $currency, DumperConfig $config): string
     {
         $value = $currency->__toString();
 
-        return Dumper::class(get_class($currency)) . Dumper::bracket('(')
+        return Dumper::class(get_class($currency), $config) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::value2($currency->getDefaultFractionDigits())
             . Dumper::bracket(')') . Dumper::objectHashInfo($currency);
     }
 
-    public static function dumpInstant(Instant $dt): string
+    public static function dumpInstant(Instant $dt, DumperConfig $config): string
     {
         $value = $dt->__toString();
 
-        return Dumper::class(get_class($dt)) . Dumper::bracket('(')
+        return Dumper::class(get_class($dt), $config) . Dumper::bracket('(')
             . Dumper::value($value) . ' ' . Dumper::value2($dt->getEpochSecond() . ' ' . $dt->getNano())
             . Dumper::bracket(')') . Dumper::objectHashInfo($dt);
     }
 
-    public static function dumpLocalDate(LocalDate $date): string
+    public static function dumpLocalDate(LocalDate $date, DumperConfig $config): string
     {
         $value = $date->__toString();
 
-        return Dumper::class(get_class($date)) . Dumper::bracket('(')
+        return Dumper::class(get_class($date), $config) . Dumper::bracket('(')
             . Dumper::value($value) . Dumper::bracket(')') . Dumper::objectHashInfo($date);
     }
 
-    public static function dumpLocalTime(LocalTime $time): string
+    public static function dumpLocalTime(LocalTime $time, DumperConfig $config): string
     {
         $value = $time->__toString();
 
-        return Dumper::class(get_class($time)) . Dumper::bracket('(')
+        return Dumper::class(get_class($time), $config) . Dumper::bracket('(')
             . Dumper::value($value) . Dumper::bracket(')') . Dumper::objectHashInfo($time);
     }
 

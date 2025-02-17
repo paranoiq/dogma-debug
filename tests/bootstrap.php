@@ -12,7 +12,7 @@ require_once __DIR__ . '/Assert.php';
 $_dogma_debug_no_config = true;
 require_once __DIR__ . '/../shortcuts.php';
 
-Dumper::$trimPathPrefixes[] = '~.*/dogma-debug/~';
+Dumper::$config->trimPathPrefixes[] = '~.*/dogma-debug/~';
 
 if (!empty($_SERVER['argv'])) {
     // may be running from command line, but under 'cgi-fcgi' SAPI

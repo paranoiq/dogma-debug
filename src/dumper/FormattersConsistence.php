@@ -28,28 +28,28 @@ class FormattersConsistence
         Dumper::$objectFormatters[Enum::class] = [self::class, 'dumpConsistenceEnum'];
     }
 
-    private static function dumpConsistenceMultiEnum(MultiEnum $enum): string
+    private static function dumpConsistenceMultiEnum(MultiEnum $enum, DumperConfig $config): string
     {
         $values = $enum::getAvailableValues();
         $keys = array_keys(array_filter($values, static function ($value) use ($values): bool {
             return in_array($value, $values, true);
         }));
         $value = $enum->getValue();
-        $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
+        $value = is_string($value) ? Dumper::string($value, $config) : Dumper::int((string) $value, $config);
 
-        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum), $config) . Dumper::bracket('(')
             . $value . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2(implode('|', $keys))
             . Dumper::bracket(')');
     }
 
-    private static function dumpConsistenceEnum(Enum $enum): string
+    private static function dumpConsistenceEnum(Enum $enum, DumperConfig $config): string
     {
         $key = array_search($enum->getValue(), $enum::getAvailableValues(), true);
         $value = $enum->getValue();
-        $value = is_string($value) ? Dumper::string($value) : Dumper::int((string) $value);
+        $value = is_string($value) ? Dumper::string($value, $config) : Dumper::int((string) $value, $config);
 
-        return Dumper::class(get_class($enum)) . Dumper::bracket('(')
+        return Dumper::class(get_class($enum), $config) . Dumper::bracket('(')
             . $value . ' ' . Dumper::symbol('/') . ' '
             . Dumper::value2((string) $key)
             . Dumper::bracket(')');

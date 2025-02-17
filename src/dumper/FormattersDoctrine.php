@@ -25,23 +25,23 @@ class FormattersDoctrine
         Dumper::$objectFormatters[TableDiff::class] = [self::class, 'dumpTableDiff'];
     }
 
-    public static function dumpTableShort(Table $table): string
+    public static function dumpTableShort(Table $table, DumperConfig $config): string
     {
-        return Dumper::class(get_class($table)) . Dumper::bracket('(')
+        return Dumper::class(get_class($table), $config) . Dumper::bracket('(')
             . Dumper::value($table->getName()) . ' ' . Dumper::exceptions('...')
             . Dumper::bracket(')') . Dumper::objectHashInfo($table);
     }
 
-    public static function dumpColumnShort(Column $column): string
+    public static function dumpColumnShort(Column $column, $config): string
     {
-        return Dumper::class(get_class($column)) . Dumper::bracket('(')
+        return Dumper::class(get_class($column), $config) . Dumper::bracket('(')
             . Dumper::value($column->getName()) . ' ' . Dumper::exceptions('...')
             . Dumper::bracket(')') . Dumper::objectHashInfo($column);
     }
 
-    public static function dumpTableDiff(TableDiff $tableDiff, int $depth): string
+    public static function dumpTableDiff(TableDiff $tableDiff, DumperConfig $config, int $depth): string
     {
-        return Dumper::dumpObject($tableDiff, $depth, Dumper::FILTER_EMPTY_ARRAYS);
+        return Dumper::dumpObject($tableDiff, $config, $depth, Dumper::FILTER_EMPTY_ARRAYS);
     }
 
 }

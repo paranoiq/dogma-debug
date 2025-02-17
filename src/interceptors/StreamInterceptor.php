@@ -154,7 +154,7 @@ class StreamInterceptor
         $message = Ansi::white(" {$handler}: ", Debugger::$handlerColors[$handler])
             . ' ' . Dumper::file($path) . ' ' . Dumper::call($function, $params, $return);
 
-        $callstack = Callstack::get(Dumper::$traceFilters, self::$filterTrace);
+        $callstack = Callstack::get(Dumper::$config->traceFilters, self::$filterTrace);
         $trace = Dumper::formatCallstack($callstack, 1, 0, 0);
 
         Debugger::send(Message::INTERCEPT, $message, $trace, $duration);

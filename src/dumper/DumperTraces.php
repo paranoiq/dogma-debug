@@ -34,9 +34,9 @@ trait DumperTraces
     /**
      * @return non-empty-string|true|null
      */
-    public static function findExpression(Callstack $callstack)
+    public static function findExpression(Callstack $callstack, DumperConfig $config)
     {
-        $callstack = $callstack->filter(self::$traceFilters);
+        $callstack = $callstack->filter($config->traceFilters);
         foreach ($callstack->frames as $frame) {
             $line = $frame->getLineCode();
             if ($line === null) {
@@ -112,37 +112,24 @@ trait DumperTraces
         return $expression;
     }
 
-    public static function formatCallstack(
-        Callstack $callstack,
-        ?int $length = null,
-        ?int $argsDepth = null,
-        ?int $codeLines = null,
-        ?int $codeDepth = null
-    ): string
+    public static function formatCallstack(Callstack $callstack, DumperConfig $config): string
     {
-        $length = $length ?? self::$traceLength;
-        if ($length === 0) {
+        if ($config->traceLength) {
             return '';
         }
-
-        $oldDepth = self::$maxDepth;
-        self::$maxDepth = ($argsDepth ?? self::$traceArgsDepth);
-
-        $codeLines = $codeLines ?? self::$traceCodeLines;
-        $codeDepth = $codeDepth ?? self::$traceCodeDepth;
 
         $prevArgs = '';
         $results = [];
         $n = 0;
         foreach ($callstack->frames as $frame) {
-            [$result, $args] = self::formatFrame($frame, $prevArgs);
+            [$result, $args] = self::formatFrame($frame, $config, $prevArgs);
             if ($result === null) {
                 continue;
             }
             $prevArgs = $args;
 
-            if ($codeLines > 0 && $n < $codeDepth && $frame->file !== null) {
-                $lines = (int) floor($codeLines / 2);
+            if ($config->traceCodeLines > 0 && $n < $config->traceCodeDepth && $frame->file !== null) {
+                $lines = (int) floor($config->traceCodeLines / 2);
                 $lines = $frame->getLinesAround($lines, $lines);
                 foreach ($lines as $i => $line) {
                     $lines[$i] = Ansi::lgray($i . ':') . ' ' . ($i === $frame->line ? Ansi::white($line) : Ansi::dyellow($line));
@@ -152,12 +139,10 @@ trait DumperTraces
 
             $results[] = $result;
             $n++;
-            if ($n >= $length) {
+            if ($n >= $config->traceLength) {
                 break;
             }
         }
-
-        self::$maxDepth = $oldDepth;
 
         return implode("\n", $results);
     }
@@ -165,7 +150,7 @@ trait DumperTraces
     /**
      * @return array{string|null, string}
      */
-    private static function formatFrame(CallstackFrame $frame, string $prevArgs): array
+    private static function formatFrame(CallstackFrame $frame, DumperConfig $config, string $prevArgs): array
     {
         $skipArgs = ' ' . self::exceptions('...') . ' ';
         $unknownArgs = ' ' . self::exceptions('???') . ' ';
@@ -173,10 +158,10 @@ trait DumperTraces
         $currentArgs = '';
         if ($frame->args === false) {
             $currentArgs = $unknownArgs;
-        } elseif ($frame->args !== [] && self::$maxDepth === 0) {
+        } elseif ($frame->args !== [] && $config->maxDepth === 0) {
             $currentArgs = $skipArgs;
         } elseif ($frame->args !== []) {
-            $currentArgs = self::dumpArguments($frame->getNamedArgs());
+            $currentArgs = self::dumpArguments($frame->getNamedArgs(), $config);
             if (!str_contains($currentArgs, "\n")) {
                 $currentArgs = ' ' . ltrim(rtrim($currentArgs, ',')) . ' ';
             } else {
@@ -194,14 +179,14 @@ trait DumperTraces
         }
 
         $classMethod = '';
-        if (self::$traceDetails && $frame->function !== null) {
+        if ($config->traceDetails && $frame->function !== null) {
             $classMethod = ($frame->class !== null ? self::nameDim($frame->class) . self::symbol('::') : '')
                 . self::nameDim($frame->function) . self::bracket('(') . $args . self::bracket(')');
         }
 
         $fileLine = '';
         if ($frame->file !== null && $frame->line !== null) {
-            $fileLine = self::fileLine(self::trimPath(self::normalizePath($frame->file)), $frame->line);
+            $fileLine = self::fileLine(self::trimPath(self::normalizePath($frame->file), $config), $frame->line, $config);
         }
 
         $separator = '';
@@ -221,7 +206,7 @@ trait DumperTraces
             $timeMemory .= $frame->memory ? self::memory(Units::memory($frame->memory)) : '';
         }
 
-        $number = $frame->number !== null && self::$traceNumbered ? ' ' . $frame->number : '';
+        $number = $frame->number !== null && $config->traceNumbered ? ' ' . $frame->number : '';
 
         return [self::info("^---{$number} in ") . $fileLine . $separator . $classMethod . $timeMemory, $currentArgs];
     }
@@ -260,9 +245,9 @@ trait DumperTraces
         return strval($relative && $path[0] === '/' ? substr($path, 1) : $path);
     }
 
-    public static function trimPath(string $path): string
+    public static function trimPath(string $path, DumperConfig $config): string
     {
-        foreach (self::$trimPathPrefixes as $prefix) {
+        foreach ($config->trimPathPrefixes as $prefix) {
             $after = preg_replace($prefix, '', $path);
             if ($after !== $path) {
                 return $after;
