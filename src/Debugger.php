@@ -51,7 +51,6 @@ use function socket_create;
 use function socket_read;
 use function socket_write;
 use function sprintf;
-use function str_ends_with;
 use function str_repeat;
 use function str_starts_with;
 use function strlen;

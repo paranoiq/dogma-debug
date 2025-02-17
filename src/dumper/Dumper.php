@@ -14,7 +14,6 @@ namespace Dogma\Debug;
 use BackedEnum;
 use Closure;
 use DateTimeInterface;
-use DateTimeZone;
 use InvalidArgumentException;
 use IteratorIterator;
 use LogicException;
@@ -93,7 +92,7 @@ class Dumper
     public const ESCAPING_MYSQL = 'mysql';
     public const ESCAPING_PGSQL = 'pgsql';
     public const ESCAPING_CHAR_NAMES = 'names'; // NUL, SOH, STX etc.
-    public const ESCAPING_ISO2047_SYMBOLS = 'symbols'; // https://en.wikipedia.org/wiki/ISO_2047
+    public const ESCAPING_ISO2047_SYMBOLS = 'iso2047'; // https://en.wikipedia.org/wiki/ISO_2047
     public const ESCAPING_CP437 = 'cp437'; // https://en.wikipedia.org/wiki/Code_page_437
 
     public const JSON_KEEP_AS_IS = 0;

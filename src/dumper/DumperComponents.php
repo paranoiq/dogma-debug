@@ -229,6 +229,9 @@ trait DumperComponents
         return Ansi::color($value, self::$colors['float']);
     }
 
+    /**
+     * Scientific notation with exponent in steps of 3 (3.14e3, 3.14e6, 3.14e9 etc.)
+     */
     private static function floatScientific3(float $value): string
     {
         $exponent = 0;

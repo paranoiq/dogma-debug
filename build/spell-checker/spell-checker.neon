@@ -1,10 +1,10 @@
 
 directories:
-	- src
-	- tests
-	- build
-	- stubs
-	- //
+    - src
+    - tests
+    - build
+    - stubs
+    - //
 
 dictionariesByFileName:
     */Ansi.php: skip
