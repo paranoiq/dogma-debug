@@ -77,7 +77,7 @@ class Str
         }
     }
 
-    public static function substring(string $string, int $start, int $length = null, string $encoding = 'utf-8'): string
+    public static function substring(string $string, int $start, ?int $length = null, string $encoding = 'utf-8'): string
     {
         if ($encoding === 'utf-8' && function_exists('grapheme_substr')) {
             return grapheme_substr($string, $start, $length);
@@ -181,7 +181,11 @@ class Str
             return '\x' . self::charToHex($ch);
         }, $chars);
 
-        return '~[' . implode('', $chars) . ']~';
+		if ($chars !== []) {
+			return '~[' . implode('', $chars) . ']~';
+		} else {
+			return '~[\x00]~';
+		}
     }
 
     /**

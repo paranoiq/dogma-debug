@@ -114,7 +114,7 @@ trait DumperTraces
 
     public static function formatCallstack(Callstack $callstack, DumperConfig $config): string
     {
-        if ($config->traceLength) {
+        if ($config->traceLength === 0) {
             return '';
         }
 

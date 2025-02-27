@@ -244,7 +244,7 @@ class DumperConfig
     public $traceCodeLines = 5;
 
     /** @var int - count of stack frames for which code should be shown [cd] */
-    public $traceCodeDepth = 1;
+    public $traceCodeDepth = 0;
 
     /** @var string[] - functions, classes and methods skipped from backtrace [tf] */
     public $traceFilters = [

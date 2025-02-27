@@ -64,7 +64,8 @@ class MysqliStatementProxy extends mysqli_stmt
         return call_user_func_array([$this->statement, 'bind_result'], $vars);
     }
 
-    public function close()
+	#[\ReturnTypeWillChange]
+    public function close(): bool
     {
         $result = false;
         try {

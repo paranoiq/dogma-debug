@@ -512,7 +512,7 @@ class FormattersDefault
         return null;
     }
 
-    public static function dumpStringKeyValuePair(string $string, DumperConfig $config, string $info, string $key, int $depth): ?string
+    public static function dumpStringKeyValuePair(string $string, string $info, string $key, DumperConfig $config, int $depth): ?string
     {
         if (!str_contains($string, '=')) {
             return null;

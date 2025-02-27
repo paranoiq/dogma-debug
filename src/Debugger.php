@@ -25,6 +25,7 @@ use function error_get_last;
 use function explode;
 use function fclose;
 use function file_get_contents;
+use function file_put_contents;
 use function fopen;
 use function fwrite;
 use function headers_list;
@@ -437,7 +438,8 @@ class Debugger
         } elseif ($callstack === null) {
             $callstack = Callstack::get(Dumper::$config->traceFilters);
         }
-        $trace = Dumper::formatCallstack($callstack, ...$args);
+        $config = Dumper::$config->update(['traceLength' => 1000])->update($args);
+        $trace = Dumper::formatCallstack($callstack, $config);
 
         self::send(Message::CALLSTACK, $trace);
 

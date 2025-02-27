@@ -120,7 +120,8 @@ class MysqliProxy extends mysqli
         return $result;
     }
 
-    public function close()
+	#[\ReturnTypeWillChange]
+    public function close(): bool
     {
         $result = false;
         try {
@@ -206,7 +207,8 @@ class MysqliProxy extends mysqli
         return $result;
     }
 
-    public function debug($options)
+	#[\ReturnTypeWillChange]
+    public function debug($options): bool
     {
         $result = false;
         try {
@@ -630,7 +632,8 @@ class MysqliProxy extends mysqli
         return $result;
     }
 
-    public function ssl_set($key, $certificate, $ca_certificate, $ca_path, $cipher_algos)
+	#[\ReturnTypeWillChange]
+    public function ssl_set($key, $certificate, $ca_certificate, $ca_path, $cipher_algos): bool
     {
         $result = false;
         try {

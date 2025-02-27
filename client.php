@@ -216,6 +216,8 @@ return (static function (): bool {
         }
     }
 
+	unset($_dogma_debug_start, $_dogma_debug_no_config);
+
     if (ini_get('allow_url_include')) {
         Debugger::error('Security warning: ini directive allow_url_include should be off.');
     }

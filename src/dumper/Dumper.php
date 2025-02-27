@@ -191,7 +191,7 @@ class Dumper
         '~time|until|since~i' => [FormattersDefault::class, 'dumpFloatTime'],
     ];
 
-    /** @var array<int|string, callable(string, DumperConfig): ?string> - user formatters for string values. optionally indexed by key regexp */
+    /** @var array<int|string, callable(string, string, int|string, DumperConfig, int): ?string> - user formatters for string values. optionally indexed by key regexp */
     public static $stringFormatters = [
         [FormattersDefault::class, 'dumpStringHidden'], // must be first!
         '/path(?!ext)/i' => [FormattersDefault::class, 'dumpStringPathList'],
@@ -208,7 +208,7 @@ class Dumper
         'curl_setopt_array.1' => [CurlInterceptor::class, 'getCurlSetoptArrayKeyInfo'],
     ];
 
-    /** @var array<string, callable(resource, DumperConfig): string> - user formatters for resources */
+    /** @var array<string, callable(resource, DumperConfig, int): string> - user formatters for resources */
     public static $resourceFormatters = [
         '(stream)' => [FormattersDefault::class, 'dumpStream'],
         '(stream-context)' => [FormattersDefault::class, 'dumpStreamContext'],
@@ -216,7 +216,7 @@ class Dumper
         '(closed)' => [FormattersDefault::class, 'dumpClosedProcess'],
     ];
 
-    /** @var array<class-string, callable(object, DumperConfig): ?string> - user formatters for dumping objects and resources */
+    /** @var array<class-string, callable(object, DumperConfig, int): ?string> - user formatters for dumping objects and resources */
     public static $objectFormatters = [
         // native classes
         BackedEnum::class => [FormattersDefault::class, 'dumpBackedEnum'],
@@ -428,7 +428,7 @@ class Dumper
 
             foreach (self::$intFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
-                    $res = $formatter($int);
+                    $res = $formatter($int, $config);
                     if ($res !== null) {
                         return $res;
                     }
@@ -447,7 +447,7 @@ class Dumper
         if ($config->showInfo) {
             foreach (self::$floatFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
-                    $res = $formatter($float);
+                    $res = $formatter($float, $config);
                     if ($res !== null) {
                         return $res;
                     }
@@ -477,7 +477,7 @@ class Dumper
         if ($config->showInfo) {
             foreach (self::$stringFormatters as $pattern => $formatter) {
                 if (is_int($pattern) || preg_match($pattern, $key)) {
-                    $res = $formatter($string, $config, $info, $key, $depth);
+                    $res = $formatter($string, $info, $key, $config, $depth);
                     if ($res !== null) {
                         return $res;
                     }
@@ -550,7 +550,7 @@ class Dumper
                         : $dumpedValue;
 
                     $pos = strrpos($item, $infoPrefix);
-                    $keyInfo = isset(self::$arrayKeyFormatters[$key]) ? self::$arrayKeyFormatters[$key]($k) : '';
+                    $keyInfo = isset(self::$arrayKeyFormatters[$key]) ? self::$arrayKeyFormatters[$key]($k, $config) : '';
                     if ($pos !== false && !strpos(substr($item, $pos), "\n")) {
                         $item = substr($item, 0, $pos) . $coma . substr($item, $pos);
                         if ($keyInfo !== '') {

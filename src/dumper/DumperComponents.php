@@ -457,7 +457,7 @@ trait DumperComponents
         }, $string), self::$colors['closure']);
     }
 
-    public static function file(string $file, DumperConfig $config = null): string
+    public static function file(string $file, ?DumperConfig $config = null): string
     {
         $config = $config ?? Dumper::$config;
         $dirName = self::trimPath(self::normalizePath(dirname($file)), $config);

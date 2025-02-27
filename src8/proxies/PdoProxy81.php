@@ -17,6 +17,7 @@ use function microtime;
 class PdoProxy extends PDO
 {
 
+    /*
     public const ATTR_AUTOCOMMIT = 0;
     public const ATTR_PREFETCH = 1;
     public const ATTR_TIMEOUT = 2;
@@ -82,7 +83,7 @@ class PdoProxy extends PDO
     public const OCI_ATTR_CLIENT_IDENTIFIER = 1002;
     public const OCI_ATTR_MODULE = 1003;
     public const OCI_ATTR_CALL_TIMEOUT = 1004;
-
+    */
     public const NAME = 'pdo';
 
     /** @var int */

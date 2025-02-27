@@ -45,7 +45,7 @@ class PdoStatementProxy extends PDOStatement
         int|string $param,
         mixed &$var,
         int $type = PDO::PARAM_STR,
-        int $maxLength = null,
+        ?int $maxLength = null,
         mixed $driverOptions = null
     ): bool
     {

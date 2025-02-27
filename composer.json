@@ -70,38 +70,41 @@
 
         "lint:run": "php -v && php vendor/php-parallel-lint/php-parallel-lint/parallel-lint src client.php server.php",
         "lint:all": [
-            "php83 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
-            "php82 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
-            "php81 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
-            "php80 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
-            "php74 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
-            "php73 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
-            "php72 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
-            "php71 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php"
+			"php8.4 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php8.3 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php8.2 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php8.1 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php8.0 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src8 client.php server.php",
+            "php7.4 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php7.3 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php7.2 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php",
+            "php7.1 vendor/php-parallel-lint/php-parallel-lint/parallel-lint src src7 client.php server.php"
         ],
 
         "tests:run": "php vendor/nette/tester/src/tester tests/php71 -C --colors 1",
         "tests:all": [
-            "php83 vendor/nette/tester/src/tester tests -C --colors 1",
-            "php82 vendor/nette/tester/src/tester tests -C --colors 1",
-            "php81 vendor/nette/tester/src/tester tests/php71 tests/php74 tests/php81 -C --colors 1",
-            "php80 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
-            "php74 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
-            "php73 vendor/nette/tester/src/tester tests/php71 -C --colors 1",
-            "php72 vendor/nette/tester/src/tester tests/php71 -C --colors 1",
-            "php71 vendor/nette/tester/src/tester tests/php71 -C --colors 1"
+			"php8.4 vendor/nette/tester/src/tester tests -C --colors 1",
+            "php8.3 vendor/nette/tester/src/tester tests -C --colors 1",
+            "php8.2 vendor/nette/tester/src/tester tests -C --colors 1",
+            "php8.1 vendor/nette/tester/src/tester tests/php71 tests/php74 tests/php81 -C --colors 1",
+            "php8.0 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
+            "php7.4 vendor/nette/tester/src/tester tests/php71 tests/php74 -C --colors 1",
+            "php7.3 vendor/nette/tester/src/tester tests/php71 -C --colors 1",
+            "php7.2 vendor/nette/tester/src/tester tests/php71 -C --colors 1",
+            "php7.1 vendor/nette/tester/src/tester tests/php71 -C --colors 1"
         ],
         "tests:coverage": "php vendor/nette/tester/src/tester tests -c tests --colors 1 -p phpdbg --coverage tests/coverage.html --coverage-src src",
 
         "phpstan:run": "php -v && php vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
         "phpstan:all": [
-            "php83 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php82 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php81 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php80 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php74 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php73 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
-            "php72 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M"
+			"php8.4 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php8.3 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php8.2 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php8.1 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php8.0 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php7.4 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php7.3 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M",
+            "php7.2 vendor/phpstan/phpstan/phpstan analyze -c build/PhpStan/phpstan.neon --memory-limit 256M"
         ],
 
         "phpcs:run": [
